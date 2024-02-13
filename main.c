@@ -1,11 +1,11 @@
-#include "hardware.h"
+#include "platform.h"
 #include <stdint.h>
 
 static void enable_interrupts() { __asm__ volatile("cpsie i"); }
-extern uintptr_t __vector[];
+static void disable_interrupts() { __asm__ volatile("cpsid i"); }
 
 int main() {
-  *(uintptr_t *)(PPB_BASE + VTOR_OFFSET) = (uintptr_t)__vector;
+  *(volatile uintptr_t *)(PPB_BASE + VTOR_OFFSET) = (uintptr_t)__vector;
   enable_interrupts();
 
   volatile uint32_t *const target_gpio =

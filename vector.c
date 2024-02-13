@@ -52,7 +52,7 @@ void __attribute__((weak, alias("unhandled_irq"))) isr_irq29();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq30();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq31();
 
-uintptr_t __vector[] = {
+const uintptr_t __vector[] = {
     (uintptr_t)__stack,       (uintptr_t)_start,      (uintptr_t)isr_nmi,
     (uintptr_t)isr_hardfault, (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
