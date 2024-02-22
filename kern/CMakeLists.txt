@@ -5,6 +5,7 @@ add_executable(
 
   main.c
   start.s
+  string.c
   vector.c
 )
 
