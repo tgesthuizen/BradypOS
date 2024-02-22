@@ -4,6 +4,7 @@ add_executable(
   kern
 
   main.c
+  semihosting.c
   start.s
   string.c
   vector.c
