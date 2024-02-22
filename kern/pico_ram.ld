@@ -11,9 +11,11 @@ MEMORY
 
 PHDRS
 {
+    headers  PT_PHDR PHDRS;
     rox      PT_LOAD FILEHDR PHDRS;
     rw       PT_LOAD;
     scratch  PT_LOAD;
+    dynamic  PT_DYNAMIC;
 }
 
 ENTRY(_start)
@@ -29,7 +31,10 @@ SECTIONS
       *(.rodata)
       *(.rodata.*)
     } >RAM :rox
-    
+
+    .dynamic : {
+      *(.dynamic)
+    } >RAM :rw :dynamic
     .data : {
       *(.data)
       *(.data.*)
@@ -38,7 +43,7 @@ SECTIONS
       __bss_start = .;
       *(.bss)
       *(.bss.*)
-      __bss_end  = .;
+      __bss_end = .;
     } >RAM :rw
     
     .stack (NOLOAD) : {
