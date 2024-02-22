@@ -6,9 +6,23 @@ project(BradypOS
 )
 
 add_compile_options(
-  -mcpu=cortex-m0plus
   -Wall
   -Wextra
 )
 
+set(BRADYPOS_TARGET_PLATFORM "rp2040" CACHE STRING "Target to platform")
+
+include(GNUInstallDirs)
+
+set(BRADYPOS_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+set(BRADYPOS_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR})
+set(BRADYPOS_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
+
+set(
+  CMAKE_MODULE_PATH
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/platform/${BRADYPOS_TARGET_PLATFORM}"
+)
+
+include(Init)
 add_subdirectory(kern)
