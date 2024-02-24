@@ -1,5 +1,5 @@
-#include "semihosting.h"
-#include "string.h"
+#include <kern/semihosting.h>
+#include <kern/string.h>
 
 unsigned trap_sh(enum semihosting_syscall nr, uintptr_t ptr);
 

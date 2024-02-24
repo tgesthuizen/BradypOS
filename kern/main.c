@@ -1,5 +1,5 @@
-#include "debug.h"
-#include "platform.h"
+#include <kern/debug.h>
+#include <kern/platform.h>
 #include <stdint.h>
 
 int main() {

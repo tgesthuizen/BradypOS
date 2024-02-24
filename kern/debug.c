@@ -1,5 +1,5 @@
-#include "debug.h"
-#include "semihosting.h"
+#include <kern/debug.h>
+#include <kern/semihosting.h>
 #include <stdarg.h>
 
 void dbg_puts(const char *str) { sh_write0(str); }
@@ -49,7 +49,7 @@ static void dbg_vprintf(const char *fmt, va_list args) {
 }
 
 // TODO: Make this reusable and move it somewhere in the platform code.
-#include "platform.h"
+#include <kern/platform.h>
 
 enum {
   AIRCR_VECTKEY_MAGIC = 0x05fa << 16,
