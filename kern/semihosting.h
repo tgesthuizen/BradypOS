@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 enum semihosting_syscall {
-  SYS_OPEN,
+  SYS_OPEN = 0x01,
   SYS_CLOSE,
   SYS_WRITEC,
   SYS_WRITE0,
