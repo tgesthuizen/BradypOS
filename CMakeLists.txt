@@ -25,4 +25,13 @@ set(
 )
 
 include(Init)
+
+add_library(l4_common INTERFACE)
+target_include_directories(
+  l4_common
+  INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+link_libraries(l4_common)
+
 add_subdirectory(kern)
