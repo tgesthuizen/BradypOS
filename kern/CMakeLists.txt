@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 add_executable(
   kern
 
+  debug.c
   main.c
   semihosting.c
   start.s
