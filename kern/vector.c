@@ -6,9 +6,9 @@ extern void _start();
 static __attribute__((naked)) void isr_invalid() {
   __asm__ volatile("bkpt #0\n");
 }
+void __attribute__((weak, alias("isr_invalid"))) isr_nmi();
 void __attribute__((weak, alias("isr_invalid"))) isr_hardfault();
 void __attribute__((weak, alias("isr_invalid"))) isr_systick();
-void __attribute__((weak, alias("isr_invalid"))) isr_nmi();
 void __attribute__((weak, alias("isr_invalid"))) isr_svcall();
 void __attribute__((weak, alias("isr_invalid"))) isr_pendsv();
 
