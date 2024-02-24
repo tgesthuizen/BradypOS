@@ -3,6 +3,7 @@
 
 #define PPB_BASE 0xe0000000
 
+#define ACTLR_OFFSET 0xe008
 #define VTOR_OFFSET 0xed08
 
 #define SYST_CSR 0xe010
