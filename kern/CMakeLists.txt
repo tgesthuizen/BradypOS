@@ -34,3 +34,5 @@ set_target_properties(
   OUTPUT_NAME kern.elf
   LINK_DEPENDS ${KERN_LINKER_SCRIPT}
 )
+
+add_subdirectory(ssp)
