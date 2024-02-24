@@ -9,7 +9,6 @@ add_executable(
   debug.c
   main.c
   semihosting.c
-  start.s
   string.c
   vector.c
 )
@@ -21,18 +20,5 @@ target_include_directories(
 )
 target_link_libraries(kern PUBLIC kern_common)
 
-set(KERN_LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/pico_ram.ld)
-
-target_link_options(
-  kern
-  PUBLIC
-  -T ${KERN_LINKER_SCRIPT}
-)
-set_target_properties(
-  kern
-  PROPERTIES
-  OUTPUT_NAME kern.elf
-  LINK_DEPENDS ${KERN_LINKER_SCRIPT}
-)
-
+add_subdirectory(platform/${BRADYPOS_TARGET_PLATFORM})
 add_subdirectory(ssp)
