@@ -1,9 +1,6 @@
 #include "platform.h"
 #include <stdint.h>
 
-static void enable_interrupts() { __asm__ volatile("cpsie i"); }
-static void disable_interrupts() { __asm__ volatile("cpsid i"); }
-
 int main() {
   *(volatile uintptr_t *)(PPB_BASE + VTOR_OFFSET) = (uintptr_t)__vector;
   enable_interrupts();
