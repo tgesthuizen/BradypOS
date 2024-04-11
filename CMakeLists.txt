@@ -14,3 +14,8 @@ target_include_directories(
   PUBLIC
   include
 )
+set_target_properties(
+  libelf
+  PROPERTIES
+  OUTPUT_NAME elf
+)
