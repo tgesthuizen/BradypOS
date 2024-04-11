@@ -7,3 +7,6 @@ memory allocation nor file access.
 In order to use it, the user provides a dynamic interface for
 accessing the ELF file and mapping segments.
 
+A fair warning: `libelf` is not a generic ELF loader.
+It will only load ELF executables for the BradypOS operating system.
+Loading anything else should be considered experimental.
