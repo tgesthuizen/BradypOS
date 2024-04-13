@@ -26,6 +26,8 @@ set(
 
 include(Init)
 
+add_subdirectory(boot)
+
 add_library(l4_common INTERFACE)
 target_include_directories(
   l4_common
