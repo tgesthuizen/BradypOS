@@ -37,3 +37,4 @@ target_include_directories(
 link_libraries(l4_common)
 
 add_subdirectory(kern)
+add_subdirectory(lib)
