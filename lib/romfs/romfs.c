@@ -1,9 +1,46 @@
 #include "romfs.h"
 #include "include/romfs.h"
 
+static inline bool is_romfs_magic(char *data) {
+  static const char romfs_magic[] = "-rom1fs-";
+  for (unsigned i = 0; i < (sizeof(romfs_magic) - 1); ++i)
+    if (data[i] != romfs_magic[i])
+      return false;
+  return true;
+}
+
+bool is_valid_romfs(struct romfs_block_iface *iface, void *user) {
+  /**
+   * Right now we solely check whether the romfs magic is found in the header.
+   * Checksums are not verified.
+   */
+  char *data = NULL;
+  if (!iface->map((void **)&data, 0, 32, user))
+    return false;
+  const bool ret = is_romfs_magic(data);
+  iface->unmap((void **)&data, 32, user);
+  return ret;
+}
+
+static unsigned read_big_endian(char *data) {
+  unsigned result = 0;
+  result |= data[0];
+  result |= data[1] << 8;
+  result |= data[2] << 16;
+  result |= data[3] << 24;
+  return result;
+}
+
 bool romfs_info(struct romfs_block_iface *iface, void *user,
                 struct romfs_info *info) {
-  // TODO
+  char *data = NULL;
+  if (!iface->map((void **)&data, 0, 32, user))
+    return false;
+  for (unsigned i = 0; i < 16; ++i)
+    info->name[i] = data[i + 16];
+  // Integers are stored in big endian
+  info->total_size = read_big_endian(data + 8);
+  return true;
 }
 
 size_t romfs_root_directory(struct romfs_block_iface *iface, void *user) {
