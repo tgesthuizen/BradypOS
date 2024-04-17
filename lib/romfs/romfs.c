@@ -22,7 +22,7 @@ bool is_valid_romfs(const struct romfs_block_iface *iface, void *user) {
   return ret;
 }
 
-static unsigned read_big_endian(char *data) {
+static unsigned read_big_endian(unsigned char *data) {
   unsigned result = 0;
   result |= data[0] << 24;
   result |= data[1] << 16;
@@ -33,7 +33,7 @@ static unsigned read_big_endian(char *data) {
 
 bool romfs_info(const struct romfs_block_iface *iface, void *user,
                 struct romfs_info *info) {
-  char *data = NULL;
+  unsigned char *data = NULL;
   if (!iface->map((void **)&data, 0, 32, user))
     return false;
   for (unsigned i = 0; i < 16; ++i)
@@ -45,7 +45,7 @@ bool romfs_info(const struct romfs_block_iface *iface, void *user,
 
 bool romfs_file_info(const struct romfs_block_iface *iface, size_t file,
                      struct romfs_file_info *info, void *user) {
-  char *data;
+  unsigned char *data;
   if (iface->map((void **)&data, file, 32, user) != 0)
     return false;
   const unsigned next_file_hdr = read_big_endian(data);
@@ -73,6 +73,7 @@ size_t romfs_file_content_offset(const struct romfs_block_iface *iface,
   // Simply return the offset of the file header plus its size.
   (void)iface;
   (void)user;
+
   return file_handle + 16;
 }
 
@@ -82,7 +83,7 @@ size_t romfs_next_file(const struct romfs_block_iface *iface, size_t file,
   if (iface->map(&file_header, file, 16, user)) {
     return ROMFS_INVALID_FILE; // TODO: Indicate an error properly here
   }
-  unsigned next_field = read_big_endian((char *)file_header);
+  unsigned next_field = read_big_endian((unsigned char *)file_header);
 
   iface->unmap(&file_header, 16, user);
   return next_field & ~0b1111;
