@@ -9,13 +9,13 @@ static inline bool is_romfs_magic(char *data) {
   return true;
 }
 
-bool is_valid_romfs(struct romfs_block_iface *iface, void *user) {
+bool is_valid_romfs(const struct romfs_block_iface *iface, void *user) {
   /**
    * Right now we solely check whether the romfs magic is found in the header.
    * Checksums are not verified.
    */
   char *data = NULL;
-  if (!iface->map((void **)&data, 0, 32, user))
+  if (iface->map((void **)&data, 0, 32, user) != 0)
     return false;
   const bool ret = is_romfs_magic(data);
   iface->unmap((void **)&data, 32, user);
@@ -31,7 +31,7 @@ static unsigned read_big_endian(char *data) {
   return result;
 }
 
-bool romfs_info(struct romfs_block_iface *iface, void *user,
+bool romfs_info(const struct romfs_block_iface *iface, void *user,
                 struct romfs_info *info) {
   char *data = NULL;
   if (!iface->map((void **)&data, 0, 32, user))
@@ -43,7 +43,20 @@ bool romfs_info(struct romfs_block_iface *iface, void *user,
   return true;
 }
 
-size_t romfs_root_directory(struct romfs_block_iface *iface, void *user) {
+bool romfs_file_info(const struct romfs_block_iface *iface, size_t file,
+                     struct romfs_file_info *info, void *user) {
+  char *data;
+  if (iface->map((void **)&data, file, 32, user) != 0)
+    return false;
+  const unsigned next_file_hdr = read_big_endian(data);
+  info->executable = next_file_hdr & 0b1000;
+  info->type = (enum romfs_file_type)(next_file_hdr & 0b0111);
+  info->info = read_big_endian(data + 4);
+  info->size = read_big_endian(data + 8);
+  return true;
+}
+
+size_t romfs_root_directory(const struct romfs_block_iface *iface, void *user) {
   // We do not require the block interface for this really, the root file is
   // always at a constant offset in ROMFS.
   (void)iface;
@@ -51,7 +64,7 @@ size_t romfs_root_directory(struct romfs_block_iface *iface, void *user) {
   return 16; // TODO: Double check against the spec, no internet right now.
 }
 
-size_t romfs_file_content_offset(struct romfs_block_iface *iface,
+size_t romfs_file_content_offset(const struct romfs_block_iface *iface,
                                  size_t file_handle, void *user) {
   // Same ehere: The data always follows the file handle.
   // Simply return the offset of the file header plus its size.
@@ -60,7 +73,7 @@ size_t romfs_file_content_offset(struct romfs_block_iface *iface,
   return file_handle + 16;
 }
 
-size_t romfs_next_file(struct romfs_block_iface *iface, size_t file,
+size_t romfs_next_file(const struct romfs_block_iface *iface, size_t file,
                        void *user) {
   void *file_header;
   if (iface->map(&file_header, file, 16, user)) {
