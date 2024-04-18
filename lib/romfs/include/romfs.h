@@ -13,7 +13,7 @@ bool is_valid_romfs(const struct romfs_block_iface *iface, void *user);
 
 struct romfs_info {
   size_t total_size;
-  char name[16];
+  char name[16]; // BUG: The name can be longer than 16 chars
 };
 
 bool romfs_info(const struct romfs_block_iface *iface, void *user,
@@ -35,7 +35,7 @@ struct romfs_file_info {
   bool executable;
   unsigned info;
   size_t size;
-  char name[16];
+  char name[16]; // BUG: The name can be longer than 16 chars
 };
 
 bool romfs_file_info(const struct romfs_block_iface *iface, size_t file,

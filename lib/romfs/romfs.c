@@ -53,6 +53,7 @@ bool romfs_file_info(const struct romfs_block_iface *iface, size_t file,
   info->type = (enum romfs_file_type)(next_file_hdr & 0b0111);
   info->info = read_big_endian(data + 4);
   info->size = read_big_endian(data + 8);
+  // BUG: The name can be longer than 16 chars
   for (int i = 0; i < 16; ++i) {
     info->name[i] = data[i + 16];
   }
@@ -64,6 +65,7 @@ size_t romfs_root_directory(const struct romfs_block_iface *iface, void *user) {
   // always at a constant offset in ROMFS.
   (void)iface;
   (void)user;
+  // BUG: If the volume name is longer than 16 chars, this offset is incorrect.
   return 32;
 }
 
@@ -73,7 +75,8 @@ size_t romfs_file_content_offset(const struct romfs_block_iface *iface,
   // Simply return the offset of the file header plus its size.
   (void)iface;
   (void)user;
-
+  // BUG: The name of the file can be longer than 16 chars, so a constant offset
+  // is not correct.
   return file_handle + 16;
 }
 
