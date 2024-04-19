@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-extern unsigned char __stack[];
+extern unsigned char __stack_top[];
 int main();
 void _start();
 static __attribute__((naked)) void isr_invalid() {
@@ -34,7 +34,7 @@ void *memcpy(void *dest, const void *src, size_t size) {
 }
 
 __attribute__((section(".vector"))) const uintptr_t __vector[] = {
-    (uintptr_t)__stack,       (uintptr_t)_start,
+    (uintptr_t)__stack_top,   (uintptr_t)_start,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,

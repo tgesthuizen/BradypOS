@@ -46,7 +46,8 @@ SECTIONS
     .stack (NOLOAD) : {
       __stack = ALIGN(0x10);
       . = . + 0x200;
+      __stack_top = .;
     } >SCRATCH_X
 
-    __romfs_start = .;
+    __romfs_start = ALIGN(1024);
 }
