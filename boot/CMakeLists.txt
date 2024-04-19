@@ -30,4 +30,10 @@ set_target_properties(
   boot
   PROPERTIES
   LINK_DEPENDS ${BOOT_LINKER_SCRIPT}
+  OUTPUT_NAME boot.elf
+)
+add_custom_command(
+  TARGET boot
+  POST_BUILD
+  COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:boot> boot.bin
 )
