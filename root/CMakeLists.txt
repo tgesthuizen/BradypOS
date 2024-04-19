@@ -7,3 +7,8 @@ project(
 )
 
 add_executable(root root.c)
+target_compile_options(
+  root
+  PUBLIC
+  -ffreestanding
+)
