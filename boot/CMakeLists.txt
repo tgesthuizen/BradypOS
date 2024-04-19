@@ -9,6 +9,12 @@ add_executable(boot
   bs2_default_padded_checksummed.S
   boot.c
 )
+target_link_libraries(
+  boot
+  PUBLIC
+  libromfs
+)
+
 target_compile_options(boot
   PUBLIC
   -ffreestanding
