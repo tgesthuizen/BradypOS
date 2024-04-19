@@ -46,6 +46,9 @@ size_t romfs_file_content_offset(const struct romfs_block_iface *iface,
 size_t romfs_next_file(const struct romfs_block_iface *iface, size_t file,
                        void *user);
 
+size_t romfs_openat(const struct romfs_block_iface *iface, size_t file,
+                    const char *name, void *user);
+
 enum { ROMFS_INVALID_FILE = 0 };
 
 #endif

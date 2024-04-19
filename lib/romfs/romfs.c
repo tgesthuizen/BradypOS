@@ -91,3 +91,31 @@ size_t romfs_next_file(const struct romfs_block_iface *iface, size_t file,
   iface->unmap(&file_header, 16, user);
   return next_field & ~0b1111;
 }
+
+static bool romfs_strequal(const char *lhs, const char *rhs) {
+  while (*lhs && *rhs) {
+    if (*lhs++ != *rhs++)
+      return false;
+  }
+  return *lhs == *rhs;
+}
+
+size_t romfs_openat(const struct romfs_block_iface *iface, size_t file,
+                    const char *name, void *user) {
+  struct romfs_file_info file_info;
+  if (!romfs_file_info(iface, file, &file_info, user)) {
+    return ROMFS_INVALID_FILE;
+  }
+  if (file_info.type != romfs_ft_directory) {
+    return ROMFS_INVALID_FILE;
+  }
+  for (size_t current_file = file_info.info; current_file != ROMFS_INVALID_FILE;
+       current_file = romfs_next_file(iface, current_file, user)) {
+    if (!romfs_file_info(iface, current_file, &file_info, user)) {
+      continue;
+    }
+    if (romfs_strequal(file_info.name, name))
+      return current_file;
+  }
+  return ROMFS_INVALID_FILE;
+}
