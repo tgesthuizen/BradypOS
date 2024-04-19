@@ -1,3 +1,5 @@
+#include "romfs.h"
+#include <stddef.h>
 #include <stdint.h>
 
 extern unsigned char __stack[];
@@ -12,6 +14,23 @@ static __attribute__((naked)) void unhandled_irq() {
                    ".global unhandled_user_irq_num_in_r0\n"
                    "unhandled_user_irq_num_in_r0:\n\t"
                    "bkpt #0\n\t");
+}
+
+void *memset(void *ptr, int value, size_t num) {
+  unsigned char *cptr = (unsigned char *)ptr;
+  while (num--) {
+    *cptr++ = value;
+  }
+  return ptr;
+}
+
+void *memcpy(void *dest, const void *src, size_t size) {
+  unsigned char *cdest = (unsigned char *)dest;
+  const unsigned char *csrc = (const unsigned char *)src;
+  while (size--) {
+    *cdest++ = *csrc++;
+  }
+  return dest;
 }
 
 __attribute__((section(".vector"))) const uintptr_t __vector[] = {
@@ -43,11 +62,17 @@ __attribute__((section(".vector"))) const uintptr_t __vector[] = {
 __attribute__((naked)) void _start() {
   asm volatile("movs r0, #0\n\t"
                "movs lr, r0\n\t"
-               "bl [main]\n\t"
-               "b ."
-               :
-               : [main] "m"(main)
-               : "r0", "lr");
+               "ldr  r0, =__bss_start\n\t"
+               "movs r1, #0\n\t"
+               "ldr  r2, =__bss_len\n\t"
+               "bl   memset\n\t"
+               "ldr  r0, =__data_start\n\t"
+               "ldr  r1, =__data_lma\n\t"
+               "ldr  r2, =__data_len\n\t"
+               "bl   memcpy\n\t"
+               "bl   main\n\t"
+               "b    ." ::
+                   : "r0", "r1", "r2", "lr");
 }
 
 extern void *romfs_start;

@@ -27,13 +27,21 @@ SECTIONS
 	*(.text.*)
     } >FLASH
     .data : {
+        __data_start = .;
         *(.data)
 	*(.data.*)
+	__data_end = .;
     } >RAM AT>FLASH
+    __data_len = __data_end - __data_start;
+    __data_lma = .;
+
     .bss (NOLOAD) : {
+    	__bss_start = .;
         *(.bss)
 	*(.bss.*)
+	__bss_end = .;
     } >RAM
+    __bss_len = __bss_end - __bss_start;
 
     .stack (NOLOAD) : {
       __stack = ALIGN(0x10);
