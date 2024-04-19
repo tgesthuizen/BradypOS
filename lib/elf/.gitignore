@@ -1,0 +1,6 @@
+# Editor fragments
+*~
+
+# Build fragments
+/build*
+compile_commands.json
