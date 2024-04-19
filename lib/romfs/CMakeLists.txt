@@ -8,6 +8,11 @@ project(libromfs
 add_library(libromfs romfs.c)
 target_include_directories(libromfs PUBLIC include)
 target_compile_options(libromfs PRIVATE -ffreestanding)
+set_target_properties(
+  libromfs
+  PROPERTIES
+  OUTPUT_NAME romfs
+)
 
 option(
   LIBROMFS_BUILD_DEMOS
