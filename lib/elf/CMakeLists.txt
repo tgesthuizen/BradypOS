@@ -9,6 +9,11 @@ add_library(
   STATIC
   elf.c
 )
+target_compile_options(
+  libelf
+  PRIVATE
+  -ffreestanding
+)
 target_include_directories(
   libelf
   PUBLIC
