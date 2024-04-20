@@ -24,3 +24,8 @@ set_target_properties(
   PROPERTIES
   OUTPUT_NAME elf
 )
+
+option(LIBELF_BUILD_DEMOS "Whether to build libelf demo applications" OFF)
+if(LIBELF_BUILD_DEMOS)
+  add_subdirectory(demos)
+endif()
