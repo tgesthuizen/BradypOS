@@ -34,7 +34,7 @@ static int validate_elf_header(const Elf32_Ehdr *hdr)
 struct libelf_loaded_segment
 {
     Elf32_Phdr phdr;
-    unsigned loaded_addr;
+    void *loaded_addr;
     bool read_only;
 };
 
@@ -62,6 +62,7 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
         return err;
 
     // Load all segments
+    Elf32_Phdr dynamic_header;
     int segment_idx = 0;
     struct libelf_loaded_segment segments[LIBELF_MAX_SEGMENTS];
     for (int i = 0; i < elf_hdr.e_phnum; ++i)
@@ -69,33 +70,52 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
         Elf32_Phdr phdr;
         ops->read_elf_file(elf_hdr.e_phoff + i * elf_hdr.e_phentsize,
                            sizeof phdr, (char *)&phdr, user);
-        if (phdr.p_type != PT_LOAD)
-            continue;
-        segments[segment_idx].phdr = phdr;
-        if (phdr.p_flags & PF_W)
+	// Stash away dynamic phdr if we encounter it
+        if (phdr.p_type == PT_DYNAMIC)
         {
-            segments[segment_idx].read_only = false;
+            dynamic_header = phdr;
+            continue;
+        }
+        if (phdr.p_type != PT_LOAD)
+        {
+            continue;
+        }
+        segments[segment_idx].phdr = phdr;
+        segments[segment_idx].read_only = !(phdr.p_flags & PF_W);
+        if (segments[segment_idx].read_only)
+        {
             void *loc = NULL;
-            if (phdr.p_flags & LIBELF_LOAD_STATIC)
+            if (ops->map(&loc, phdr.p_offset, phdr.p_filesz, phdr.p_align,
+                         elf_flags_to_libelf_access(phdr.p_flags), user) != 0)
             {
-                loc = (void *)phdr.p_paddr;
+                return LIBELF_IFACE_ERROR;
             }
-            if (!ops->map_segment(&loc, phdr.p_memsz, phdr.p_align,
-                                  LIBELF_ACCESS_RWX, user))
-                return LIBELF_IFACE_ERROR;
-            if (!ops->read_elf_file(phdr.p_offset, phdr.p_filesz, loc, user))
-                return LIBELF_IFACE_ERROR;
+            segments[segment_idx].loaded_addr = loc;
         }
         else
         {
-            // Map segment from ROM
-            segments[segment_idx].read_only = true;
-            void *loc = NULL;
-            if (!ops->map_segment(&loc, phdr.p_filesz, phdr.p_align,
-                                  LIBELF_ACCESS_R, user))
+            void *loc;
+            if (ops->alloc_rw(&loc, phdr.p_memsz, phdr.p_align,
+                              elf_flags_to_libelf_access(phdr.p_flags),
+                              user) != 0)
+            {
                 return LIBELF_IFACE_ERROR;
+            }
+            segments[segment_idx].loaded_addr = loc;
+            if (ops->read_elf_file(phdr.p_offset, phdr.p_filesz, loc, user) !=
+                0)
+            {
+                return LIBELF_IFACE_ERROR;
+            }
+            for (size_t i = phdr.p_filesz; i < phdr.p_memsz; ++i)
+            {
+                ((unsigned char *)loc)[i] = 0;
+            }
         }
         ++segment_idx;
     }
+
+    // Apply relocations
+
     return 0;
 }
