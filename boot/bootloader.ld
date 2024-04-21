@@ -49,5 +49,7 @@ SECTIONS
       __stack_top = .;
     } >SCRATCH_X
 
-    __romfs_start = ALIGN(1024);
+    .romfs : {
+      __romfs_start = ALIGN(1024);
+    } >FLASH
 }
