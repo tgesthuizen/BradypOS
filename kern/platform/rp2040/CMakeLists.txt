@@ -29,6 +29,6 @@ target_link_options(
 set_target_properties(
   kern
   PROPERTIES
-  OUTPUT_NAME kern.elf
+  OUTPUT_NAME kern
   LINK_DEPENDS ${KERN_FLASH_LINKER_SCRIPT}
 )
