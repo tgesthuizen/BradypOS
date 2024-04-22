@@ -1,7 +1,9 @@
 #include "libelf.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -45,8 +47,8 @@ static int mmap_alloc_rw(void **location, size_t size, size_t align, int perm,
                          void *user)
 {
     struct mmap_state *state = user;
-    *location =
-        mmap(NULL, size, libelf_to_mmap_perm(perm), MAP_ANONYMOUS, -1, 0);
+    *location = mmap(NULL, size, libelf_to_mmap_perm(perm),
+                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     int ret = 0;
     if (*location == MAP_FAILED)
     {
@@ -90,6 +92,31 @@ int main(int argc, char **argv)
         return 1;
     }
     const char *const file_name = argv[1];
-    int ret;
-    ret = open(file_name, 0, O_RDONLY);
+    int fd;
+    fd = open(file_name, 0, O_RDONLY);
+    if (fd == -1)
+    {
+        fprintf(stderr, "error: Cannot open %s: %s\n", file_name,
+                strerror(errno));
+        errno = 0;
+        return 1;
+    }
+    struct mmap_state state;
+    state.fd = fd;
+    state._errno = 0;
+    int ret = load_elf_file(&mmap_ops, 0, &state);
+    switch (ret)
+    {
+    case LIBELF_INVALID_ELF:
+        fprintf(stdout, "error: Invalid ELF file\n");
+        return 1;
+    case LIBELF_IFACE_ERROR:
+        fprintf(stdout, "error: Interface call failed: %s",
+                strerror(state._errno));
+        return 1;
+    case LIBELF_OK:
+        return 0;
+    }
+    fprintf(stdout, "error: Unknown error\n");
+    return 1;
 }

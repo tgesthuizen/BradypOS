@@ -27,6 +27,7 @@ struct libelf_ops
 
 enum libelf_error
 {
+    LIBELF_OK,
     LIBELF_IFACE_ERROR,
     LIBELF_INVALID_ELF,
     LIBELF_CANNOT_LOAD_INPLACE,
