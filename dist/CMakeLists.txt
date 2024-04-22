@@ -3,6 +3,11 @@ set(BRADYPOS_LIB_COMPONENTS libelf libromfs)
 
 find_program(GENROMFS_EXECUTABLE genromfs REQUIRED)
 
+add_custom_target(
+  clean-romfs
+  COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/rootfs
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/rootfs
+)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rootfs)
 
 set(romfs_dependencies "")
@@ -30,7 +35,7 @@ add_custom_command(
           -V bradypos
 	  -d ${CMAKE_CURRENT_BINARY_DIR}/rootfs
 	  -f ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
-	  -A 512,/sbin/*
+	  -A "512,/sbin/*"
   DEPENDS ${romfs_dependencies}
   COMMENT "Generating root.romfs"
 )
