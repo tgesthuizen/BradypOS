@@ -86,14 +86,14 @@ size_t romfs_file_content_offset(const struct romfs_block_iface *iface,
     (void)user;
     // BUG: The name of the file can be longer than 16 chars, so a constant
     // offset is not correct.
-    return file_handle + 16;
+    return file_handle + 32;
 }
 
 size_t romfs_next_file(const struct romfs_block_iface *iface, size_t file,
                        void *user)
 {
     void *file_header;
-    if (iface->map(&file_header, file, 16, user))
+    if (iface->map(&file_header, file, 16, user) != 0)
     {
         return ROMFS_INVALID_FILE; // TODO: Indicate an error properly here
     }
