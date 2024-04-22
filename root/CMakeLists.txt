@@ -12,3 +12,8 @@ target_compile_options(
   PUBLIC
   -ffreestanding
 )
+set_target_properties(
+  root
+  PROPERTIES
+  OUTPUT_NAME root
+)
