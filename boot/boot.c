@@ -7,7 +7,8 @@ int main();
 void _start();
 static __attribute__((naked)) void isr_invalid()
 {
-    __asm__ volatile("bkpt #0\n");
+    __asm__ volatile("bkpt #0\n\t"
+		     "bx   lr\n\t");
 }
 static __attribute__((naked)) void unhandled_irq()
 {
@@ -15,7 +16,8 @@ static __attribute__((naked)) void unhandled_irq()
                      "sub r0, #16\n\t"
                      ".global unhandled_user_irq_num_in_r0\n"
                      "unhandled_user_irq_num_in_r0:\n\t"
-                     "bkpt #0\n\t");
+                     "bkpt #0\n\t"
+		     "bx lr\n\t");
 }
 
 void *memset(void *ptr, int value, size_t num)
