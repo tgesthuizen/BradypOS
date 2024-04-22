@@ -31,6 +31,7 @@ enum libelf_error
     LIBELF_IFACE_ERROR,
     LIBELF_INVALID_ELF,
     LIBELF_CANNOT_LOAD_INPLACE,
+    LIBELF_UNKNOWN_RELOC,
 };
 
 int load_elf_file(const struct libelf_ops *ops, int flags, void *user);

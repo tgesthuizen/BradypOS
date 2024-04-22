@@ -49,6 +49,18 @@ static enum libelf_access_permission elf_flags_to_libelf_access(int flags)
     return (enum libelf_access_permission)res;
 }
 
+static bool phdr_contains(const Elf32_Phdr *phdr, Elf32_Addr addr)
+{
+    return phdr->p_vaddr <= addr && phdr->p_vaddr + phdr->p_memsz > addr;
+}
+
+static void *linked_to_loaded_addr(const struct libelf_loaded_segment *segment,
+                                   Elf32_Addr addr)
+{
+    return ((unsigned char *)segment->loaded_addr) +
+           (addr - segment->phdr.p_vaddr);
+}
+
 int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
 {
     Elf32_Ehdr elf_hdr;
@@ -114,7 +126,86 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
         ++segment_idx;
     }
 
-    // Apply relocations
+    // Locate the dynamic tags
+    const Elf32_Dyn *current_tag = NULL;
+    for (int i = 0; i < segment_idx; ++i)
+    {
+        if (phdr_contains(&segments[i].phdr, dynamic_header.p_vaddr))
+        {
+            current_tag =
+                linked_to_loaded_addr(&segments[i], dynamic_header.p_vaddr);
+            break;
+        }
+    }
+
+    Elf32_Rel *current_reloc = NULL;
+    size_t rel_sz = 0;
+    size_t total_rel_sz = 0;
+    size_t relcount = 0;
+    for (; current_tag->d_tag != DT_NULL; ++current_tag)
+    {
+        switch (current_tag->d_tag)
+        {
+        case DT_REL:
+        {
+            // Lookup loaded address by linked address
+            Elf32_Addr linked_addr = current_tag->d_un.d_ptr;
+            for (int i = 0; i < segment_idx; ++i)
+            {
+                if (phdr_contains(&segments[i].phdr, linked_addr))
+                {
+                    current_reloc =
+                        linked_to_loaded_addr(&segments[i], linked_addr);
+                    break;
+                }
+            }
+        }
+        break;
+        case DT_RELCOUNT:
+            relcount = current_tag->d_un.d_val;
+            break;
+        case DT_RELSZ:
+            total_rel_sz = current_tag->d_un.d_val;
+            break;
+        case DT_RELENT:
+            rel_sz = current_tag->d_un.d_val;
+            break;
+        }
+    }
+
+    for (; current_reloc->r_info != R_ARM_NONE; ++current_reloc)
+    {
+        switch (current_reloc->r_info)
+        {
+        case R_ARM_RELATIVE:
+        {
+            Elf32_Addr *reloc_pos = NULL;
+            for (int i = 0; i < segment_idx; ++i)
+            {
+                if (phdr_contains(&segments[i].phdr, current_reloc->r_offset))
+                {
+                    reloc_pos = linked_to_loaded_addr(&segments[i],
+                                                      current_reloc->r_offset);
+                    break;
+                }
+            }
+            for (int i = 0; i < segment_idx; ++i)
+            {
+                if (phdr_contains(&segments[i].phdr, *reloc_pos))
+                {
+                    *reloc_pos = (Elf32_Addr)linked_to_loaded_addr(&segments[i],
+                                                                   *reloc_pos);
+                    break;
+                }
+            }
+        }
+        break;
+        default:
+            // Oops
+            ;
+            return LIBELF_UNKNOWN_RELOC;
+        }
+    }
 
     return 0;
 }
