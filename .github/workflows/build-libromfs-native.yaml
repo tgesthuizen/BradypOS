@@ -1,0 +1,18 @@
+name: Build native libromfs
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-libromfs-native.yaml
+      - lib/romfs/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: configure
+        run: cmake -S lib/romfs -B build -DCMAKE_BUILD_TYPE=Debug -DLIBROMFS_BUILD_DEMOS=ON
+      - name: build
+        run: cmake --build build
