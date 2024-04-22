@@ -84,7 +84,7 @@ __attribute__((naked)) void _start()
                      : "r0", "r1", "r2", "lr");
 }
 
-extern unsigned char *__romfs_start;
+extern unsigned char __romfs_start[];
 
 static int romfs_rom_map(void **data, size_t offset, size_t size, void *user)
 {
