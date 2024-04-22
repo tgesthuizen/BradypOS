@@ -51,7 +51,7 @@ add_custom_command(
 	  ${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
   DEPENDS boot
 	  ${CMAKE_CURRENT_SOURCE_DIR}/create_image.sh
-          ${CMAKE_CURRENT_BINARY_DIR}/boot.bing
+          ${CMAKE_CURRENT_BINARY_DIR}/boot.bin
 	  ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
   COMMENT "Constructing flash binary"
 )
