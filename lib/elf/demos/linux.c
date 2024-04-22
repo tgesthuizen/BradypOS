@@ -48,7 +48,7 @@ static int mmap_alloc_rw(void **location, size_t size, size_t align, int perm,
 {
     struct mmap_state *state = user;
     *location = mmap(NULL, size, libelf_to_mmap_perm(perm),
-                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+                     MAP_ANONYMOUS | MAP_PRIVATE | MAP_32BIT, -1, 0);
     int ret = 0;
     if (*location == MAP_FAILED)
     {
@@ -64,7 +64,7 @@ static int mmap_map(void **location, size_t offset, size_t size, size_t align,
                     int perm, void *user)
 {
     struct mmap_state *state = user;
-    *location = mmap(NULL, size, libelf_to_mmap_perm(perm), MAP_SHARED,
+    *location = mmap(NULL, size, libelf_to_mmap_perm(perm), MAP_SHARED | MAP_32BIT,
                      state->fd, offset);
     int ret = 0;
     if (*location == MAP_FAILED)
