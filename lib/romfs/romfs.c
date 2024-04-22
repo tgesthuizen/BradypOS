@@ -38,7 +38,7 @@ bool romfs_info(const struct romfs_block_iface *iface, void *user,
                 struct romfs_info *info)
 {
     unsigned char *data = NULL;
-    if (!iface->map((void **)&data, 0, 32, user))
+    if(iface->map((void **)&data, 0, 32, user) != 0)
         return false;
     for (unsigned i = 0; i < 16; ++i)
         info->name[i] = data[i + 16];
