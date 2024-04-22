@@ -43,10 +43,16 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
-  COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/boot.bin
-              ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
-	      >${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/boot.bin ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
+  COMMAND OBJDUMP=${CMAKE_OBJDUMP}
+          ${CMAKE_CURRENT_SOURCE_DIR}/create_image.sh
+          $<TARGET_FILE:boot>
+	  ${CMAKE_CURRENT_BINARY_DIR}/boot.bin
+	  ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
+	  ${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
+  DEPENDS boot
+	  ${CMAKE_CURRENT_SOURCE_DIR}/create_image.sh
+          ${CMAKE_CURRENT_BINARY_DIR}/boot.bing
+	  ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
   COMMENT "Constructing flash binary"
 )
 
