@@ -15,8 +15,8 @@ static int validate_elf_header(const Elf32_Ehdr *hdr)
         return LIBELF_INVALID_ELF;
     if (hdr->e_ident[EI_CLASS] != ELFCLASS32)
         return LIBELF_INVALID_ELF;
-    if (hdr->e_ident[EI_OSABI] != ELFOSABI_ARM_AEABI)
-        return LIBELF_INVALID_ELF;
+    // if (hdr->e_ident[EI_OSABI] != ELFOSABI_ARM_AEABI)
+    //     return LIBELF_INVALID_ELF;
     if (hdr->e_ident[EI_DATA] != ELFDATA2LSB)
         return LIBELF_INVALID_ELF;
     if (hdr->e_type != ET_EXEC)
@@ -27,8 +27,7 @@ static int validate_elf_header(const Elf32_Ehdr *hdr)
         return LIBELF_INVALID_ELF;
     if (hdr->e_phentsize < sizeof(Elf32_Phdr))
         return LIBELF_INVALID_ELF;
-    if (hdr)
-        return 0;
+    return 0;
 }
 
 struct libelf_loaded_segment
@@ -55,7 +54,7 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
     Elf32_Ehdr elf_hdr;
     int err;
     // Validate the header
-    if (!ops->read_elf_file(0, sizeof elf_hdr, (char *)&elf_hdr, user))
+    if (ops->read_elf_file(0, sizeof elf_hdr, (char *)&elf_hdr, user) != 0)
         return LIBELF_IFACE_ERROR;
     err = validate_elf_header(&elf_hdr);
     if (err)
@@ -70,7 +69,7 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
         Elf32_Phdr phdr;
         ops->read_elf_file(elf_hdr.e_phoff + i * elf_hdr.e_phentsize,
                            sizeof phdr, (char *)&phdr, user);
-	// Stash away dynamic phdr if we encounter it
+        // Stash away dynamic phdr if we encounter it
         if (phdr.p_type == PT_DYNAMIC)
         {
             dynamic_header = phdr;
