@@ -133,12 +133,10 @@ static int elf_read_file(size_t offset, size_t size, void *data, void *user)
     return 0;
 }
 
+// Assume align is a power of two
 static unsigned char *align_ptr(unsigned char *ptr, unsigned align)
 {
-    unsigned mod = (uintptr_t)ptr % align;
-    if (mod)
-        ptr += align - mod;
-    return ptr;
+    return (unsigned char *)(((uintptr_t)ptr + (align - 1)) & ~(align - 1));
 }
 
 static int elf_alloc_rw(void **location, size_t size, size_t align, int perm,
@@ -213,12 +211,12 @@ int main()
         .elf_file_base = kern_elf_base,
         .sram_marker = &__sram_start,
     };
-    struct libelf_state kern_state;
-    struct libelf_loaded_segment kern_segs[4];
+    static struct libelf_state kern_state;
+    static struct libelf_loaded_segment kern_segs[4];
     kern_state.max_segments = 4;
     kern_state.segments = kern_segs;
-    struct libelf_state root_state;
-    struct libelf_loaded_segment root_segs[4];
+    static struct libelf_state root_state;
+    static struct libelf_loaded_segment root_segs[4];
     root_state.max_segments = 4;
     root_state.segments = root_segs;
 
