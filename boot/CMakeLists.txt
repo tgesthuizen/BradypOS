@@ -8,6 +8,8 @@ project(boot
 add_executable(boot
   bs2_default_padded_checksummed.S
   boot.c
+  bootinfo.c
+  string.c
 )
 target_link_libraries(
   boot

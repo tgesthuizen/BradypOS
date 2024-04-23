@@ -1,3 +1,6 @@
+#include "bootinfo.h"
+#include "string.h"
+
 #include <libelf.h>
 #include <romfs.h>
 
@@ -20,27 +23,6 @@ static __attribute__((naked)) void unhandled_irq()
                      "unhandled_user_irq_num_in_r0:\n\t"
                      "bkpt #0\n\t"
                      "bx lr\n\t");
-}
-
-void *memset(void *ptr, int value, size_t num)
-{
-    unsigned char *cptr = (unsigned char *)ptr;
-    while (num--)
-    {
-        *cptr++ = value;
-    }
-    return ptr;
-}
-
-void *memcpy(void *dest, const void *src, size_t size)
-{
-    unsigned char *cdest = (unsigned char *)dest;
-    const unsigned char *csrc = (const unsigned char *)src;
-    while (size--)
-    {
-        *cdest++ = *csrc++;
-    }
-    return dest;
 }
 
 __attribute__((section(".vector"))) const uintptr_t __vector[] = {
@@ -226,6 +208,11 @@ int main()
     file_state.elf_file_base = root_elf_base;
     if (load_elf_file(&elf_ops, &root_state, &file_state) != LIBELF_OK)
         return 1;
+
+    construct_boot_info(&kern_state, &root_state, file_state.sram_marker);
+
+gdb_intercept_elf_positions_here:
+    ((void (*)(void *mem_info))kern_state.entry_point)(file_state.sram_marker);
 
     return 0;
 }
