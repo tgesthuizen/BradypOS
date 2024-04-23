@@ -27,6 +27,8 @@ SECTIONS
 	*(.text.*)
     } >FLASH
     .data : {
+    	__sram_start = .;
+    	. += 0x4000; # Give some headroom for kernel and root segments in SRAM
         __data_start = .;
         *(.data)
 	*(.data.*)

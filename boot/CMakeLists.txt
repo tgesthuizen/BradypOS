@@ -12,6 +12,7 @@ add_executable(boot
 target_link_libraries(
   boot
   PUBLIC
+  libelf
   libromfs
 )
 

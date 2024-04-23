@@ -1,4 +1,6 @@
-#include "romfs.h"
+#include <libelf.h>
+#include <romfs.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -8,7 +10,7 @@ void _start();
 static __attribute__((naked)) void isr_invalid()
 {
     __asm__ volatile("bkpt #0\n\t"
-		     "bx   lr\n\t");
+                     "bx   lr\n\t");
 }
 static __attribute__((naked)) void unhandled_irq()
 {
@@ -17,7 +19,7 @@ static __attribute__((naked)) void unhandled_irq()
                      ".global unhandled_user_irq_num_in_r0\n"
                      "unhandled_user_irq_num_in_r0:\n\t"
                      "bkpt #0\n\t"
-		     "bx lr\n\t");
+                     "bx lr\n\t");
 }
 
 void *memset(void *ptr, int value, size_t num)
@@ -114,6 +116,64 @@ static bool memcmp(const char *lhs, const char *rhs, size_t len)
     return true;
 }
 
+struct elf_file_state
+{
+    unsigned char *elf_file_base;
+    unsigned char *sram_marker;
+};
+
+static int elf_read_file(size_t offset, size_t size, void *data, void *user)
+{
+    struct elf_file_state *const state = user;
+    unsigned char *ucdata = data;
+    for (size_t i = 0; i < size; ++i)
+    {
+        ucdata[i] = state->elf_file_base[offset + i];
+    }
+    return 0;
+}
+
+static unsigned char *align_ptr(unsigned char *ptr, unsigned align)
+{
+    unsigned mod = (uintptr_t)ptr % align;
+    if (mod)
+        ptr += align - mod;
+    return ptr;
+}
+
+static int elf_alloc_rw(void **location, size_t size, size_t align, int perm,
+                        void *user)
+{
+    (void)perm;
+    struct elf_file_state *state = user;
+
+    state->sram_marker = align_ptr(state->sram_marker, align);
+    *location = state->sram_marker;
+    state->sram_marker += size;
+    return 0;
+}
+
+static int elf_map(void **location, size_t offset, size_t size, size_t align,
+                   int perm, void *user)
+{
+    (void)size;
+    (void)align;
+    (void)perm;
+    struct elf_file_state *state = user;
+
+    *location = state->elf_file_base + offset;
+    return 0;
+}
+
+static const struct libelf_ops elf_ops = {
+    .read_elf_file = elf_read_file,
+    .alloc_rw = elf_alloc_rw,
+    .map = elf_map,
+    .symbol = NULL,
+};
+
+extern unsigned char __sram_start;
+
 int main()
 {
     struct romfs_info info_block;
@@ -142,12 +202,32 @@ int main()
     }
     size_t kern_file = romfs_openat(&romfs_rom_mapping, sbin_dir, "kern", NULL);
     size_t root_file = romfs_openat(&romfs_rom_mapping, sbin_dir, "root", NULL);
-    const unsigned char *const kern_elf_base =
+    unsigned char *const kern_elf_base =
         __romfs_start +
         romfs_file_content_offset(&romfs_rom_mapping, kern_file, NULL);
-    const unsigned char *const root_elf_base =
+    unsigned char *const root_elf_base =
         __romfs_start +
         romfs_file_content_offset(&romfs_rom_mapping, root_file, NULL);
+
+    struct elf_file_state file_state = {
+        .elf_file_base = kern_elf_base,
+        .sram_marker = &__sram_start,
+    };
+    struct libelf_state kern_state;
+    struct libelf_loaded_segment kern_segs[4];
+    kern_state.max_segments = 4;
+    kern_state.segments = kern_segs;
+    struct libelf_state root_state;
+    struct libelf_loaded_segment root_segs[4];
+    root_state.max_segments = 4;
+    root_state.segments = root_segs;
+
+    if (load_elf_file(&elf_ops, &kern_state, &file_state) != LIBELF_OK)
+        return 1;
+
+    file_state.elf_file_base = root_elf_base;
+    if (load_elf_file(&elf_ops, &root_state, &file_state) != LIBELF_OK)
+        return 1;
 
     return 0;
 }

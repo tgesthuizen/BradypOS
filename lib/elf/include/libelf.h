@@ -2,6 +2,7 @@
 #define BRADYPOS_LIBELF_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -34,7 +35,25 @@ enum libelf_error
     LIBELF_UNKNOWN_RELOC,
 };
 
-int load_elf_file(const struct libelf_ops *ops, int flags, void *user);
+struct libelf_loaded_segment
+{
+    uintptr_t linked_addr;
+    uintptr_t loaded_addr;
+    size_t size;
+    int perm;
+};
+
+struct libelf_state
+{
+    uintptr_t got_loc;
+    uintptr_t entry_point;
+    uintptr_t phdrs;
+    size_t num_segments;
+    size_t max_segments;
+    struct libelf_loaded_segment *segments;
+};
+
+int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state, void *user);
 
 #ifdef __cplusplus
 }

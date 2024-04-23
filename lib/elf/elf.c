@@ -30,13 +30,6 @@ static int validate_elf_header(const Elf32_Ehdr *hdr)
     return 0;
 }
 
-struct libelf_loaded_segment
-{
-    Elf32_Phdr phdr;
-    void *loaded_addr;
-    bool read_only;
-};
-
 static enum libelf_access_permission elf_flags_to_libelf_access(int flags)
 {
     int res = 0;
@@ -49,19 +42,22 @@ static enum libelf_access_permission elf_flags_to_libelf_access(int flags)
     return (enum libelf_access_permission)res;
 }
 
-static bool phdr_contains(const Elf32_Phdr *phdr, Elf32_Addr addr)
-{
-    return phdr->p_vaddr <= addr && phdr->p_vaddr + phdr->p_memsz > addr;
-}
-
-static void *linked_to_loaded_addr(const struct libelf_loaded_segment *segment,
+static void *linked_to_loaded_addr(const struct libelf_state *state,
                                    Elf32_Addr addr)
 {
-    return ((unsigned char *)segment->loaded_addr) +
-           (addr - segment->phdr.p_vaddr);
+    for (size_t i = 0; i < state->num_segments; ++i)
+    {
+        struct libelf_loaded_segment *const segment = &state->segments[i];
+        if (segment->linked_addr <= addr &&
+            (segment->linked_addr + segment->size) > addr)
+            return (unsigned char *)segment->loaded_addr +
+                   (addr - segment->linked_addr);
+    }
+    return NULL;
 }
 
-int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
+int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
+                  void *user)
 {
     Elf32_Ehdr elf_hdr;
     int err;
@@ -72,71 +68,59 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
     if (err)
         return err;
 
-    // Load all segments
-    Elf32_Phdr dynamic_header;
-    int segment_idx = 0;
-    struct libelf_loaded_segment segments[LIBELF_MAX_SEGMENTS];
     for (int i = 0; i < elf_hdr.e_phnum; ++i)
     {
         Elf32_Phdr phdr;
         ops->read_elf_file(elf_hdr.e_phoff + i * elf_hdr.e_phentsize,
                            sizeof phdr, (char *)&phdr, user);
-        // Stash away dynamic phdr if we encounter it
-        if (phdr.p_type == PT_DYNAMIC)
-        {
-            dynamic_header = phdr;
-            continue;
-        }
-        if (phdr.p_type != PT_LOAD)
-        {
-            continue;
-        }
-        segments[segment_idx].phdr = phdr;
-        segments[segment_idx].read_only = !(phdr.p_flags & PF_W);
-        if (segments[segment_idx].read_only)
-        {
-            void *loc = NULL;
-            if (ops->map(&loc, phdr.p_offset, phdr.p_filesz, phdr.p_align,
-                         elf_flags_to_libelf_access(phdr.p_flags), user) != 0)
-            {
-                return LIBELF_IFACE_ERROR;
-            }
-            segments[segment_idx].loaded_addr = loc;
-        }
-        else
-        {
-            void *loc;
-            if (ops->alloc_rw(&loc, phdr.p_memsz, phdr.p_align,
-                              elf_flags_to_libelf_access(phdr.p_flags),
-                              user) != 0)
-            {
-                return LIBELF_IFACE_ERROR;
-            }
-            segments[segment_idx].loaded_addr = loc;
-            if (ops->read_elf_file(phdr.p_offset, phdr.p_filesz, loc, user) !=
-                0)
-            {
-                return LIBELF_IFACE_ERROR;
-            }
-            for (size_t i = phdr.p_filesz; i < phdr.p_memsz; ++i)
-            {
-                ((unsigned char *)loc)[i] = 0;
-            }
-        }
-        ++segment_idx;
-    }
 
-    // Locate the dynamic tags
-    const Elf32_Dyn *current_tag = NULL;
-    for (int i = 0; i < segment_idx; ++i)
-    {
-        if (phdr_contains(&segments[i].phdr, dynamic_header.p_vaddr))
+        switch (phdr.p_type)
         {
-            current_tag =
-                linked_to_loaded_addr(&segments[i], dynamic_header.p_vaddr);
+        case PT_LOAD:
+        {
+            struct libelf_loaded_segment *const segment =
+                &state->segments[state->num_segments++];
+            segment->perm = elf_flags_to_libelf_access(phdr.p_flags);
+            if (!(phdr.p_flags & PF_W))
+            {
+                void *loc = NULL;
+                if (ops->map(&loc, phdr.p_offset, phdr.p_filesz, phdr.p_align,
+                             segment->perm, user) != 0)
+                {
+                    return LIBELF_IFACE_ERROR;
+                }
+                segment->loaded_addr = (uintptr_t)loc;
+            }
+            else
+            {
+                void *loc;
+                if (ops->alloc_rw(&loc, phdr.p_memsz, phdr.p_align,
+                                  segment->perm, user) != 0)
+                {
+                    return LIBELF_IFACE_ERROR;
+                }
+                segment->loaded_addr = (uintptr_t)loc;
+                if (ops->read_elf_file(phdr.p_offset, phdr.p_filesz, loc,
+                                       user) != 0)
+                {
+                    return LIBELF_IFACE_ERROR;
+                }
+                for (size_t i = phdr.p_filesz; i < phdr.p_memsz; ++i)
+                {
+                    ((unsigned char *)loc)[i] = 0;
+                }
+            }
+        }
+        break;
+        case PT_DYNAMIC:
+            state->phdrs =
+                (uintptr_t)linked_to_loaded_addr(state, phdr.p_vaddr);
             break;
         }
     }
+
+    // Locate the dynamic tags
+    const Elf32_Dyn *current_tag = (const Elf32_Dyn *)state->phdrs;
 
     Elf32_Rel *current_reloc = NULL;
     size_t rel_sz = 0;
@@ -147,20 +131,9 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
         switch (current_tag->d_tag)
         {
         case DT_REL:
-        {
-            // Lookup loaded address by linked address
-            Elf32_Addr linked_addr = current_tag->d_un.d_ptr;
-            for (int i = 0; i < segment_idx; ++i)
-            {
-                if (phdr_contains(&segments[i].phdr, linked_addr))
-                {
-                    current_reloc =
-                        linked_to_loaded_addr(&segments[i], linked_addr);
-                    break;
-                }
-            }
-        }
-        break;
+            current_reloc =
+                linked_to_loaded_addr(state, current_tag->d_un.d_ptr);
+            break;
         case DT_RELCOUNT:
             relcount = current_tag->d_un.d_val;
             break;
@@ -181,25 +154,9 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
         {
         case R_ARM_RELATIVE:
         {
-            Elf32_Addr *reloc_pos = NULL;
-            for (int i = 0; i < segment_idx; ++i)
-            {
-                if (phdr_contains(&segments[i].phdr, current_reloc->r_offset))
-                {
-                    reloc_pos = linked_to_loaded_addr(&segments[i],
-                                                      current_reloc->r_offset);
-                    break;
-                }
-            }
-            for (int i = 0; i < segment_idx; ++i)
-            {
-                if (phdr_contains(&segments[i].phdr, *reloc_pos))
-                {
-                    *reloc_pos = (Elf32_Addr)linked_to_loaded_addr(&segments[i],
-                                                                   *reloc_pos);
-                    break;
-                }
-            }
+            Elf32_Addr *reloc_pos =
+                linked_to_loaded_addr(state, current_reloc->r_offset);
+            *reloc_pos = (Elf32_Addr)linked_to_loaded_addr(state, *reloc_pos);
         }
         break;
         default:
@@ -208,6 +165,9 @@ int load_elf_file(const struct libelf_ops *ops, int flags, void *user)
             return LIBELF_UNKNOWN_RELOC;
         }
     }
+
+    state->entry_point =
+        (uintptr_t)linked_to_loaded_addr(state, elf_hdr.e_entry);
 
     return 0;
 }
