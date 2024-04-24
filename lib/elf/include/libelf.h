@@ -31,8 +31,8 @@ enum libelf_error
     LIBELF_OK,
     LIBELF_IFACE_ERROR,
     LIBELF_INVALID_ELF,
-    LIBELF_CANNOT_LOAD_INPLACE,
     LIBELF_UNKNOWN_RELOC,
+    LIBELF_NODYN,
 };
 
 struct libelf_loaded_segment
@@ -53,7 +53,10 @@ struct libelf_state
     struct libelf_loaded_segment *segments;
 };
 
-int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state, void *user);
+int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
+                  void *user);
+int locate_elf_symbol(struct libelf_state *state, const char *symbol,
+                      void **addr);
 
 #ifdef __cplusplus
 }

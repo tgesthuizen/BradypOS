@@ -179,3 +179,25 @@ int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
 
     return 0;
 }
+
+int locate_elf_symbol(struct libelf_state *state, const char *symbol,
+                      void **addr)
+{
+    if (!state->phdrs)
+        return LIBELF_NODYN;
+    Elf32_Dyn *dyn = (void *)state->phdrs;
+    const char *strtab = NULL;
+    const Elf32_Sym *syms = NULL;
+    for (; dyn->d_tag != DT_NULL; ++dyn)
+    {
+        switch (dyn->d_tag)
+        {
+        case DT_SYMTAB:
+            syms = (void *)dyn->d_un.d_ptr;
+            break;
+        case DT_STRTAB:
+            strtab = (void *)dyn->d_un.d_ptr;
+            break;
+        }
+    }
+}

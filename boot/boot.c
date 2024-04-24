@@ -212,6 +212,7 @@ int main()
     construct_boot_info(&kern_state, &root_state, file_state.sram_marker);
 
 gdb_intercept_elf_positions_here:
+    register void *mem_info asm("r0") = file_state.sram_marker;
     ((void (*)(void *mem_info))kern_state.entry_point)(file_state.sram_marker);
 
     return 0;

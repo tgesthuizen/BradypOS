@@ -1,6 +1,5 @@
 #include <stdint.h>
 
-extern uint8_t __stack[];
 extern void _start();
 
 static __attribute__((naked)) void isr_invalid()
@@ -55,7 +54,7 @@ void __attribute__((weak, alias("unhandled_irq"))) isr_irq30();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq31();
 
 const uintptr_t __vector[] = {
-    (uintptr_t)__stack,       (uintptr_t)_start,      (uintptr_t)isr_nmi,
+    (uintptr_t)0x20040000,       (uintptr_t)_start,      (uintptr_t)isr_nmi,
     (uintptr_t)isr_hardfault, (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid, (uintptr_t)isr_svcall,
