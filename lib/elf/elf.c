@@ -180,24 +180,100 @@ int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
     return 0;
 }
 
+/**
+ * Adapted from System V application binary interface
+ * https://archive.org/details/systemvapplicati00unix
+ */
+static unsigned elf_hash(const unsigned char *name)
+{
+    unsigned h = 0, g;
+
+    while (*name)
+    {
+        h = (h << 4) + *name++;
+        if (g = (h & 0xf0000000), g)
+            h ^= g >> 24;
+        h &= ~g;
+    }
+    return h;
+}
+
+int elf_strcmp(const char *lhs, const char *rhs)
+{
+    while (*lhs && *rhs && *lhs == *rhs)
+    {
+        ++lhs;
+        ++rhs;
+    }
+    return *lhs - *rhs;
+}
+
+static inline Elf32_Sym *index_symbol(unsigned char *syms, Elf32_Word syment,
+                                      Elf32_Word idx)
+{
+    return (Elf32_Sym *)(syms + syment * idx);
+}
+
 int locate_elf_symbol(struct libelf_state *state, const char *symbol,
-                      void **addr)
+                      unsigned *value)
 {
     if (!state->phdrs)
         return LIBELF_NODYN;
+    // Detect locations of data structures in the binary
     Elf32_Dyn *dyn = (void *)state->phdrs;
-    const char *strtab = NULL;
-    const Elf32_Sym *syms = NULL;
+    char *strtab = NULL;
+    unsigned char *syms = NULL;
+    Elf32_Word *hash_map = NULL;
+    Elf32_Word syment = 0;
     for (; dyn->d_tag != DT_NULL; ++dyn)
     {
         switch (dyn->d_tag)
         {
+        case DT_HASH:
+            hash_map = (void *)dyn->d_un.d_ptr;
+            break;
         case DT_SYMTAB:
             syms = (void *)dyn->d_un.d_ptr;
             break;
         case DT_STRTAB:
             strtab = (void *)dyn->d_un.d_ptr;
             break;
+        case DT_SYMENT:
+            syment = dyn->d_un.d_val;
+            break;
         }
     }
+    if (!strtab || !syms || !hash_map)
+        return LIBELF_NODYN;
+
+    // Lookup symbol in hash table
+    const Elf32_Word nbucket = hash_map[0];
+    Elf32_Word *const buckets = hash_map + 2;
+    const Elf32_Word nchain = hash_map[1];
+    (void)nchain;
+    Elf32_Word *const chains = hash_map + 2 + nbucket;
+    const Elf32_Sym *sym = NULL;
+    unsigned symidx =
+        buckets[elf_hash((const unsigned char *)symbol) % nbucket];
+    bool found = false;
+    while (1)
+    {
+        if (symidx == STN_UNDEF)
+            break;
+        sym = index_symbol(syms, syment, symidx);
+        if (elf_strcmp(&strtab[sym->st_name], symbol) == 0)
+        {
+            found = true;
+            break;
+        }
+        symidx = chains[symidx];
+    }
+
+    if (!found)
+    {
+        return LIBELF_NOSYM;
+    }
+
+    *value = sym->st_value;
+    return LIBELF_OK;
 }
