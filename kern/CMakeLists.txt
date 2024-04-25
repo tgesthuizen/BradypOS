@@ -19,6 +19,16 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIRECTORY}
 )
 target_link_libraries(kern PUBLIC kern_common)
+target_compile_options(
+  kern
+  PRIVATE
+  -fvisibility=hidden
+)
+target_link_options(
+  kern
+  PRIVATE
+  -Wl,-E
+)
 
 add_subdirectory(platform/${BRADYPOS_TARGET_PLATFORM})
 add_subdirectory(ssp)

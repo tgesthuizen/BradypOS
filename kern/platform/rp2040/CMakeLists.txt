@@ -20,3 +20,15 @@ target_link_options(
   -pie
   -Wl,-z,text
 )
+
+target_link_options(
+  kern
+  PUBLIC
+  -T ${KERN_FLASH_LINKER_SCRIPT}
+)
+set_target_properties(
+  kern
+  PROPERTIES
+  OUTPUT_NAME kern
+  LINK_DEPENDS ${KERN_FLASH_LINKER_SCRIPT}
+)
