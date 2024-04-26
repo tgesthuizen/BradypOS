@@ -1,10 +1,10 @@
 #include <stdint.h>
 
-extern uint8_t __stack[];
 extern void _start();
 
-static __attribute__((naked)) void isr_invalid() {
-  __asm__ volatile("bkpt #0\n");
+static __attribute__((naked)) void isr_invalid()
+{
+    __asm__ volatile("bkpt #0\n");
 }
 void __attribute__((weak, alias("isr_invalid"))) isr_nmi();
 void __attribute__((weak, alias("isr_invalid"))) isr_hardfault();
@@ -12,12 +12,13 @@ void __attribute__((weak, alias("isr_invalid"))) isr_systick();
 void __attribute__((weak, alias("isr_invalid"))) isr_svcall();
 void __attribute__((weak, alias("isr_invalid"))) isr_pendsv();
 
-static __attribute__((naked)) void unhandled_irq() {
-  __asm__ volatile("mrs r0, ipsr\n\t"
-                   "sub r0, #16\n\t"
-                   ".global unhandled_user_irq_num_in_r0\n"
-                   "unhandled_user_irq_num_in_r0:\n\t"
-                   "bkpt #0\n\t");
+static __attribute__((naked)) void unhandled_irq()
+{
+    __asm__ volatile("mrs r0, ipsr\n\t"
+                     "sub r0, #16\n\t"
+                     ".global unhandled_user_irq_num_in_r0\n"
+                     "unhandled_user_irq_num_in_r0:\n\t"
+                     "bkpt #0\n\t");
 }
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq0();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq1();
@@ -53,7 +54,7 @@ void __attribute__((weak, alias("unhandled_irq"))) isr_irq30();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq31();
 
 const uintptr_t __vector[] = {
-    (uintptr_t)__stack,       (uintptr_t)_start,      (uintptr_t)isr_nmi,
+    (uintptr_t)0x20040000,       (uintptr_t)_start,      (uintptr_t)isr_nmi,
     (uintptr_t)isr_hardfault, (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid, (uintptr_t)isr_svcall,

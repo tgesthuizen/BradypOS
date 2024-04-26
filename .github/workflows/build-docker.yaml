@@ -1,0 +1,27 @@
+name: Build Docker
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-docker.yaml
+      - .github/docker/*
+
+jobs:
+  builder-arm-none-eabi:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: login
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: build
+        run: docker build .github/docker/builder-arm-none-eabi -t ghcr.io/${{ github.actor }}/builder-arm-none-eabi
+      - name: upload
+        run: docker push ghcr.io/${{ github.actor }}/builder-arm-none-eabi

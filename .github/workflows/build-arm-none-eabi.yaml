@@ -1,0 +1,26 @@
+name: CI for BradypOS
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-bradypos:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.actor }}/builder-arm-none-eabi
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+      # See https://github.com/actions/checkout/issues/1014
+      options: --user root
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=arm-gcc.tc -DCMAKE_BUILD_TYPE=MinSizeRel
+      - name: build
+        run: cmake --build build

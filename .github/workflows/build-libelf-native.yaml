@@ -1,0 +1,18 @@
+name: Build native libelf
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-libelf-native.yaml
+      - lib/elf/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: configure
+        run: cmake -S lib/elf -B build -DCMAKE_BUILD_TYPE=Debug -DLIBELF_BUILD_DEMOS=ON
+      - name: build
+        run: cmake --build build

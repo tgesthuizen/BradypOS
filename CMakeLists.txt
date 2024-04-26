@@ -38,3 +38,12 @@ link_libraries(l4_common)
 
 add_subdirectory(kern)
 add_subdirectory(lib)
+add_subdirectory(root)
+
+add_subdirectory(dist)
+file(
+  CREATE_LINK
+  ${CMAKE_CURRENT_BINARY_DIR}/dist/bradypos.bin
+  ${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
+  SYMBOLIC
+)
