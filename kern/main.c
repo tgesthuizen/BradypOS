@@ -15,7 +15,7 @@ int main()
     *(volatile uint32_t *)(SIO_BASE + SIO_GPIO_OUT_SET) = 1 << 25;
 }
 
-void toggle_led()
+ __attribute__((visibility("default"))) void toggle_led()
 {
     *(volatile uint32_t *)(SIO_BASE + SIO_GPIO_OUT_XOR) = 1 << 25;
 }

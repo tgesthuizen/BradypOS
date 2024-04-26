@@ -25,6 +25,7 @@ set(
 )
 
 include(Init)
+set(BRADYPOS_DEFAULT_LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/default.ld)
 
 add_subdirectory(boot)
 

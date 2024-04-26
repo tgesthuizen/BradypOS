@@ -205,15 +205,33 @@ int main()
     if (load_elf_file(&elf_ops, &kern_state, &file_state) != LIBELF_OK)
         return 1;
 
+    static const char got_symbol_name[] = "__global_offset_table";
+
+    unsigned kern_got = 0;
+    if (locate_elf_symbol(&kern_state, got_symbol_name, &kern_got) != LIBELF_OK)
+    {
+        return 1;
+    }
+
     file_state.elf_file_base = root_elf_base;
     if (load_elf_file(&elf_ops, &root_state, &file_state) != LIBELF_OK)
         return 1;
+
+    unsigned root_got = 0;
+    if (locate_elf_symbol(&root_state, got_symbol_name, &root_got) != LIBELF_OK)
+    {
+        return 1;
+    }
 
     construct_boot_info(&kern_state, &root_state, file_state.sram_marker);
 
 gdb_intercept_elf_positions_here:
     register void *mem_info asm("r0") = file_state.sram_marker;
-    ((void (*)(void *mem_info))kern_state.entry_point)(file_state.sram_marker);
-
+    register unsigned kern_got_reg asm("r9") = kern_got;
+    asm("blx %[entry_point]"
+        :
+        : [entry_point] "r"(kern_state.entry_point), "r"(mem_info),
+          "r"(kern_got_reg)
+        : "memory", "cc");
     return 0;
 }

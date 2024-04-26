@@ -19,7 +19,7 @@ static int validate_elf_header(const Elf32_Ehdr *hdr)
     //     return LIBELF_INVALID_ELF;
     if (hdr->e_ident[EI_DATA] != ELFDATA2LSB)
         return LIBELF_INVALID_ELF;
-    if (hdr->e_type != ET_EXEC)
+    if (hdr->e_type != ET_EXEC && hdr->e_type != ET_DYN)
         return LIBELF_INVALID_ELF;
     if (hdr->e_machine != EM_ARM)
         return LIBELF_INVALID_ELF;
@@ -200,18 +200,13 @@ static unsigned elf_hash(const unsigned char *name)
 
 int elf_strcmp(const char *lhs, const char *rhs)
 {
-    while (*lhs && *rhs && *lhs == *rhs)
+    while (*lhs != '\0' && *lhs == *rhs)
     {
-        ++lhs;
-        ++rhs;
+        lhs++;
+        rhs++;
     }
-    return *lhs - *rhs;
-}
 
-static inline Elf32_Sym *index_symbol(unsigned char *syms, Elf32_Word syment,
-                                      Elf32_Word idx)
-{
-    return (Elf32_Sym *)(syms + syment * idx);
+    return (*(unsigned char *)lhs) - (*(unsigned char *)rhs);
 }
 
 int locate_elf_symbol(struct libelf_state *state, const char *symbol,
@@ -222,24 +217,20 @@ int locate_elf_symbol(struct libelf_state *state, const char *symbol,
     // Detect locations of data structures in the binary
     Elf32_Dyn *dyn = (void *)state->phdrs;
     char *strtab = NULL;
-    unsigned char *syms = NULL;
+    const Elf32_Sym *syms = NULL;
     Elf32_Word *hash_map = NULL;
-    Elf32_Word syment = 0;
     for (; dyn->d_tag != DT_NULL; ++dyn)
     {
         switch (dyn->d_tag)
         {
         case DT_HASH:
-            hash_map = (void *)dyn->d_un.d_ptr;
+            hash_map = linked_to_loaded_addr(state, (void *)dyn->d_un.d_ptr);
             break;
         case DT_SYMTAB:
-            syms = (void *)dyn->d_un.d_ptr;
+            syms = linked_to_loaded_addr(state, (void *)dyn->d_un.d_ptr);
             break;
         case DT_STRTAB:
-            strtab = (void *)dyn->d_un.d_ptr;
-            break;
-        case DT_SYMENT:
-            syment = dyn->d_un.d_val;
+            strtab = linked_to_loaded_addr(state, (void *)dyn->d_un.d_ptr);
             break;
         }
     }
@@ -260,7 +251,7 @@ int locate_elf_symbol(struct libelf_state *state, const char *symbol,
     {
         if (symidx == STN_UNDEF)
             break;
-        sym = index_symbol(syms, syment, symidx);
+        sym = &syms[symidx];
         if (elf_strcmp(&strtab[sym->st_name], symbol) == 0)
         {
             found = true;
@@ -274,6 +265,6 @@ int locate_elf_symbol(struct libelf_state *state, const char *symbol,
         return LIBELF_NOSYM;
     }
 
-    *value = sym->st_value;
+    *value = linked_to_loaded_addr(state, sym->st_value);
     return LIBELF_OK;
 }
