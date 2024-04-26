@@ -12,7 +12,7 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rootfs)
 
 set(romfs_dependencies "")
 
-macro(place_stripped_sbin_in_rootfs target)
+function(place_stripped_sbin_in_rootfs target)
   get_target_property(OUTPUT_NAME ${target} OUTPUT_NAME)
   set(TARGET_FILE ${CMAKE_CURRENT_BINARY_DIR}/rootfs/sbin/${OUTPUT_NAME})
   set(SRC_FILE $<TARGET_FILE:${target}>)
@@ -24,7 +24,8 @@ macro(place_stripped_sbin_in_rootfs target)
     COMMENT "Installing ${target} in rootfs"
   )
   list(APPEND romfs_dependencies ${TARGET_FILE})
-endmacro()
+  set(romfs_dependencies ${romfs_dependencies} PARENT_SCOPE)
+endfunction()
 
 place_stripped_sbin_in_rootfs(kern)
 place_stripped_sbin_in_rootfs(root)
