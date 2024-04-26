@@ -1,6 +1,0 @@
-{
-  global:
-    _GLOBAL_OFFSET_TABLE_;
-  local:
-    *;
-};
