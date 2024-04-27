@@ -224,13 +224,13 @@ int locate_elf_symbol(struct libelf_state *state, const char *symbol,
         switch (dyn->d_tag)
         {
         case DT_HASH:
-            hash_map = linked_to_loaded_addr(state, (void *)dyn->d_un.d_ptr);
+            hash_map = linked_to_loaded_addr(state, dyn->d_un.d_ptr);
             break;
         case DT_SYMTAB:
-            syms = linked_to_loaded_addr(state, (void *)dyn->d_un.d_ptr);
+            syms = linked_to_loaded_addr(state, dyn->d_un.d_ptr);
             break;
         case DT_STRTAB:
-            strtab = linked_to_loaded_addr(state, (void *)dyn->d_un.d_ptr);
+            strtab = linked_to_loaded_addr(state, dyn->d_un.d_ptr);
             break;
         }
     }
@@ -265,6 +265,6 @@ int locate_elf_symbol(struct libelf_state *state, const char *symbol,
         return LIBELF_NOSYM;
     }
 
-    *value = linked_to_loaded_addr(state, sym->st_value);
+    *value = (unsigned)linked_to_loaded_addr(state, sym->st_value);
     return LIBELF_OK;
 }
