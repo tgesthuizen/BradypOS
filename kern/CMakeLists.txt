@@ -18,7 +18,6 @@ target_sources(
 target_include_directories(
   libkern
   INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIRECTORY}
   include
 )
 target_compile_options(
