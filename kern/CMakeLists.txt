@@ -1,5 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Make the kernel headers a separate library.
+# This allows for kernel "plugins" like the SSP support.
+add_library(
+  kernel_headers
+  INTERFACE
+)
+target_include_directories(
+  kernel_headers
+  INTERFACE
+  include
+)
+
 add_library(
   libkern
   INTERFACE
@@ -14,11 +26,10 @@ target_sources(
   string.c
   vector.c
 )
-
-target_include_directories(
+target_link_libraries(
   libkern
   INTERFACE
-  include
+  kernel_headers
 )
 target_compile_options(
   libkern

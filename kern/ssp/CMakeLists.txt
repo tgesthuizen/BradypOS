@@ -14,7 +14,7 @@ target_compile_options(
   INTERFACE
   -fstack-protector
 )
-target_link_libraries(kern_ssp PUBLIC kern_common)
+target_link_libraries(kern_ssp PUBLIC kernel_headers)
 # Don't build this module when it is not required
 set_target_properties(
   kern_ssp
