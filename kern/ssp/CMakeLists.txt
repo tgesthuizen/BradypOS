@@ -31,4 +31,3 @@ option(
 if(BRADYPOS_KERNEL_USE_SSP)
   target_link_libraries(kern PRIVATE kern_ssp)
 endif()
-

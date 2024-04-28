@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
-add_library(kern_common INTERFACE)
-target_include_directories(kern_common INTERFACE include)
+add_library(
+  libkern
+  INTERFACE
+)
 
-add_executable(
-  kern
-
+target_sources(
+  libkern
+  INTERFACE
   debug.c
   main.c
   semihosting.c
@@ -14,20 +16,15 @@ add_executable(
 )
 
 target_include_directories(
-  kern
-  PRIVATE
+  libkern
+  INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIRECTORY}
+  include
 )
-target_link_libraries(kern PUBLIC kern_common)
 target_compile_options(
-  kern
-  PRIVATE
+  libkern
+  INTERFACE
   -fvisibility=hidden
-)
-target_link_options(
-  kern
-  PRIVATE
-  -Wl,-E
 )
 
 add_subdirectory(platform/${BRADYPOS_TARGET_PLATFORM})
