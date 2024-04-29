@@ -29,6 +29,7 @@ void nvic_init()
     {
         nvic_set_priority(i, 1 << 30);
     }
+    *(volatile unsigned *)NVIC_ISER = ~0;
 }
 
 bool nvis_is_enabled(unsigned interrupt)
