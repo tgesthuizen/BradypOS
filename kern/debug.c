@@ -84,3 +84,5 @@ void panic(const char *fmt, ...)
 
     reset_processor();
 }
+
+void isr_hardfault() { panic("!!! PANIC: Hardfault triggered\n"); }
