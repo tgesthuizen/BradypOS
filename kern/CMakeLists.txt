@@ -21,6 +21,7 @@ target_sources(
   libkern
   INTERFACE
   debug.c
+  kalarm.c
   main.c
   nvic.c
   semihosting.c
