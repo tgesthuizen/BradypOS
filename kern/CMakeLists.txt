@@ -22,8 +22,10 @@ target_sources(
   INTERFACE
   debug.c
   main.c
+  nvic.c
   semihosting.c
   string.c
+  systick.c
   vector.c
 )
 target_link_libraries(
