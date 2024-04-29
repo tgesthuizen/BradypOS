@@ -10,7 +10,7 @@ add_compile_options(
   -Wextra
 )
 
-set(BRADYPOS_TARGET_PLATFORM "rp2040" CACHE STRING "Target to platform")
+set(BRADYPOS_TARGET_PLATFORM "rp2040" CACHE STRING "Platform to target")
 
 include(GNUInstallDirs)
 
