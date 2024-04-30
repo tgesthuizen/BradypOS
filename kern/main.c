@@ -16,6 +16,6 @@ int main()
     dbg_puts("Interrupts are enabled, we have booted!\n");
 
     dbg_puts("Resetting...");
-    nvic_set_pending(EXC_RESET, true);
+    reset_processor();
     return 0;
 }

@@ -62,7 +62,7 @@ enum
     AIRCR_SYSRESETREQ = 0x1 << 1,
 };
 
-static __attribute__((noreturn)) void reset_processor()
+void reset_processor()
 {
     // Request the reset
     *(volatile uint32_t *)(PPB_BASE + ACTLR_OFFSET) =
@@ -71,6 +71,8 @@ static __attribute__((noreturn)) void reset_processor()
     // The armv6m reference manual explicitly says that the reset might
     // take some time to happen.
     // TODO: Should we disable interrupts here?
+    // BUG: Turns out the reset can take quite some time. I don't think what we
+    // do here is sufficient to cause a reset.
     while (1)
         ;
 }
