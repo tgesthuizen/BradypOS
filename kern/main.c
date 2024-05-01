@@ -1,5 +1,6 @@
 #include <kern/debug.h>
 #include <kern/interrupts.h>
+#include <kern/kalarm.h>
 #include <kern/platform.h>
 #include <kern/systick.h>
 #include <stdint.h>
@@ -11,6 +12,7 @@ int main()
     *(volatile uintptr_t *)(PPB_BASE + VTOR_OFFSET) = (uintptr_t)__vector;
     systick_init();
     interrupts_init();
+    kalarm_init();
     enable_interrupts();
 
     dbg_puts("Interrupts are enabled, we have booted!\n");
