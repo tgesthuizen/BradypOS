@@ -4,7 +4,8 @@ extern void _start();
 
 static __attribute__((naked)) void isr_invalid()
 {
-    __asm__ volatile("bkpt #0\n");
+    __asm__ volatile("bkpt #0\n"
+                     "b .\n\t");
 }
 void __attribute__((weak, alias("isr_invalid"))) isr_nmi();
 void __attribute__((weak, alias("isr_invalid"))) isr_hardfault();
@@ -18,7 +19,11 @@ static __attribute__((naked)) void unhandled_irq()
                      "sub r0, #16\n\t"
                      ".global unhandled_user_irq_num_in_r0\n"
                      "unhandled_user_irq_num_in_r0:\n\t"
-                     "bkpt #0\n\t");
+                     "bkpt #0\n\t"
+                     "b .\n\t"
+                     :
+                     :
+                     : "r0");
 }
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq0();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq1();
