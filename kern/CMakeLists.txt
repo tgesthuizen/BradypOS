@@ -21,9 +21,9 @@ target_sources(
   libkern
   INTERFACE
   debug.c
+  interrupts.c
   kalarm.c
   main.c
-  nvic.c
   semihosting.c
   string.c
   systick.c

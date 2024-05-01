@@ -4,7 +4,16 @@
 #define PPB_BASE 0xe0000000
 
 #define ACTLR_OFFSET 0xe008
+#define CPUID_OFFSET 0xed00
+#define ICSR_OFFSET 0xed04
 #define VTOR_OFFSET 0xed08
+#define AIRCR_OFFSET 0xed0c
+#define SCR_OFFSET 0xed10
+#define CCR_OFFSET 0xed14
+#define SHPR2_OFFSET 0xed1c
+#define SHPR3_OFFSET 0xed20
+#define SHCSR_OFFSET 0xed24
+#define DFSR_OFFSET 0xed30
 
 #define SYST_CSR 0xe010
 #define SYST_RVR 0xe014

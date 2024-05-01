@@ -19,7 +19,8 @@ static inline unsigned irq_to_exception_number(unsigned irq_num)
     return EXC_EXTERNAL_BASE + irq_num;
 }
 
-void nvic_init();
+void interrupts_init();
+
 bool nvic_is_enabled(unsigned interrupt);
 void nvic_set_enabled(unsigned interrupt, bool enabled);
 bool nvic_is_pending(unsigned interrupt);

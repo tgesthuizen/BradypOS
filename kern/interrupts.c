@@ -1,4 +1,5 @@
-#include <kern/nvic.h>
+#include "kern/hardware.h"
+#include <kern/interrupts.h>
 
 #define NVIC_ISER 0xE000E100
 #define NVIC_ICER 0xE000E180
@@ -19,17 +20,28 @@ static void nvic_set_priority(unsigned interrupt, unsigned prio)
     *target_register = value;
 }
 
-void nvic_init()
+enum
 {
-    // TODO: Put some thought into interrupt priorities
-    nvic_set_priority(EXC_SVCALL, 2 << 30);
-    nvic_set_priority(EXC_PENDSV, 3 << 30);
-    nvic_set_priority(EXC_SYSTICK, 1 << 30);
-    for (int i = 16; i < 32; ++i)
-    {
-        nvic_set_priority(i, 1 << 30);
-    }
-    *(volatile unsigned *)NVIC_ISER = ~0;
+    SVCALL_PRIORITY = 1,
+    PENDSV_PRIORITY = 4,
+    SYSTICK_PRIORITY = 2,
+    DEFAULT_IRQ_PRIORITY = 2,
+};
+
+void interrupts_init()
+{
+    // The ARMv6m reference manual is a bit vague here sadly.
+    // As far as I understood so far, the NVIC manages IRQs and for the
+    // remaining exceptions there are special purpose registers. However, they
+    // cannot be centrally disabled/enabled.
+
+    for (int i = 0; i < 32; ++i)
+        nvic_set_priority(i, DEFAULT_IRQ_PRIORITY << 30);
+    // Disable all IRQs
+    *(volatile unsigned *)NVIC_ICER = ~0;
+    *(volatile unsigned *)(PPB_BASE + SHPR2_OFFSET) = (SVCALL_PRIORITY << 30);
+    *(volatile unsigned *)(PPB_BASE + SHPR3_OFFSET) =
+        (PENDSV_PRIORITY << 23) | (SYSTICK_PRIORITY << 30);
 }
 
 bool nvis_is_enabled(unsigned interrupt)
