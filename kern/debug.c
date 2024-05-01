@@ -73,8 +73,9 @@ void reset_processor()
     // TODO: Should we disable interrupts here?
     // BUG: Turns out the reset can take quite some time. I don't think what we
     // do here is sufficient to cause a reset.
-    while (1)
-        ;
+    asm volatile("dsb\n\t"
+                 "b .\n\t" ::
+                     : "memory");
 }
 
 void panic(const char *fmt, ...)
