@@ -59,13 +59,13 @@ static void dbg_vprintf(const char *fmt, va_list args)
 enum
 {
     AIRCR_VECTKEY_MAGIC = 0x05fa << 16,
-    AIRCR_SYSRESETREQ = 0x1 << 1,
+    AIRCR_SYSRESETREQ = 1 << 2,
 };
 
 void reset_processor()
 {
     // Request the reset
-    *(volatile uint32_t *)(PPB_BASE + ACTLR_OFFSET) =
+    *(volatile uint32_t *)(PPB_BASE + AIRCR_OFFSET) =
         AIRCR_VECTKEY_MAGIC | AIRCR_SYSRESETREQ;
     // And wait for it to happen.
     // The armv6m reference manual explicitly says that the reset might
@@ -73,9 +73,9 @@ void reset_processor()
     // TODO: Should we disable interrupts here?
     // BUG: Turns out the reset can take quite some time. I don't think what we
     // do here is sufficient to cause a reset.
-    asm volatile("dsb\n\t"
-                 "b .\n\t" ::
-                     : "memory");
+    asm volatile("dsb" ::: "memory");
+    while (1)
+        asm volatile("wfi");
 }
 
 void panic(const char *fmt, ...)
