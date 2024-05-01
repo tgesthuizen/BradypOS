@@ -27,6 +27,7 @@ target_sources(
   semihosting.c
   string.c
   systick.c
+  thread.c
   vector.c
 )
 target_link_libraries(
