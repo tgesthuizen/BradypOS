@@ -17,7 +17,11 @@ static struct kalarm_event kalarm_events[MAX_KALARM_EVENTS];
 static unsigned kalarm_count;
 static unsigned long current_time;
 
-void kalarm_init() { kalarm_count = 0; }
+void kalarm_init()
+{
+    kalarm_count = 0;
+    current_time = 0;
+}
 
 static void swap_kalarm_event(struct kalarm_event *lhs,
                               struct kalarm_event *rhs)
