@@ -13,10 +13,10 @@ struct systick_t
 
 enum systick_csr_bits
 {
-    SYSTICK_CSR_COUNTFLAG = (1 << 16),
-    SYSTICK_CSR_CLKSRC = (1 << 2),
-    SYSTICK_CSR_TICKINT = (1 << 1),
     SYSTICK_CSR_ENABLE = (1 << 0),
+    SYSTICK_CSR_TICKINT = (1 << 1),
+    SYSTICK_CSR_CLKSRC = (1 << 2),
+    SYSTICK_CSR_COUNTFLAG = (1 << 16),
 };
 
 enum systick_calib_bits
@@ -30,7 +30,7 @@ void systick_init()
 {
     // Explicitly disable the systick timer
     const unsigned control_flags =
-        SYSTICK_CSR_TICKINT | SYSTICK_CSR_TICKINT | SYSTICK_CSR_COUNTFLAG;
+        SYSTICK_CSR_TICKINT | SYSTICK_CSR_CLKSRC | SYSTICK_CSR_COUNTFLAG;
     SYSTICK->csr = control_flags;
     // Fire every 100ms
     const unsigned tick_rate = SYSTICK->calib & (SYSTICK_CALIB_TENMS_MASK / 10);
