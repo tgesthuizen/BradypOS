@@ -225,7 +225,7 @@ int main()
 
     construct_boot_info(&kern_state, &root_state, file_state.sram_marker);
 
-gdb_intercept_elf_positions_here:
+    asm volatile("gdb_intercept_elf_positions_here:\n\t");
     register void *mem_info asm("r0") = file_state.sram_marker;
     register unsigned kern_got_reg asm("r9") = kern_got;
     asm("blx %[entry_point]"
