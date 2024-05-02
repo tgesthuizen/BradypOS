@@ -67,3 +67,8 @@ add_custom_target(
   ALL
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
 )
+
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/bradypos.bin
+  DESTINATION ${CMAKE_INSTALL_DATADIR}
+)

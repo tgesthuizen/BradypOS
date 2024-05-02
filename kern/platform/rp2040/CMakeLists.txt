@@ -59,3 +59,8 @@ set_target_properties(
   PROPERTIES
   LINK_DEPENDS ${KERN_RAM_LINKER_SCRIPT}
 )
+
+install(
+  TARGETS kern_ram
+  DESTINATION ${BRADYPOS_INSTALL_BINDIR}
+)
