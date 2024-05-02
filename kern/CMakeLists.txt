@@ -25,7 +25,10 @@ target_sources(
   kalarm.c
   main.c
   semihosting.c
+  softirq.c
   string.c
+  syscall.c
+  systhread.c
   systick.c
   thread.c
   vector.c

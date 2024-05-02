@@ -38,9 +38,13 @@ struct tcb_t
     struct thread_context_t ctx;
     struct as_t *as;
     struct utcb_t *utcb;
+    unsigned priority;
 
     L4_thread_t ipc_from;
     uint32_t timeout_event;
 };
+
+void init_task();
+void request_reschedule();
 
 #endif

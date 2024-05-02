@@ -80,3 +80,5 @@ void isr_systick()
         pop_kalarm_event().what();
     }
 }
+
+unsigned long get_current_time() { return current_time; }
