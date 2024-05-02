@@ -16,11 +16,19 @@ jobs:
       options: --user root
     permissions:
       contents: read
-      packages: read
+      packages: write
     steps:
       - name: checkout
         uses: actions/checkout@v4
       - name: configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=arm-gcc.tc -DCMAKE_BUILD_TYPE=MinSizeRel
+        run: cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=arm-gcc.tc -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX=$PWD/install
       - name: build
         run: cmake --build build
+      - name: install
+        run: cmake --build build --target install
+      - name: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: bradypos
+          path: install/
+          if-no-files-found: warn
