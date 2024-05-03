@@ -44,7 +44,8 @@ struct tcb_t
     uint32_t timeout_event;
 };
 
-void init_task();
+void init_thread_system();
 void request_reschedule();
+void set_thread_state(struct tcb_t *thread, enum thread_state_t state);
 
 #endif

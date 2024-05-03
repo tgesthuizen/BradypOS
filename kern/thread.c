@@ -2,7 +2,15 @@
 #include <kern/platform.h>
 #include <kern/thread.h>
 
-struct tcb_t *current_task;
+enum
+{
+    THREAD_MAX_COUNT = 16
+};
+
+struct tcb_t *current_thread;
+static struct tcb_t thread_list[THREAD_MAX_COUNT];
+static struct tcb_t *thread_list_sorted[THREAD_MAX_COUNT];
+static unsigned thread_count;
 
 enum icsr_bits_t
 {
@@ -16,6 +24,11 @@ enum icsr_bits_t
     ICSR_PENDSVSET = 1 << 28,
     ICSR_NMIPENDSET = 1 << 31,
 };
+
+void set_thread_state(struct tcb_t *tcb, enum thread_state_t state) {
+  tcb->state = state;
+  // Update heaps
+}
 
 void request_reschedule()
 {

@@ -9,4 +9,4 @@ static L4_thread_t root_id;
 void create_sys_threads() {}
 
 void switch_to_kernel() { panic("kernel switch not yet implemented\n"); }
-void set_kernel_state(enum thread_state_t state) { kern_tcb->state = state; }
+struct tcb_t *get_kernel_tcb() { return kern_tcb; }

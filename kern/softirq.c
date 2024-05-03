@@ -17,7 +17,7 @@ static void (*const softirq_func[SIRQ_LAST])() = {softirq_svc};
 void softirq_schedule(enum softirq_type_t type)
 {
     softirq_pending[type] = 1;
-    set_kernel_state(TS_RUNNABLE);
+    set_thread_state(get_kernel_tcb(), TS_RUNNABLE);
 }
 
 void softirq_execute()

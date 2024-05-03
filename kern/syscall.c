@@ -3,13 +3,13 @@
 #include <kern/thread.h>
 #include <l4/syscalls.h>
 
-extern struct tcb_t *current_task;
+extern struct tcb_t *current_thread;
 struct tcb_t *caller;
 
 void isr_svcall()
 {
-    caller = current_task;
-    current_task->state = TS_SVC_BLOCKED;
+    caller = current_thread;
+    set_thread_state(current_thread, TS_SVC_BLOCKED);
     softirq_schedule(SIRQ_SVC_CALL);
     request_reschedule();
 }

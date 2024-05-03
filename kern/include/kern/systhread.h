@@ -5,6 +5,6 @@
 
 void create_sys_threads();
 void switch_to_kernel();
-void set_kernel_state(enum thread_state_t state);
+struct tcb_t *get_kernel_tcb();
 
 #endif
