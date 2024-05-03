@@ -46,7 +46,6 @@ struct libelf_loaded_segment
 
 struct libelf_state
 {
-    uintptr_t got_loc;
     uintptr_t entry_point;
     uintptr_t phdrs;
     size_t num_segments;
