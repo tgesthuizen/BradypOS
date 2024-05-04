@@ -25,7 +25,7 @@ static __attribute__((naked)) void unhandled_irq()
                      "bx lr\n\t");
 }
 
-__attribute__((section(".vector"))) const uintptr_t __vector[] = {
+__attribute__((section(".vector"))) const uintptr_t __boot_vector[] = {
     (uintptr_t)__stack_top,   (uintptr_t)_start,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,

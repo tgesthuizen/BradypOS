@@ -31,7 +31,7 @@ target_sources(
   systhread.c
   systick.c
   thread.c
-  vector.s
+  vector.c
 )
 target_link_libraries(
   libkern

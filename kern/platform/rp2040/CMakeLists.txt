@@ -29,7 +29,7 @@ target_link_options(
   kern
   PUBLIC
   -pie
-  -Wl,-E,-z,text
+  -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
   -T ${KERN_FLASH_LINKER_SCRIPT}
 )
 set_target_properties(
