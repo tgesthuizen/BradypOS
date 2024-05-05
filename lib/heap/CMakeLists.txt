@@ -10,6 +10,8 @@ target_include_directories(heap INTERFACE include)
 
 option(HEAP_TESTS "Whether to build tests for libheap" OFF)
 if(HEAP_TESTS)
+  enable_testing()
   add_executable(heap-tests test.c)
   target_link_libraries(heap-tests PUBLIC heap)
+  add_test(NAME heap COMMAND heap-tests)
 endif()
