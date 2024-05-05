@@ -22,8 +22,9 @@ target_link_libraries(
 target_compile_options(
   kern
   PUBLIC
-  -fPIC
+  -fPIE
   -msingle-pic-base
+  -mno-pic-data-is-text-relative
 )
 target_link_options(
   kern

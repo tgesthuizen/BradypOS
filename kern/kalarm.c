@@ -13,62 +13,51 @@ enum
 {
     MAX_KALARM_EVENTS = 16
 };
-static struct kalarm_event kalarm_events[MAX_KALARM_EVENTS];
-static unsigned kalarm_count;
+
+static inline bool kalarm_earlier(struct kalarm_event *lhs,
+                                  struct kalarm_event *rhs)
+{
+    return lhs->when < rhs->when;
+}
+
+#define HEAP_VALUE_TYPE struct kalarm_event
+#define HEAP_SIZE MAX_KALARM_EVENTS
+#define HEAP_COMPARE(a, b) kalarm_earlier(&(a), &(b))
+#define HEAP_PREFIX kalarm_heap
+#include <heap.inc>
+#undef HEAP_VALUE_TYPE
+#undef HEAP_SIZE
+#undef HEAP_COMPARE
+#undef HEAP_PREFIX
+
 static unsigned long current_time;
 
 void kalarm_init()
 {
-    kalarm_count = 0;
+    kalarm_heap_init();
     current_time = 0;
-}
-
-static void swap_kalarm_event(struct kalarm_event *lhs,
-                              struct kalarm_event *rhs)
-{
-    const struct kalarm_event tmp = *lhs;
-    *lhs = *rhs;
-    *rhs = tmp;
 }
 
 void register_kalarm_event(unsigned long when, void (*what)())
 {
-    if (kalarm_count == MAX_KALARM_EVENTS)
+    if (kalarm_heap_insert((struct kalarm_event){.when = when, .what = what}) ==
+        kalarm_heap_fail)
     {
-        panic("Kernel is out of kalarms!\n");
-    }
-    // Add event
-    unsigned idx = kalarm_count++;
-    kalarm_events[idx] = (struct kalarm_event){.when = when, .what = what};
-    // And heapify
-    for (unsigned parent = idx / 2;
-         idx && (kalarm_events[idx].when < kalarm_events[parent].when);
-         idx = parent, parent = (idx - 1) / 2)
-    {
-        swap_kalarm_event(&kalarm_events[idx], &kalarm_events[parent]);
+        panic("Kernel cannot queue kalarm event\n");
     }
 }
 
 static bool has_pending_kalarm()
 {
-    return kalarm_count && kalarm_events[0].when <= current_time;
+    return kalarm_heap_state.size > 0 &&
+           kalarm_heap_state.data[0].when <= current_time;
 }
+
 static struct kalarm_event pop_kalarm_event()
 {
-    const struct kalarm_event result = kalarm_events[0];
-    unsigned idx = 0;
-    const unsigned leaf_node_idx = kalarm_count / 2;
-    while (idx < leaf_node_idx)
-    {
-        const unsigned idx_left = idx * 2 + 1;
-        const unsigned idx_right = idx * 2 + 2;
-        const unsigned target_idx =
-            (kalarm_events[idx_left].when <= kalarm_events[idx_right].when)
-                ? idx_left
-                : idx_right;
-        kalarm_events[idx] = kalarm_events[target_idx];
-        idx = target_idx;
-    }
+    kassert(kalarm_count);
+    const struct kalarm_event result = kalarm_heap_state.data[0];
+    kalarm_heap_pop();
     return result;
 }
 

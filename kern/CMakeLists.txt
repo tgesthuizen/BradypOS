@@ -37,6 +37,7 @@ target_link_libraries(
   libkern
   INTERFACE
   kernel_headers
+  heap
 )
 target_compile_options(
   libkern
