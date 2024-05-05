@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Right now we are building the complete kernel twice.
-# This is because the kernel for flash storage requires relocatiosn
+# This is because the kernel for flash storage requires relocations
 # and needs to be compiled with some indirections, while the kernel
 # for SRAM is statically linked and should be as small as anyhow
 # possible.
