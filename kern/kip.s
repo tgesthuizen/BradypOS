@@ -52,6 +52,7 @@ proc_desc:
 	.word 256 * 1024 * 1024
 	.size proc_desc,.-proc_desc
 
+	.align 3
 __L4_boot_info:
 	# This gets written by the boot loader
 
