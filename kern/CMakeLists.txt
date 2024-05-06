@@ -23,6 +23,7 @@ target_sources(
   debug.c
   interrupts.c
   kalarm.c
+  kip.s
   main.c
   semihosting.c
   softirq.c
