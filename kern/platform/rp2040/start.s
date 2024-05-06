@@ -3,6 +3,7 @@
 
 	.section ".text", "ax"
 	.global _start
+	.hidden _start
 	.func _start
 	.thumb_func
 _start:
