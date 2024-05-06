@@ -213,6 +213,14 @@ int main()
         return 1;
     }
 
+    static const char boot_info_symbol[] = "__L4_boot_info";
+    unsigned boot_info = 0;
+    if (locate_elf_symbol(&kern_state, boot_info_symbol, &boot_info) !=
+        LIBELF_OK)
+    {
+        return 1;
+    }
+
     file_state.elf_file_base = root_elf_base;
     if (load_elf_file(&elf_ops, &root_state, &file_state) != LIBELF_OK)
         return 1;
@@ -223,7 +231,7 @@ int main()
         return 1;
     }
 
-    construct_boot_info(&kern_state, &root_state, file_state.sram_marker);
+    construct_boot_info(&kern_state, &root_state, (void *)boot_info);
 
     asm volatile("gdb_intercept_elf_positions_here:\n\t");
     register void *mem_info asm("r0") = file_state.sram_marker;
