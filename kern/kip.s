@@ -1,6 +1,7 @@
 	.cpu cortex-m0plus
 	.thumb
 	.section ".data.kip", "dwa"
+	.align 8
 	.global the_kip, __L4_boot_info
 	.hidden the_kip
 	.type the_kip, %object
