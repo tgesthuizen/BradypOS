@@ -5,6 +5,8 @@ enum L4_boot_info_record_type
 {
     L4_BOOT_INFO_MODULE = 0x1,
     L4_BOOT_INFO_EXE = 0x2,
+    L4_BOOT_INFO_EFI_TABLES = 0x101,
+    L4_BOOT_INFO_MULTIBOOT = 0x102,
 };
 
 struct L4_boot_info_header
