@@ -98,5 +98,5 @@ void HEAP_CONCAT(HEAP_PREFIX, _pop)()
     struct HEAP_CONCAT(HEAP_PREFIX, _type) *v =
         &HEAP_CONCAT(HEAP_PREFIX, _state);
     v->data[0] = v->data[--v->size];
-    HEAP_CONCAT(HEAP_PREFIX, _sink(0));
+    HEAP_CONCAT(HEAP_PREFIX, _sink)(0);
 }
