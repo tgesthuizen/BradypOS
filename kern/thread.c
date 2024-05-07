@@ -196,6 +196,7 @@ __attribute__((naked)) void isr_pendsv()
         "push  {r0, lr}\n\t"
         // Restore GOT location
         "ldr   r0, =#0x20040000\n\t"
+        "ldr   r0, [r0]\n\t"
         "movs  r9, r0\n\t"
         "movs  r4, r1\n\t" // Save original stack pointer so it won't get
                            // clobbered

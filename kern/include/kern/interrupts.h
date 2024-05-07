@@ -31,6 +31,7 @@ void nvic_set_pending(unsigned interrupt, bool pends);
     __attribute__((naked)) void isr()                                          \
     {                                                                          \
         asm("ldr r0, =0x20040000\n\t"                                          \
+            "ldr r0, [r0]\n\t"                                                 \
             "mov r9, r0\n\t"                                                   \
             "b " #func);                                                       \
     }
