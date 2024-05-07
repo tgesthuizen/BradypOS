@@ -93,6 +93,14 @@ unsigned HEAP_CONCAT(HEAP_PREFIX, _insert)(HEAP_VALUE_TYPE value)
     return HEAP_CONCAT(HEAP_PREFIX, _swim)(idx);
 }
 
+void HEAP_CONCAT(HEAP_PREFIX, _delete)(unsigned idx)
+{
+    struct HEAP_CONCAT(HEAP_PREFIX, _type) *v =
+        &HEAP_CONCAT(HEAP_PREFIX, _state);
+    v->data[idx] = v->data[--v->size];
+    HEAP_CONCAT(HEAP_PREFIX, _sink)(idx);
+}
+
 void HEAP_CONCAT(HEAP_PREFIX, _pop)()
 {
     struct HEAP_CONCAT(HEAP_PREFIX, _type) *v =

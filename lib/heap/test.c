@@ -90,6 +90,17 @@ static int full_heap_insert_fails()
     return 0;
 }
 
+static int heap_delete_test()
+{
+    for (int i = 0; i < 5; ++i)
+        TEST_ASSERT(test_heap_insert(i) != test_heap_fail);
+    test_heap_delete(3);
+    TEST_CMP(test_heap_state.size, 4);
+    // Swaps the deleted element with the last
+    TEST_CMP(test_heap_state.data[3], 4);
+    return 0;
+}
+
 int main()
 {
     int ret;
@@ -102,6 +113,10 @@ int main()
         return ret;
     reset_heap();
     ret = full_heap_insert_fails();
+    if (ret)
+        return ret;
+    reset_heap();
+    ret = heap_delete_test();
     if (ret)
         return ret;
 
