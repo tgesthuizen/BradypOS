@@ -82,10 +82,9 @@ struct tcb_t *allocate_tcb()
     for (unsigned i = 0; i < THREAD_MAX_COUNT; ++i)
     {
         if (tcb_store_allocated & (1 << i))
-        {
-            tcb_store_allocated |= (1 << i);
-            return tcb_store + i;
-        }
+            continue;
+        tcb_store_allocated |= (1 << i);
+        return tcb_store + i;
     }
     return NULL;
 }
@@ -101,6 +100,8 @@ struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_t global_id)
         return NULL;
 
     struct tcb_t *tcb = allocate_tcb();
+    if (!tcb)
+        return NULL;
     tcb->global_id = global_id;
     tcb->local_id = 0;
     tcb->as = NULL;

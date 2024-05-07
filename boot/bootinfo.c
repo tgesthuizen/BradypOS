@@ -38,6 +38,7 @@ void construct_boot_info(struct libelf_state *kern_state,
     elf_to_boot_segment(&kern_state->segments[1], &info->kern.data);
     info->kern.bss =
         (struct L4_boot_segment_info){.pstart = 0, .vstart = 0, .size = 0};
+    info->kern.initial_ip = kern_state->entry_point;
     info->kern.flags = 0;
     memcpy(&info->kern.label, "kern", sizeof(unsigned));
     info->kern.cmdline_offset = 0;
@@ -49,6 +50,7 @@ void construct_boot_info(struct libelf_state *kern_state,
     elf_to_boot_segment(&root_state->segments[1], &info->root.data);
     info->root.bss =
         (struct L4_boot_segment_info){.pstart = 0, .vstart = 0, .size = 0};
+    info->root.initial_ip = root_state->entry_point;
     info->root.flags = 0;
     memcpy(&info->root.label, "root", sizeof(unsigned));
     info->root.cmdline_offset = 0;

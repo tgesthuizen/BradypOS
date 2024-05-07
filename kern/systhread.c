@@ -1,7 +1,9 @@
 #include <kern/debug.h>
 #include <kern/softirq.h>
+#include <kern/string.h>
 #include <kern/systhread.h>
 #include <kern/thread.h>
+#include <l4/bootinfo.h>
 #include <l4/schedule.h>
 #include <l4/thread.h>
 #include <stddef.h>
@@ -30,6 +32,10 @@ static void kern_task()
         L4_yield();
     }
 }
+
+void *root_utcb;
+void *root_stack;
+void *root_got;
 
 void create_sys_threads()
 {
@@ -67,8 +73,35 @@ void create_sys_threads()
     idle_tcb->priority = ~0;
     set_thread_state(idle_tcb, TS_RUNNABLE);
 
+    extern struct L4_boot_info_header __L4_boot_info;
+    struct L4_boot_info_record_exe *current_record =
+        (struct L4_boot_info_record_exe *)((unsigned char *)&__L4_boot_info +
+                                           __L4_boot_info.first_entry);
+    static const unsigned char root_name[] = "root";
+    while (current_record->type != L4_BOOT_INFO_EXE ||
+           memcmp(&current_record->label, root_name, 4) != 0)
+    {
+        current_record =
+            (struct L4_boot_info_record_exe *)(((unsigned char *)
+                                                    current_record) +
+                                               current_record->offset_next);
+    }
     root_id = L4_global_id(64, 1);
     root_tcb = insert_thread(NULL, root_id);
+    unsigned *root_sp = (unsigned *)root_stack;
+    root_sp -= 8;
+    root_sp[0] = 0;                                    // r0
+    root_sp[1] = 0;                                    // r1
+    root_sp[2] = 0;                                    // r2
+    root_sp[3] = 0;                                    // r3
+    root_sp[4] = 0;                                    // r12
+    root_sp[5] = 0;                                    // lr
+    root_sp[6] = (unsigned)current_record->initial_ip; // pc
+    root_sp[7] = (1 << 24);                            // xPSR
+    root_tcb->ctx.sp = (unsigned)root_sp;
+    root_tcb->ctx.ret = 0xFFFFFFFD;
+    root_tcb->priority = 42;
+    set_thread_state(root_tcb, TS_RUNNABLE);
 }
 
 void switch_to_kernel() { panic("kernel switch not yet implemented\n"); }

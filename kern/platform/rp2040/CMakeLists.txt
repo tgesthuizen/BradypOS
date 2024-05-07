@@ -26,6 +26,11 @@ target_compile_options(
   -msingle-pic-base
   -mno-pic-data-is-text-relative
 )
+target_compile_definitions(
+  kern
+  PUBLIC
+  KERN_TARGET=flash
+)
 target_link_options(
   kern
   PUBLIC
@@ -49,6 +54,11 @@ target_link_libraries(
   kern_ram
   PUBLIC
   libkern
+)
+target_compile_definitions(
+  kern_ram
+  PUBLIC
+  KERN_TARGET=ram
 )
 target_link_options(
   kern_ram
