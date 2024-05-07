@@ -38,6 +38,8 @@ void create_sys_threads()
     idle_sp[6] = (unsigned)idle_task; // pc
     idle_sp[7] = (1 << 24);           // xPSR
     idle_tcb->ctx.sp = (unsigned)idle_sp;
+    idle_tcb->priority = ~0;
+    set_thread_state(idle_tcb, TS_RUNNABLE);
     root_tcb = insert_thread(NULL, root_id);
 }
 

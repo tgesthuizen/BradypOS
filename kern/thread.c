@@ -1,5 +1,6 @@
 #include "kern/hardware.h"
 #include "types.h"
+#include <kern/debug.h>
 #include <kern/platform.h>
 #include <kern/thread.h>
 #include <l4/thread.h>
@@ -93,8 +94,6 @@ struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_t global_id)
 {
     if (L4_version(global_id) == 0)
         return NULL;
-    if (L4_thread_no(global_id) < 48)
-        return NULL;
     if (thread_count == THREAD_MAX_COUNT)
         return NULL;
     unsigned idx = thread_map_find(global_id);
@@ -127,6 +126,8 @@ void schedule_next_thread()
     if (current_thread_idx != THREAD_IDX_INVALID &&
         tcb_store[current_thread_idx].state == TS_RUNNABLE)
         thread_schedule_insert(current_thread_idx);
+    if (thread_schedule_state.size == 0)
+        panic("No task can be scheduled!\n");
     const unsigned idx = thread_schedule_state.data[0];
     thread_schedule_pop();
     current_thread_idx = idx;
@@ -175,11 +176,19 @@ struct tcb_t *thread_tcb(L4_thread_t thread)
     return &tcb_store[thread_list[idx]];
 }
 
-struct tcb_t *get_current_thread() { return &tcb_store[current_thread_idx]; }
+struct tcb_t *get_current_thread()
+{
+    if (current_thread_idx == THREAD_IDX_INVALID)
+        return NULL;
+    return &tcb_store[current_thread_idx];
+}
 
 static __attribute__((used)) struct thread_context_t *get_current_ctx()
 {
-    return &get_current_thread()->ctx;
+    struct tcb_t *current_thread = get_current_thread();
+    if (!current_thread)
+        return NULL;
+    return &current_thread->ctx;
 }
 
 __attribute__((naked)) void isr_pendsv()
