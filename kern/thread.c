@@ -48,6 +48,7 @@ void init_thread_system()
 {
     tcb_store_allocated = 0;
     thread_count = 0;
+    current_thread_idx = THREAD_IDX_INVALID;
 }
 
 static unsigned thread_map_find(L4_thread_t global_id)
