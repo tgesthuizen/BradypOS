@@ -12,6 +12,13 @@ static L4_thread_t kern_id;
 static L4_thread_t idle_id;
 static L4_thread_t root_id;
 
+static unsigned char idle_stack[128];
+static void idle_task()
+{
+    while (1)
+        asm volatile("wfi\n\t");
+}
+
 void create_sys_threads()
 {
     kern_id = L4_global_id(46, 1);
@@ -19,13 +26,19 @@ void create_sys_threads()
     root_id = L4_global_id(64, 1);
     kern_tcb = insert_thread(NULL, kern_id);
     idle_tcb = insert_thread(NULL, idle_id);
+    unsigned *idle_sp = (unsigned *)(idle_stack + 128);
+    idle_tcb->ctx.ret = 0xFFFFFFFD;
+    idle_sp -= 8;
+    idle_sp[0] = 0;                   // r0
+    idle_sp[1] = 0;                   // r1
+    idle_sp[2] = 0;                   // r2
+    idle_sp[3] = 0;                   // r3
+    idle_sp[4] = 0;                   // r12
+    idle_sp[5] = 0;                   // lr
+    idle_sp[6] = (unsigned)idle_task; // pc
+    idle_sp[7] = (1 << 24);           // xPSR
+    idle_tcb->ctx.sp = (unsigned)idle_sp;
     root_tcb = insert_thread(NULL, root_id);
-}
-
-static void idle_task()
-{
-    while (1)
-        asm volatile("wfi\n\t");
 }
 
 void switch_to_kernel() { panic("kernel switch not yet implemented\n"); }

@@ -197,7 +197,8 @@ __attribute__((naked)) void isr_pendsv()
         // Restore GOT location
         "ldr   r0, =#0x20040000\n\t"
         "movs  r9, r0\n\t"
-        "movs  r4, r1\n\t" // Save original stack pointer so it won't get clobbered
+        "movs  r4, r1\n\t" // Save original stack pointer so it won't get
+                           // clobbered
         // Copy saved context on stack into tcb
         "bl    get_current_ctx\n\t"
         "cmp   r0, #0\n\t"
@@ -225,3 +226,5 @@ __attribute__((naked)) void isr_pendsv()
     // TODO: Pass in functions as input operands. GCC is really doing anything
     // in its power not to accept it.
 }
+
+void start_scheduling() { request_reschedule(); }

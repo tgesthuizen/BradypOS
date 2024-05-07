@@ -3,6 +3,7 @@
 #include <kern/interrupts.h>
 #include <kern/kalarm.h>
 #include <kern/platform.h>
+#include <kern/systhread.h>
 #include <kern/systick.h>
 #include <kern/thread.h>
 #include <stdint.h>
@@ -17,10 +18,11 @@ int main()
     interrupts_init();
     kalarm_init();
     init_thread_system();
+    create_sys_threads();
     enable_interrupts();
     dbg_puts("Interrupts are enabled, we have booted!\n");
-    switch_to_kernel();
-    
+    start_scheduling();
+
     dbg_puts("Kernel is done, bye!\n");
     return 0;
 }

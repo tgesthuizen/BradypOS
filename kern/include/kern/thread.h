@@ -52,4 +52,6 @@ void schedule_next_thread();
 void set_thread_state(struct tcb_t *thread, enum thread_state_t state);
 struct tcb_t *thread_tcb(L4_thread_t thread);
 struct tcb_t *get_current_thread();
+__attribute__((noreturn)) void start_scheduling();
+
 #endif
