@@ -5,6 +5,7 @@
 
 #include <heap.inc>
 #include <stdio.h>
+#include <string.h>
 
 static void print_assert(const char *file, int line, const char *cond)
 {
@@ -45,9 +46,20 @@ static void print_cmp_generic(const char *file, int line, const char *clhs,
         return 1;                                                              \
     }
 
-int main()
+static void reset_heap()
+{
+    memset(test_heap_state.data, 0xFF, sizeof(test_heap_state.data));
+    test_heap_state.size = 0;
+}
+
+static int heap_starts_empty()
 {
     TEST_CMP(test_heap_state.size, 0);
+    return 0;
+}
+
+static int basic_order_test()
+{
     test_heap_insert(4);
     test_heap_insert(3);
     TEST_CMP(test_heap_state.data[0], 3);
@@ -57,7 +69,11 @@ int main()
     TEST_CMP(test_heap_state.data[0], 4);
     test_heap_pop();
     TEST_CMP(test_heap_state.size, 0);
+    return 0;
+}
 
+static int full_heap_insert_fails()
+{
     for (int i = 0; i < HEAP_SIZE; ++i)
     {
         TEST_ASSERT(test_heap_insert(i) != test_heap_fail);
@@ -71,6 +87,23 @@ int main()
         test_heap_pop();
     }
     TEST_CMP(test_heap_state.size, 0);
+    return 0;
+}
+
+int main()
+{
+    int ret;
+    ret = heap_starts_empty();
+    if (ret)
+        return ret;
+    reset_heap();
+    ret = basic_order_test();
+    if (ret)
+        return ret;
+    reset_heap();
+    ret = full_heap_insert_fails();
+    if (ret)
+        return ret;
 
     puts("SUCCESS!");
     return 0;
