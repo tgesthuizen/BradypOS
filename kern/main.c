@@ -1,8 +1,10 @@
+#include "kern/systhread.h"
 #include <kern/debug.h>
 #include <kern/interrupts.h>
 #include <kern/kalarm.h>
 #include <kern/platform.h>
 #include <kern/systick.h>
+#include <kern/thread.h>
 #include <stdint.h>
 
 int main()
@@ -14,10 +16,11 @@ int main()
     systick_init();
     interrupts_init();
     kalarm_init();
+    init_thread_system();
     enable_interrupts();
-
     dbg_puts("Interrupts are enabled, we have booted!\n");
-    // Remaining code goes here :)
+    switch_to_kernel();
+    
     dbg_puts("Kernel is done, bye!\n");
     return 0;
 }

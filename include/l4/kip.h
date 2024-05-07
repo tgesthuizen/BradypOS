@@ -38,9 +38,9 @@ struct kern_desc
     {
         struct
         {
-            uint8_t ver;
-            uint8_t subver;
             uint16_t subsubver;
+            uint8_t subver;
+            uint8_t ver;
         };
         uint32_t raw;
     } kernel_ver;
@@ -75,9 +75,9 @@ typedef union
 {
     struct
     {
-        uint8_t version;
-        uint8_t subversion;
         uint8_t reserved[2];
+        uint8_t subversion;
+        uint8_t version;
     };
     uint32_t raw;
 } kip_api_version_t;
@@ -86,11 +86,23 @@ typedef union
 {
     struct
     {
-        unsigned cc : 2;
+        unsigned ee : 2;
         unsigned ww : 2;
     };
     uint32_t raw;
 } kip_api_flags_t;
+
+enum kip_api_endian
+{
+    kip_api_little_endian,
+    kip_api_big_endian
+};
+
+enum kip_api_bits
+{
+    kip_api_32_bits,
+    kip_api_64_bits,
+};
 
 typedef union
 {
@@ -107,9 +119,9 @@ typedef union
 {
     struct
     {
-        unsigned user_base : 12;
-        unsigned system_base : 12;
         unsigned t : 8;
+        unsigned system_base : 12;
+        unsigned user_base : 12;
     };
     uint32_t raw;
 } kip_thread_info_t;

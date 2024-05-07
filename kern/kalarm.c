@@ -1,3 +1,4 @@
+#include "kern/interrupts.h"
 #include <kern/debug.h>
 #include <kern/kalarm.h>
 #include <kern/systick.h>
@@ -61,7 +62,7 @@ static struct kalarm_event pop_kalarm_event()
     return result;
 }
 
-void isr_systick()
+static __attribute__((used)) void __isr_systick()
 {
     ++current_time;
     while (has_pending_kalarm())
@@ -69,5 +70,6 @@ void isr_systick()
         pop_kalarm_event().what();
     }
 }
-
+DECLARE_ISR(isr_systick, __isr_systick)
+     
 unsigned long get_current_time() { return current_time; }

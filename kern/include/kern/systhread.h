@@ -4,7 +4,7 @@
 #include <kern/thread.h>
 
 void create_sys_threads();
-void switch_to_kernel();
+__attribute__((noreturn)) void switch_to_kernel();
 struct tcb_t *get_kernel_tcb();
 
 #endif

@@ -24,8 +24,9 @@ enum thread_state_t
 
 struct thread_context_t
 {
-    unsigned r[16];
-    unsigned ctl;
+    unsigned sp;
+    unsigned ret;
+    unsigned r[8];
 };
 
 struct as_t;
@@ -45,7 +46,10 @@ struct tcb_t
 };
 
 void init_thread_system();
+struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_t id);
 void request_reschedule();
+void schedule_next_thread();
 void set_thread_state(struct tcb_t *thread, enum thread_state_t state);
-
+struct tcb_t *thread_tcb(L4_thread_t thread);
+struct tcb_t *get_current_thread();
 #endif

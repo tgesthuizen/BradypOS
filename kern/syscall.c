@@ -1,18 +1,21 @@
+#include "kern/interrupts.h"
 #include <kern/debug.h>
 #include <kern/softirq.h>
 #include <kern/thread.h>
 #include <l4/syscalls.h>
 
-extern struct tcb_t *current_thread;
 struct tcb_t *caller;
 
-void isr_svcall()
+static __attribute__((used)) void __isr_svcall()
 {
+    struct tcb_t *current_thread = get_current_thread();
     caller = current_thread;
     set_thread_state(current_thread, TS_SVC_BLOCKED);
     softirq_schedule(SIRQ_SVC_CALL);
     request_reschedule();
 }
+
+DECLARE_ISR(isr_svcall, __isr_svcall)
 
 static __attribute__((noreturn)) void fail_syscall(const char *type)
 {
