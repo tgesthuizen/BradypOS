@@ -1,4 +1,4 @@
-name: Build native libelf
+name: Build native libheap
 
 on:
   push:
