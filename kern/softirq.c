@@ -37,6 +37,9 @@ retry:
             should_retry = 1;
             break;
         }
+    if (!should_retry)
+        set_thread_state(get_kernel_tcb(), TS_INACTIVE);
+
     enable_interrupts();
 
     if (should_retry)

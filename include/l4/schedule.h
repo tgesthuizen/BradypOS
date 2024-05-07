@@ -1,7 +1,10 @@
 #ifndef BRADYPOS_KERN_SCHEDULE_H
 #define BRADYPOS_KERN_SCHEDULE_H
 
+#include <l4/syscalls.h>
+#include <l4/thread.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <types.h>
 
@@ -57,8 +60,8 @@ typedef union
     uint16_t raw;
 } L4_time_t;
 
-static inline L4_time_t L4_never = {.raw = 0};
-static inline L4_time_t L4_zero_time = {.point = 0, .e = 1, .m = 0};
+static L4_time_t L4_never = {.raw = 0};
+static L4_time_t L4_zero_time = {.point = 0, .e = 1, .m = 0};
 
 L4_time_t L4_time_add_usec(L4_time_t l, uint32_t r);
 L4_time_t *L4_time_add_usec_to(L4_time_t *l, uint32_t r);
@@ -75,32 +78,17 @@ bool L4_is_time_shorter(L4_time_t l, L4_time_t r);
 bool L4_is_time_equal(L4_time_t l, L4_time_t r);
 bool L4_is_time_not_equal(L4_time_t l, L4_time_t r);
 
-void L4_thread_switch(L4_thread_t dest);
-void L4_yield();
-uint32_t L4_schedule(L4_thread_t dest, uint32_t time_control,
-                     uint32_t processor_control, uint32_t prio,
-                     uint32_t preemption_control, uint32_t *old_time_control);
-static inline uint32_t L4_set_priority(L4_thread_t dest, uint32_t prio)
+/* TODO: Implement L4_schedule and friends */
+
+static inline void L4_thread_switch(L4_thread_t dest)
 {
-    return L4_schedule(dest, -1, -1, prio, -1);
-}
-static inline uint32_t L4_set_processor_no(L4_thread_t dest,
-                                           uint32_t processor_no)
-{
-    return L4_schedule(dest, -1, processor_no, -1, -1);
-}
-uint32_t L4_timeslice(L4_thread_t dest, L4_time_t *ts, L4_time_t *tq);
-uint32_t L4_set_timeslice(L4_thread_t dest, L4_time_t ts, L4_time_t tq);
-uint32_t L4_set_preemption_delay(uint32_t dest, uint32_t sensitive_prio,
-                                 uint32_t max_delay)
-{
-    return L4_schedule(dest, -1, -1, -1, (sensitive_prio << 16) + max_delay);
+    register L4_thread_t rdest asm("r0") = dest;
+    asm volatile("movs r7, %1\n\t"
+                 "svc #0\n\t" ::"r"(rdest),
+                 "i"(SYS_THREAD_SWITCH)
+                 : "r7");
 }
 
-bool L4_enable_preemption_fault_exception();
-bool L4_disable_preemption_fault_exception();
-bool L4_disable_preemption();
-bool L4_enable_preemption();
-bool L4_preemption_pending();
+static inline void L4_yield() { L4_thread_switch(L4_NILTHREAD); }
 
 #endif
