@@ -1,6 +1,7 @@
 # TODO: Parameterize this with the actual build
 
 source lib/elf/elf-sniffer.py
+monitor arm semihosting enable
 
 define launch_into_kernel
   monitor reset
