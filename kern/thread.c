@@ -239,4 +239,9 @@ __attribute__((naked)) void isr_pendsv()
     // in its power not to accept it.
 }
 
-void start_scheduling() { request_reschedule(); }
+void start_scheduling()
+{
+    request_reschedule();
+    while (1)
+        asm volatile("wfi");
+}
