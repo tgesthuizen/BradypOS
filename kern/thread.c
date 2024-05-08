@@ -1,6 +1,7 @@
 #include "kern/hardware.h"
 #include "types.h"
 #include <kern/debug.h>
+#include <kern/kalarm.h>
 #include <kern/platform.h>
 #include <kern/thread.h>
 #include <l4/thread.h>
@@ -131,6 +132,8 @@ void schedule_next_thread()
         panic("No task can be scheduled!\n");
     const unsigned idx = thread_schedule_state.data[0];
     thread_schedule_pop();
+    // TODO: Actual quota management
+    register_kalarm_event(get_current_time() + 10, request_reschedule);
     current_thread_idx = idx;
 }
 
