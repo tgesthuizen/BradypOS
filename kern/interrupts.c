@@ -23,7 +23,7 @@ static void nvic_set_priority(unsigned interrupt, unsigned prio)
 enum
 {
     SVCALL_PRIORITY = 1,
-    PENDSV_PRIORITY = 4,
+    PENDSV_PRIORITY = 3,
     SYSTICK_PRIORITY = 2,
     DEFAULT_IRQ_PRIORITY = 2,
 };
@@ -38,7 +38,7 @@ void interrupts_init()
     *(volatile unsigned *)NVIC_ICER = ~0;
     *(volatile unsigned *)(PPB_BASE + SHPR2_OFFSET) = (SVCALL_PRIORITY << 30);
     *(volatile unsigned *)(PPB_BASE + SHPR3_OFFSET) =
-        (PENDSV_PRIORITY << 23) | (SYSTICK_PRIORITY << 30);
+        (PENDSV_PRIORITY << 22) | (SYSTICK_PRIORITY << 30);
 }
 
 bool nvis_is_enabled(unsigned interrupt)
