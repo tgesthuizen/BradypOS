@@ -120,7 +120,7 @@ struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_t global_id)
 
 void request_reschedule()
 {
-    *(volatile unsigned *)(PPB_BASE + ICSR_OFFSET) |= ICSR_PENDSVSET;
+    *(volatile unsigned *)(PPB_BASE + ICSR_OFFSET) = ICSR_PENDSVSET;
 }
 
 void schedule_next_thread()
