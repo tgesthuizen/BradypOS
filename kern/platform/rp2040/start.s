@@ -5,7 +5,7 @@
 	.hidden kern_stack_base, kern_stack_size
 	.set kern_stack_base, 0x20040000
 	.set kern_stack_size, 0x100
-	
+
 	.section ".text", "ax"
 	.global _start
 	.hidden _start
