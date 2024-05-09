@@ -110,6 +110,17 @@ static int relocate_elf_file(struct libelf_state *state)
     return LIBELF_OK;
 }
 
+// Define memset if not present
+__attribute__((weak)) void *memset(void *ptr, int value, size_t size)
+{
+    unsigned char *cptr = ptr;
+    while (size--)
+    {
+        *cptr++ = value;
+    }
+    return ptr;
+}
+
 int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
                   void *user)
 {
@@ -140,6 +151,11 @@ int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
             void *loc = NULL;
             if (!(phdr.p_flags & PF_W))
             {
+                // BUG: ELF alignments mean that p_offset % p_align =
+                // p_vaddr % p_align. p_vaddr does not have to be aligned to the
+                // offset. For now this is mitigated by forcing alignment in the
+                // ELF file, but the code below is not correct and the API not
+                // sufficient.
                 if (ops->map(&loc, phdr.p_offset, phdr.p_filesz, phdr.p_align,
                              segment->perm, user) != 0)
                 {
@@ -158,10 +174,8 @@ int load_elf_file(const struct libelf_ops *ops, struct libelf_state *state,
                 {
                     return LIBELF_IFACE_ERROR;
                 }
-                for (size_t i = phdr.p_filesz; i < phdr.p_memsz; ++i)
-                {
-                    ((unsigned char *)loc)[i] = 0;
-                }
+                memset((unsigned char *)loc + phdr.p_filesz, 0,
+                       phdr.p_memsz - phdr.p_filesz);
             }
             segment->loaded_addr = (uintptr_t)loc;
         }

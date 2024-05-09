@@ -18,6 +18,7 @@ static __attribute__((naked)) void unhandled_irq()
     __asm__ volatile("mrs r0, ipsr\n\t"
                      "sub r0, #16\n\t"
                      ".global unhandled_user_irq_num_in_r0\n"
+		     ".hidden unhandled_user_irq_num_in_r0\n"
                      "unhandled_user_irq_num_in_r0:\n\t"
                      "bkpt #0\n\t"
                      "b .\n\t"
@@ -58,7 +59,15 @@ void __attribute__((weak, alias("unhandled_irq"))) isr_irq29();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq30();
 void __attribute__((weak, alias("unhandled_irq"))) isr_irq31();
 
-__attribute__((aligned(1 << 7))) const uintptr_t __vector[] = {
+/**
+ * The ARMv6m architecture reference manual says that the VTOR register has the
+ * lower 6 bits zeroed out. However, it allows for implementations to require
+ * even higher alignments of the vector data structure.
+ * For the RP2040, this alignment is indeed increased to 2^8, as the first byte
+ * of the VTOR register will always read as zero.
+ */
+const uintptr_t __vector[] __attribute__((aligned(1 << 8),
+                                          section(".data.vector"))) = {
     (uintptr_t)0x20040000,    (uintptr_t)_start,      (uintptr_t)isr_nmi,
     (uintptr_t)isr_hardfault, (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid, (uintptr_t)isr_invalid,

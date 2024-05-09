@@ -6,19 +6,24 @@ project(
   VERSION 0.0.1
 )
 
-add_executable(root root.c)
+add_executable(
+  root
+  data.s
+  root.c
+)
 target_compile_options(
   root
   PUBLIC
   -ffreestanding
   -fPIE
   -msingle-pic-base
+  -mno-pic-data-is-text-relative
   -fvisibility=hidden
 )
 target_link_options(
   root
   PUBLIC
-  -Wl,-E
+  -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
   -T ${CMAKE_CURRENT_SOURCE_DIR}/root.ld
   -pie
 )

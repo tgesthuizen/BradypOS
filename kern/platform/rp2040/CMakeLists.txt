@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Right now we are building the complete kernel twice.
-# This is because the kernel for flash storage requires relocatiosn
+# This is because the kernel for flash storage requires relocations
 # and needs to be compiled with some indirections, while the kernel
 # for SRAM is statically linked and should be as small as anyhow
 # possible.
@@ -22,14 +22,20 @@ target_link_libraries(
 target_compile_options(
   kern
   PUBLIC
-  -fPIC
+  -fPIE
   -msingle-pic-base
+  -mno-pic-data-is-text-relative
+)
+target_compile_definitions(
+  kern
+  PUBLIC
+  KERN_TARGET=flash
 )
 target_link_options(
   kern
   PUBLIC
   -pie
-  -Wl,-E,-z,text
+  -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
   -T ${KERN_FLASH_LINKER_SCRIPT}
 )
 set_target_properties(
@@ -48,6 +54,11 @@ target_link_libraries(
   kern_ram
   PUBLIC
   libkern
+)
+target_compile_definitions(
+  kern_ram
+  PUBLIC
+  KERN_TARGET=ram
 )
 target_link_options(
   kern_ram

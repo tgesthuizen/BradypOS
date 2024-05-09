@@ -25,7 +25,7 @@ static __attribute__((naked)) void unhandled_irq()
                      "bx lr\n\t");
 }
 
-__attribute__((section(".vector"))) const uintptr_t __vector[] = {
+__attribute__((section(".vector"))) const uintptr_t __boot_vector[] = {
     (uintptr_t)__stack_top,   (uintptr_t)_start,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,
     (uintptr_t)isr_invalid,   (uintptr_t)isr_invalid,
@@ -213,6 +213,14 @@ int main()
         return 1;
     }
 
+    static const char boot_info_symbol[] = "__L4_boot_info";
+    unsigned boot_info = 0;
+    if (locate_elf_symbol(&kern_state, boot_info_symbol, &boot_info) !=
+        LIBELF_OK)
+    {
+        return 1;
+    }
+
     file_state.elf_file_base = root_elf_base;
     if (load_elf_file(&elf_ops, &root_state, &file_state) != LIBELF_OK)
         return 1;
@@ -223,15 +231,29 @@ int main()
         return 1;
     }
 
-    construct_boot_info(&kern_state, &root_state, file_state.sram_marker);
+    unsigned root_sp = 0;
+    if (locate_elf_symbol(&root_state, "__sp", &root_sp) != LIBELF_OK)
+    {
+        return 1;
+    }
+
+    unsigned root_utcb = 0;
+    if (locate_elf_symbol(&root_state, "__utcb", &root_utcb) != LIBELF_OK)
+    {
+        return 1;
+    }
+
+    construct_boot_info(&kern_state, &root_state, (void *)boot_info);
 
     asm volatile("gdb_intercept_elf_positions_here:\n\t");
-    register void *mem_info asm("r0") = file_state.sram_marker;
+    register unsigned root_sp_r asm("r0") = root_sp;
+    register unsigned root_utcb_r asm("r1") = root_utcb;
+    register unsigned root_got_r asm("r2") = root_got;
     register unsigned kern_got_reg asm("r9") = kern_got;
-    asm("blx %[entry_point]"
+    asm("bx %[entry_point]"
         :
-        : [entry_point] "r"(kern_state.entry_point), "r"(mem_info),
-          "r"(kern_got_reg)
+        : [entry_point] "r"(kern_state.entry_point), "r"(root_sp_r),
+          "r"(root_utcb_r), "r"(root_got_r), "r"(kern_got_reg)
         : "memory", "cc");
     return 0;
 }

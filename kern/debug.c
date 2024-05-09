@@ -1,3 +1,4 @@
+#include "kern/interrupts.h"
 #include <kern/debug.h>
 #include <kern/semihosting.h>
 #include <stdarg.h>
@@ -88,4 +89,8 @@ void panic(const char *fmt, ...)
     reset_processor();
 }
 
-void isr_hardfault() { panic("!!! PANIC: Hardfault triggered\n"); }
+static __attribute__((used)) void __isr_hardfault()
+{
+    panic("!!! PANIC: Hardfault triggered\n");
+}
+DECLARE_ISR(isr_hardfault, __isr_hardfault)

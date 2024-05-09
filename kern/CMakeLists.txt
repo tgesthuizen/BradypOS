@@ -23,9 +23,13 @@ target_sources(
   debug.c
   interrupts.c
   kalarm.c
+  kip.s
   main.c
   semihosting.c
+  softirq.c
   string.c
+  syscall.c
+  systhread.c
   systick.c
   thread.c
   vector.c
@@ -34,6 +38,7 @@ target_link_libraries(
   libkern
   INTERFACE
   kernel_headers
+  heap
 )
 target_compile_options(
   libkern

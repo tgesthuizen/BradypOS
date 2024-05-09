@@ -6,7 +6,6 @@ PHDRS
     headers  PT_PHDR PHDRS;
     rox      PT_LOAD FILEHDR PHDRS;
     rw       PT_LOAD;
-    scratch  PT_LOAD;
     dynamic  PT_DYNAMIC;
 }
 
@@ -65,6 +64,8 @@ SECTIONS
       *(.rodata)
       *(.rodata.*)
     } :rox
+
+    . = ALIGN(CONSTANT(COMMONPAGESIZE));
 
     .dynamic : {
       *(.dynamic)

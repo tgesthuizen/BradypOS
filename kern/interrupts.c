@@ -23,18 +23,13 @@ static void nvic_set_priority(unsigned interrupt, unsigned prio)
 enum
 {
     SVCALL_PRIORITY = 1,
-    PENDSV_PRIORITY = 4,
+    PENDSV_PRIORITY = 3,
     SYSTICK_PRIORITY = 2,
     DEFAULT_IRQ_PRIORITY = 2,
 };
 
 void interrupts_init()
 {
-    // The ARMv6m reference manual is a bit vague here sadly.
-    // As far as I understood so far, the NVIC manages IRQs and for the
-    // remaining exceptions there are special purpose registers. However, they
-    // cannot be centrally disabled/enabled.
-
     // BUG: Setting NVIC priorities makes the system hardfault when interrupts
     // are enabled.
     // for (int i = 0; i < 32; ++i)
@@ -43,7 +38,7 @@ void interrupts_init()
     *(volatile unsigned *)NVIC_ICER = ~0;
     *(volatile unsigned *)(PPB_BASE + SHPR2_OFFSET) = (SVCALL_PRIORITY << 30);
     *(volatile unsigned *)(PPB_BASE + SHPR3_OFFSET) =
-        (PENDSV_PRIORITY << 23) | (SYSTICK_PRIORITY << 30);
+        (PENDSV_PRIORITY << 22) | (SYSTICK_PRIORITY << 30);
 }
 
 bool nvis_is_enabled(unsigned interrupt)
