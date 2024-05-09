@@ -30,11 +30,6 @@ enum
 
 void interrupts_init()
 {
-    // The ARMv6m reference manual is a bit vague here sadly.
-    // As far as I understood so far, the NVIC manages IRQs and for the
-    // remaining exceptions there are special purpose registers. However, they
-    // cannot be centrally disabled/enabled.
-
     // BUG: Setting NVIC priorities makes the system hardfault when interrupts
     // are enabled.
     // for (int i = 0; i < 32; ++i)
