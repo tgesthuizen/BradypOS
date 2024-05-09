@@ -132,8 +132,12 @@ void schedule_next_thread()
         panic("No task can be scheduled!\n");
     const unsigned idx = thread_schedule_state.data[0];
     thread_schedule_pop();
+    // Disable interrupts so that systick cannot read the kalarm heap with a
+    // race condition.
+    disable_interrupts();
     // TODO: Actual quota management
     register_kalarm_event(get_current_time() + 10, request_reschedule);
+    enable_interrupts();
     current_thread_idx = idx;
 }
 
@@ -195,17 +199,27 @@ static __attribute__((used)) struct thread_context_t *get_current_ctx()
     return &current_thread->ctx;
 }
 
+static struct thread_context_t *__attribute__((used))
+switch_context(struct thread_context_t *current_context)
+{
+    struct thread_context_t *tcb_ctx = get_current_ctx();
+    if (tcb_ctx != NULL)
+        *tcb_ctx = *current_context;
+    schedule_next_thread();
+    return get_current_ctx();
+}
+
 __attribute__((naked)) void isr_pendsv()
 {
     asm volatile(
         // Store context on stack
         "movs  r1, sp\n\t" // Save original sp
-        "push  {r4,r7}\n\t"
+        "push  {r4-r7}\n\t"
         "movs  r4, r8\n\t"
         "movs  r5, r9\n\t"
         "movs  r6, r10\n\t"
         "movs  r7, r11\n\t"
-        "push  {r4,r7}\n\t"
+        "push  {r4-r7}\n\t"
         "mrs   r0, psp\n\t"
         "push  {r0, lr}\n\t"
         // Restore GOT location
@@ -214,21 +228,10 @@ __attribute__((naked)) void isr_pendsv()
         "movs  r9, r0\n\t"
         "movs  r4, r1\n\t" // Save original stack pointer so it won't get
                            // clobbered
-        // Copy saved context on stack into tcb
-        "bl    get_current_ctx\n\t"
-        "cmp   r0, #0\n\t"
-        "beq   .Lschedule_next\n\t"
-        "movs  r1, r4\n\t"
-        "movs  r2, #40\n\t"
-        "bl    memcpy\n"
-        // Schedule next thread
-        ".Lschedule_next:\n\t"
-        "movs  sp, r4\n\t" // Pop context of the stack
-        "bl    schedule_next_thread\n\t"
-        // Restore new current context
-        "bl    get_current_ctx\n\t"
+        "movs  r0, sp\n\t"
+        "bl    switch_context\n\t"
+        "movs  sp, r4\n\t"
         "ldmia r0!, {r1, r2}\n\t"
-        "movs  sp, r1\n\t"
         "msr   psp, r1\n\t"
         "movs  lr, r2\n\t"
         "ldmia r0!, {r4-r7}\n\t"
