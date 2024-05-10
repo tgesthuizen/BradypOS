@@ -1,6 +1,6 @@
 #include "kern/interrupts.h"
 #include <kern/debug.h>
-#include <kern/semihosting.h>
+#include <semihosting.h>
 #include <stdarg.h>
 
 void dbg_puts(const char *str) { sh_write0(str); }

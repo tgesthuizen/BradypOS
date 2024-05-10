@@ -25,7 +25,6 @@ target_sources(
   kalarm.c
   kip.s
   main.c
-  semihosting.c
   softirq.c
   string.c
   syscall.c
@@ -39,6 +38,7 @@ target_link_libraries(
   INTERFACE
   kernel_headers
   heap
+  semihosting
 )
 target_compile_options(
   libkern
