@@ -1,6 +1,7 @@
 #ifndef BRADYPOS_KIP_H
 #define BRADYPOS_KIP_H
 
+#include "l4/syscalls.h"
 #include <stdint.h>
 
 /**
@@ -185,6 +186,29 @@ static inline void *L4_read_kip_ptr(void *kip, uint32_t kip_ptr)
 {
     unsigned char *kip_c = kip;
     return kip_c + kip_ptr;
+}
+
+static inline void *L4_kernel_interface(unsigned *api_version,
+                                        unsigned *api_flags,
+                                        unsigned *kernel_id)
+{
+    register void *kip asm("r0");
+    register unsigned rapi_version asm("r1");
+    register unsigned rapi_flags asm("r2");
+    register unsigned rkernel_id asm("r3");
+    asm volatile("movs r7, %[SYS_KERNEL_INTERFACE]\n\t"
+                 "svc #0\n\t"
+                 : "=r"(kip), "=r"(rapi_version), "=r"(rapi_flags),
+                   "=r"(rkernel_id)
+                 : [SYS_KERNEL_INTERFACE] "i"(SYS_KERNEL_INTERFACE)
+                 : "r7");
+    if (api_version)
+        *api_version = rapi_version;
+    if (api_flags)
+        *api_flags = rapi_flags;
+    if (kernel_id)
+        *kernel_id = rkernel_id;
+    return kip;
 }
 
 #endif

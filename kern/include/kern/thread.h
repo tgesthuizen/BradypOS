@@ -22,6 +22,30 @@ enum thread_state_t
     TS_SEND_BLOCKED,
 };
 
+enum thread_context_registers
+{
+    THREAD_CTX_R8,
+    THREAD_CTX_R9,
+    THREAD_CTX_R10,
+    THREAD_CTX_R11,
+    THREAD_CTX_R4,
+    THREAD_CTX_R5,
+    THREAD_CTX_R6,
+    THREAD_CTX_R7,
+};
+
+enum thread_context_stack_registers
+{
+    THREAD_CTX_STACK_R0,
+    THREAD_CTX_STACK_R1,
+    THREAD_CTX_STACK_R2,
+    THREAD_CTX_STACK_R3,
+    THREAD_CTX_STACK_R12,
+    THREAD_CTX_STACK_LR,
+    THREAD_CTX_STACK_PC,
+    THREAD_CTX_STACK_PSR,
+};
+
 struct thread_context_t
 {
     unsigned sp;

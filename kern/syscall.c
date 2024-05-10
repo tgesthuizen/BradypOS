@@ -1,7 +1,11 @@
 #include "kern/interrupts.h"
+#include "kern/platform.h"
+#include "l4/thread.h"
+#include "types.h"
 #include <kern/debug.h>
 #include <kern/softirq.h>
 #include <kern/thread.h>
+#include <l4/kip.h>
 #include <l4/syscalls.h>
 
 struct tcb_t *caller;
@@ -23,6 +27,7 @@ static __attribute__((noreturn)) void fail_syscall(const char *type)
 }
 
 static const char *const syscall_names[] = {
+    "SYS_KERNEL_INTERFACE",
     "SYS_SPACE_CONTROL",
     "SYS_THREAD_CONTROL",
     "SYS_PROCESSOR_CONTROL",
@@ -38,11 +43,29 @@ static const char *const syscall_names[] = {
 
 void softirq_svc()
 {
-    const unsigned syscall_id = caller->ctx.r[7];
+    const unsigned syscall_id = caller->ctx.r[THREAD_CTX_R7];
     switch (syscall_id)
     {
-    case SYS_SPACE_CONTROL:
+    case SYS_KERNEL_INTERFACE:
+        extern kip_t the_kip;
+        ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0] = (unsigned)&the_kip;
+        ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R1] =
+            the_kip.api_version.raw;
+        ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R2] =
+            the_kip.api_flags.raw;
+        ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R3] =
+            ((struct kern_desc *)L4_read_kip_ptr(&the_kip,
+                                                 the_kip.kern_desc_ptr))
+                ->kernel_id.raw;
+        break;
     case SYS_THREAD_CONTROL:
+        if (!L4_is_nil_thread(
+                (L4_thread_t)((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]))
+            panic("Attempt to switch thread to specific thread %u, not "
+                  "implemented yet\n",
+                  ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]);
+        break;
+    case SYS_SPACE_CONTROL:
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:
     case SYS_IPC:
@@ -55,4 +78,8 @@ void softirq_svc()
         fail_syscall(syscall_names[syscall_id]);
         break;
     }
+
+    disable_interrupts();
+    set_thread_state(caller, TS_RUNNABLE);
+    enable_interrupts();
 }

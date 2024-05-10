@@ -60,8 +60,8 @@ typedef union
     uint16_t raw;
 } L4_time_t;
 
-static L4_time_t L4_never = {.raw = 0};
-static L4_time_t L4_zero_time = {.point = 0, .e = 1, .m = 0};
+#define L4_never ((L4_time_t){.raw = 0});
+#define L4_zero_time ((L4_time_t){.point = 0, .e = 1, .m = 0})
 
 L4_time_t L4_time_add_usec(L4_time_t l, uint32_t r);
 L4_time_t *L4_time_add_usec_to(L4_time_t *l, uint32_t r);
