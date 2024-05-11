@@ -14,11 +14,12 @@ add_executable(
 target_compile_options(
   root
   PUBLIC
-  -ffreestanding
-  -fPIE
-  -msingle-pic-base
-  -mno-pic-data-is-text-relative
   -fvisibility=hidden
+)
+target_link_libraries(
+  root
+  PUBLIC
+  l4_common
 )
 target_link_options(
   root

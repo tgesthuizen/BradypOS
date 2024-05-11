@@ -39,6 +39,7 @@ add_library(pie_binary INTERFACE)
 target_compile_options(
   pie_binary
   INTERFACE
+  -ffreestanding
   -fPIE
   -msingle-pic-base
   -mno-pic-data-is-text-relative
