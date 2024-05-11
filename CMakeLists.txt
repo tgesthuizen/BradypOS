@@ -34,7 +34,16 @@ target_include_directories(
   INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-link_libraries(l4_common)
+
+add_library(pie_binary INTERFACE)
+target_compile_options(
+  pie_binary
+  INTERFACE
+  -fPIE
+  -msingle-pic-base
+  -mno-pic-data-is-text-relative
+)
+link_libraries(pie_binary)
 
 add_subdirectory(kern)
 add_subdirectory(root)

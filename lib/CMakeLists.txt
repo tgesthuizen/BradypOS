@@ -1,4 +1,5 @@
-add_subdirectory(romfs)
-add_subdirectory(elf)
 add_subdirectory(buddy)
+add_subdirectory(elf)
 add_subdirectory(heap)
+add_subdirectory(romfs)
+add_subdirectory(semihosting)
