@@ -36,8 +36,9 @@ target_sources(
 target_link_libraries(
   libkern
   INTERFACE
-  kernel_headers
   heap
+  kernel_headers
+  l4_common
   semihosting
 )
 target_compile_options(

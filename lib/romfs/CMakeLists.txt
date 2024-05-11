@@ -5,11 +5,15 @@ project(libromfs
   VERSION 0.0.1
 )
 
-add_library(libromfs romfs.c)
-target_include_directories(libromfs PUBLIC include)
-target_compile_options(libromfs PRIVATE -ffreestanding)
+add_library(
+  libromfs${LIBROMFS_TARGET_POSTFIX}
+  STATIC
+  romfs.c
+)
+target_include_directories(libromfs${LIBROMFS_TARGET_POSTFIX} PUBLIC include)
+target_compile_options(libromfs${LIBROMFS_TARGET_POSTFIX} PRIVATE -ffreestanding)
 set_target_properties(
-  libromfs
+  libromfs${LIBROMFS_TARGET_POSTFIX}
   PROPERTIES
   OUTPUT_NAME romfs
 )

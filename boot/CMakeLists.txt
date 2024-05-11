@@ -5,6 +5,11 @@ project(boot
   VERSION 0.0.1
 )
 
+set(LIBELF_TARGET_POSTFIX -static)
+add_subdirectory(../lib/elf elf)
+set(LIBROMFS_TARGET_POSTFIX -static)
+add_subdirectory(../lib/romfs romfs)
+
 add_executable(boot
   bs2_default_padded_checksummed.S
   boot.c
@@ -14,8 +19,9 @@ add_executable(boot
 target_link_libraries(
   boot
   PUBLIC
-  libelf
-  libromfs
+  libelf-static
+  libromfs-static
+  l4_common
 )
 
 target_compile_options(boot

@@ -5,22 +5,22 @@ project(libelf
 )
 
 add_library(
-  libelf
+  libelf${LIBELF_TARGET_POSTFIX}
   STATIC
   elf.c
 )
 target_compile_options(
-  libelf
+  libelf${LIBELF_TARGET_POSTFIX}
   PRIVATE
   -ffreestanding
 )
 target_include_directories(
-  libelf
+  libelf${LIBELF_TARGET_POSTFIX}
   PUBLIC
   include
 )
 set_target_properties(
-  libelf
+  libelf${LIBELF_TARGET_POSTFIX}
   PROPERTIES
   OUTPUT_NAME elf
 )
