@@ -171,7 +171,9 @@ void set_thread_state(struct tcb_t *thread, enum thread_state_t state)
     }
     else if (state != TS_RUNNABLE && thread->state == TS_RUNNABLE)
     {
-        thread_schedule_delete(find_idx_in_heap(idx));
+        const unsigned heap_idx = find_idx_in_heap(idx);
+        if (heap_idx != thread_schedule_fail)
+            thread_schedule_delete(heap_idx);
     }
     thread->state = state;
 }
