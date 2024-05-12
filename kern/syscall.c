@@ -1,5 +1,6 @@
 #include "kern/interrupts.h"
 #include "kern/platform.h"
+#include "kern/systhread.h"
 #include "l4/thread.h"
 #include "types.h"
 #include <kern/debug.h>
@@ -13,9 +14,12 @@ struct tcb_t *caller;
 static __attribute__((used)) void __isr_svcall()
 {
     struct tcb_t *current_thread = get_current_thread();
-    caller = current_thread;
-    set_thread_state(current_thread, TS_SVC_BLOCKED);
-    softirq_schedule(SIRQ_SVC_CALL);
+    if (current_thread != get_kernel_tcb())
+    {
+        caller = current_thread;
+        set_thread_state(current_thread, TS_SVC_BLOCKED);
+        softirq_schedule(SIRQ_SVC_CALL);
+    }
     request_reschedule();
 }
 

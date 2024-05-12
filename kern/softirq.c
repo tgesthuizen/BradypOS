@@ -11,7 +11,7 @@ struct softirq_entry_t
 
 extern void softirq_svc();
 
-static int softirq_pending;
+static volatile int softirq_pending;
 static void (*const softirq_func[SIRQ_LAST])() = {softirq_svc};
 
 void softirq_schedule(enum softirq_type_t type)
@@ -22,27 +22,27 @@ void softirq_schedule(enum softirq_type_t type)
 
 void softirq_execute()
 {
-    int softirq_run;
+    int softirq_pending_buf;
 retry:
-    softirq_run = 0;
+    softirq_pending_buf = softirq_pending;
     for (int i = 0; i < SIRQ_LAST; ++i)
     {
-        if (softirq_pending & (1 << i))
+        if (softirq_pending_buf & (1 << i))
         {
             softirq_func[i]();
-            softirq_run |= 1 << i;
         }
     }
 
+    // Assert whether all softirqs are handled and update accordingly.
     disable_interrupts();
-    softirq_run = softirq_pending &= ~softirq_run;
-    if (softirq_pending != 0)
+    softirq_pending_buf = softirq_pending &= ~softirq_pending_buf;
+    if (softirq_pending_buf == 0)
     {
         set_thread_state(get_kernel_tcb(), TS_INACTIVE);
     }
 
     enable_interrupts();
 
-    if (softirq_run)
+    if (softirq_pending_buf)
         goto retry;
 }
