@@ -9,19 +9,21 @@ set(LIBELF_TARGET_POSTFIX -static)
 add_subdirectory(../lib/elf elf)
 set(LIBROMFS_TARGET_POSTFIX -static)
 add_subdirectory(../lib/romfs romfs)
+set(LIBSTRING_TARGET_POSTFIX -static)
+add_subdirectory(../lib/string string)
 
 add_executable(boot
   bs2_default_padded_checksummed.S
   boot.c
   bootinfo.c
-  string.c
 )
 target_link_libraries(
   boot
   PUBLIC
+  l4_common
   libelf-static
   libromfs-static
-  l4_common
+  libstring-static
 )
 
 target_compile_options(boot

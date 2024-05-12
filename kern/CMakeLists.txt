@@ -26,7 +26,6 @@ target_sources(
   kip.s
   main.c
   softirq.c
-  string.c
   syscall.c
   systhread.c
   systick.c
@@ -40,6 +39,7 @@ target_link_libraries(
   kernel_headers
   l4_common
   semihosting
+  libstring
 )
 target_compile_options(
   libkern

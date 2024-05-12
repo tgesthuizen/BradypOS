@@ -1,12 +1,12 @@
 #include <kern/debug.h>
 #include <kern/softirq.h>
-#include <kern/string.h>
 #include <kern/systhread.h>
 #include <kern/thread.h>
 #include <l4/bootinfo.h>
 #include <l4/schedule.h>
 #include <l4/thread.h>
 #include <stddef.h>
+#include <string.h>
 
 static struct tcb_t *kern_tcb;
 static struct tcb_t *root_tcb;

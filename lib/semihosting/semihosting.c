@@ -1,14 +1,7 @@
 #include <semihosting.h>
+#include <string.h>
 
 unsigned trap_sh(enum semihosting_syscall nr, uintptr_t ptr);
-
-__attribute__((weak)) size_t strlen(const char *str)
-{
-    size_t r = 0;
-    while (*str++)
-        ++r;
-    return r;
-}
 
 int sh_open(const char *path, int opening_mode)
 {
