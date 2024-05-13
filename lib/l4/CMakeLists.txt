@@ -1,0 +1,10 @@
+add_library(
+  l4
+  STATIC
+  schedule.c
+)
+target_link_libraries(
+  l4
+  PUBLIC
+  l4_common
+)

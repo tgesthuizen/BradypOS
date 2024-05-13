@@ -37,7 +37,7 @@ target_link_libraries(
   INTERFACE
   heap
   kernel_headers
-  l4_common
+  l4
   semihosting
   libstring
 )

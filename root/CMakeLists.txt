@@ -19,7 +19,7 @@ target_compile_options(
 target_link_libraries(
   root
   PUBLIC
-  l4_common
+  l4
 )
 target_link_options(
   root
