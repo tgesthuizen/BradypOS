@@ -62,14 +62,17 @@ void softirq_svc()
                                                  the_kip.kern_desc_ptr))
                 ->kernel_id.raw;
         break;
-    case SYS_THREAD_CONTROL:
+    case SYS_THREAD_SWITCH:
         if (!L4_is_nil_thread(
                 (L4_thread_t)((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]))
             panic("Attempt to switch thread to specific thread %u, not "
                   "implemented yet\n",
                   ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]);
+        // We don't need to do anything, as we just scheduled from the
+        // requesting thread to the kernel.
         break;
     case SYS_SPACE_CONTROL:
+    case SYS_THREAD_CONTROL:
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:
     case SYS_IPC:
@@ -77,7 +80,6 @@ void softirq_svc()
     case SYS_UNMAP:
     case SYS_EXCHANGE_REGISTERS:
     case SYS_SYSTEM_CLOCK:
-    case SYS_THREAD_SWITCH:
     case SYS_SCHEDULE:
         fail_syscall(syscall_names[syscall_id]);
         break;
