@@ -8,3 +8,8 @@ target_link_libraries(
   PUBLIC
   l4_common
 )
+target_compile_options(
+  l4
+  PRIVATE
+  -ffunction-sections
+)
