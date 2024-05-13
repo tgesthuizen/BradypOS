@@ -38,6 +38,8 @@ static inline void HEAP_CONCAT(HEAP_PREFIX, _swap)(HEAP_VALUE_TYPE *lhs,
 
 static unsigned HEAP_CONCAT(HEAP_PREFIX, _swim)(unsigned idx)
 {
+    if (idx == 0)
+        return 0;
     struct HEAP_CONCAT(HEAP_PREFIX, _type) *v =
         &HEAP_CONCAT(HEAP_PREFIX, _state);
     for (unsigned parent = (idx - 1) / 2;
