@@ -46,22 +46,18 @@ inline L4_msg_tag_t *L4_msg_tg_add_label_to(L4_msg_tag_t *tag, unsigned label)
     return tag;
 }
 
-register unsigned __L4_mr0 asm("r4");
-register unsigned __L4_mr1 asm("r5");
-register unsigned __L4_mr2 asm("r6");
-register unsigned __L4_mr3 asm("r7");
-register unsigned __L4_mr4 asm("r8");
-register unsigned __L4_mr5 asm("r9");
-register unsigned __L4_mr6 asm("r10");
-register unsigned __L4_mr7 asm("r11");
+extern L4_utcb_t __utcb;
 
 inline L4_msg_tag_t L4_msg_tag()
 {
     L4_msg_tag_t res;
-    res.raw = __L4_mr0;
+    res.raw = __utcb.mr[0];
     return res;
 }
-inline void L4_set_msg_tag(L4_msg_tag_t tag) { __L4_mr0 = (unsigned)tag.raw; }
+inline void L4_set_msg_tag(L4_msg_tag_t tag)
+{
+    __utcb.mr[0] = (unsigned)tag.raw;
+}
 
 struct L4_msg
 {
@@ -90,7 +86,7 @@ inline unsigned L4_msg_label(L4_msg_t *msg)
 }
 inline void L4_set_msg_label(L4_msg_t *msg, unsigned label)
 {
-    L4_msg_tag_t *tag = &msg->raw[0];
+    L4_msg_tag_t *tag = (L4_msg_tag_t *)&msg->raw[0];
     tag->label = label;
 }
 
@@ -107,6 +103,11 @@ inline void L4_msg_clear(L4_msg_t *msg)
 }
 
 // TODO: Append, put and get functions
+
+// Low-Level MR Access
+
+inline void L4_store_mr(int i, unsigned *word) { *word = __utcb.mr[i]; }
+inline void L4_load_mr(int i, unsigned word) { __utcb.mr[i] = word; }
 
 enum L4_typed_item_kind
 {

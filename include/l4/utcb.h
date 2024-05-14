@@ -16,7 +16,7 @@ struct L4_utcb
     L4_thread_t sender;
     uint32_t thread_word_1;
     uint32_t thread_word_2;
-    uint32_t mr[8]; // Message registers 8-15, MR 0 - 7 are lying in r4..r11.
+    uint32_t mr[16];
     uint32_t br[8];
 };
 
