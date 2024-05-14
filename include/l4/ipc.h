@@ -108,6 +108,16 @@ inline void L4_msg_clear(L4_msg_t *msg)
 
 inline void L4_store_mr(int i, unsigned *word) { *word = __utcb.mr[i]; }
 inline void L4_load_mr(int i, unsigned word) { __utcb.mr[i] = word; }
+inline void L4_store_mrs(int offset, int count, unsigned *words)
+{
+    for (int i = 0; i < count; ++i)
+        words[i] = __utcb.mr[i + offset];
+}
+inline void L4_load_mrs(int offset, int count, const unsigned *words)
+{
+    for (int i = 0; i < count; ++i)
+        __utcb.mr[i + offset] = words[i];
+}
 
 enum L4_typed_item_kind
 {
