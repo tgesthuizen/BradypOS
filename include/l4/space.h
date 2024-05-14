@@ -1,6 +1,7 @@
 #ifndef BRADYPOS_L4_SPACE_H
 #define BRADYPOS_L4_SPACE_H
 
+#include "l4/thread.h"
 #include <l4/ipc.h>
 #include <l4/syscalls.h>
 #include <stdbool.h>
@@ -139,6 +140,28 @@ inline bool L4_was_written(L4_fpage_t fpage)
 inline bool L4_was_executed(L4_fpage_t fpage)
 {
     return (fpage.perm & L4_executable) != 0;
+}
+
+// 4.3 Space Control
+
+inline unsigned L4_space_control(L4_thread_t space_specifier, unsigned control,
+                                 L4_fpage_t kip_area, L4_fpage_t utcb_area,
+                                 L4_thread_t redirector, unsigned *old_control)
+{
+    unsigned result;
+    register unsigned rspace_specifier asm("r0") = space_specifier;
+    register unsigned rcontrol asm("r1") = control;
+    register unsigned rkip_area asm("r2") = kip_area.raw;
+    register unsigned rutcb_area asm("r3") = utcb_area.raw;
+    register unsigned rredirector asm("r4") = redirector;
+    asm volatile("movs r7, %[SYS_SPACE_CONTROL]\n\t"
+                 "svc #0\n\t"
+                 : "=r"(result), "=r"(control)
+                 : [SYS_SPACE_CONTROL] "i"(SYS_SPACE_CONTROL),
+                   "0"(rspace_specifier), "1"(rcontrol), "r"(rkip_area),
+                   "r"(rutcb_area), "r"(rredirector));
+    *old_control = control;
+    return result;
 }
 
 #endif
