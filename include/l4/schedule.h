@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <types.h>
 
 typedef struct
 {
@@ -88,9 +87,9 @@ bool L4_is_time_not_equal(L4_time_t l, L4_time_t r);
 
 /* TODO: Implement L4_schedule and friends */
 
-inline void L4_thread_switch(L4_thread_t dest)
+inline void L4_thread_switch(L4_thread_id dest)
 {
-    register L4_thread_t rdest asm("r0") = dest;
+    register L4_thread_id rdest asm("r0") = dest;
     asm volatile("movs r7, %1\n\t"
                  "svc #0\n\t" ::"r"(rdest),
                  "i"(SYS_THREAD_SWITCH)

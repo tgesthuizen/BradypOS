@@ -22,6 +22,6 @@ bool L4_was_referenced(L4_fpage_t fpage);
 bool L4_was_written(L4_fpage_t fpage);
 bool L4_was_executed(L4_fpage_t fpage);
 
-unsigned L4_space_control(L4_thread_t space_specifier, unsigned control,
+unsigned L4_space_control(L4_thread_id space_specifier, unsigned control,
                           L4_fpage_t kip_area, L4_fpage_t utcb_area,
-                          L4_thread_t redirector, unsigned *old_control);
+                          L4_thread_id redirector, unsigned *old_control);

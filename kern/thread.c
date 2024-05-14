@@ -1,6 +1,5 @@
-#include "kern/hardware.h"
-#include "types.h"
 #include <kern/debug.h>
+#include <kern/hardware.h>
 #include <kern/kalarm.h>
 #include <kern/platform.h>
 #include <kern/thread.h>
@@ -53,7 +52,7 @@ void init_thread_system()
     current_thread_idx = THREAD_IDX_INVALID;
 }
 
-static unsigned thread_map_find(L4_thread_t global_id)
+static unsigned thread_map_find(L4_thread_id global_id)
 {
     int high = thread_count;
     int low = 0;
@@ -90,7 +89,7 @@ struct tcb_t *allocate_tcb()
     return NULL;
 }
 
-struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_t global_id)
+struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_id global_id)
 {
     if (L4_version(global_id) == 0)
         return NULL;
@@ -178,7 +177,7 @@ void set_thread_state(struct tcb_t *thread, enum thread_state_t state)
     thread->state = state;
 }
 
-struct tcb_t *thread_tcb(L4_thread_t thread)
+struct tcb_t *thread_tcb(L4_thread_id thread)
 {
     const int idx = thread_map_find(thread);
     if (idx == -1)

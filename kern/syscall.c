@@ -1,13 +1,12 @@
-#include "kern/interrupts.h"
-#include "kern/platform.h"
-#include "kern/systhread.h"
-#include "l4/thread.h"
-#include "types.h"
 #include <kern/debug.h>
+#include <kern/interrupts.h>
+#include <kern/platform.h>
 #include <kern/softirq.h>
+#include <kern/systhread.h>
 #include <kern/thread.h>
 #include <l4/kip.h>
 #include <l4/syscalls.h>
+#include <l4/thread.h>
 
 struct tcb_t *caller;
 
@@ -64,7 +63,7 @@ void softirq_svc()
         break;
     case SYS_THREAD_SWITCH:
         if (!L4_is_nil_thread(
-                (L4_thread_t)((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]))
+                (L4_thread_id)((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]))
             panic("Attempt to switch thread to specific thread %u, not "
                   "implemented yet\n",
                   ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]);

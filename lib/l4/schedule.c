@@ -10,5 +10,5 @@ bool L4_is_clock_equal(L4_clock_t l, L4_clock_t r);
 bool L4_is_clock_not_equal(L4_clock_t l, L4_clock_t r);
 L4_clock_t L4_system_clock();
 
-void L4_thread_switch(L4_thread_t dest);
+void L4_thread_switch(L4_thread_id dest);
 void L4_yield();

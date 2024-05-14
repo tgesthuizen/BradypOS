@@ -144,9 +144,9 @@ inline bool L4_was_executed(L4_fpage_t fpage)
 
 // 4.3 Space Control
 
-inline unsigned L4_space_control(L4_thread_t space_specifier, unsigned control,
+inline unsigned L4_space_control(L4_thread_id space_specifier, unsigned control,
                                  L4_fpage_t kip_area, L4_fpage_t utcb_area,
-                                 L4_thread_t redirector, unsigned *old_control)
+                                 L4_thread_id redirector, unsigned *old_control)
 {
     unsigned result;
     register unsigned rspace_specifier asm("r0") = space_specifier;

@@ -12,9 +12,9 @@ static struct tcb_t *kern_tcb;
 static struct tcb_t *root_tcb;
 static struct tcb_t *idle_tcb;
 
-static L4_thread_t kern_id;
-static L4_thread_t idle_id;
-static L4_thread_t root_id;
+static L4_thread_id kern_id;
+static L4_thread_id idle_id;
+static L4_thread_id root_id;
 
 static unsigned char idle_stack[128];
 static void idle_task()
