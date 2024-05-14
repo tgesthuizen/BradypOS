@@ -1,7 +1,9 @@
 add_library(
   l4
   STATIC
+  ipc.c
   schedule.c
+  space.c
 )
 target_link_libraries(
   l4
