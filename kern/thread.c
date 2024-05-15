@@ -70,6 +70,14 @@ static unsigned thread_map_find(L4_thread_id global_id)
     return THREAD_IDX_INVALID;
 }
 
+struct tcb_t *find_thread_by_global_id(L4_thread_id global_id)
+{
+    const unsigned idx = thread_map_find(global_id);
+    if (idx == THREAD_IDX_INVALID)
+        return NULL;
+    return &tcb_store[idx];
+}
+
 static void swap_unsigned_char(unsigned char *lhs, unsigned char *rhs)
 {
     const unsigned tmp = *lhs;
@@ -117,9 +125,42 @@ struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_id global_id)
     return &tcb_store[thread_list[idx]];
 }
 
-void request_reschedule()
+static struct tcb_t *schedule_target;
+
+void request_reschedule(struct tcb_t *target)
 {
+    schedule_target = target;
     *(volatile unsigned *)(PPB_BASE + ICSR_OFFSET) = ICSR_PENDSVSET;
+}
+
+static unsigned find_thread_idx_to_schedule()
+{
+    if (thread_schedule_state.size == 0)
+        panic("No task can be scheduled!\n");
+
+    const unsigned idx = thread_schedule_state.data[0];
+    thread_schedule_pop();
+    return idx;
+}
+
+static unsigned find_thread_idx_to_schedule_from_target()
+{
+    unsigned idx = 0;
+    const unsigned target_thread_map_idx = schedule_target - tcb_store;
+    for (idx = 0; idx < thread_schedule_state.size; ++idx)
+    {
+        if (thread_schedule_state.data[idx] == target_thread_map_idx)
+        {
+            thread_schedule_delete(idx);
+            if (schedule_target->state != TS_RUNNABLE)
+            {
+                panic("Thread %u is not active, but shall be scheduled",
+                      schedule_target->global_id);
+            }
+            return target_thread_map_idx;
+        }
+    }
+    return find_thread_idx_to_schedule();
 }
 
 void schedule_next_thread()
@@ -127,10 +168,10 @@ void schedule_next_thread()
     if (current_thread_idx != THREAD_IDX_INVALID &&
         tcb_store[current_thread_idx].state == TS_RUNNABLE)
         thread_schedule_insert(current_thread_idx);
-    if (thread_schedule_state.size == 0)
-        panic("No task can be scheduled!\n");
-    const unsigned idx = thread_schedule_state.data[0];
-    thread_schedule_pop();
+
+    const unsigned idx = schedule_target != NULL
+                             ? find_thread_idx_to_schedule_from_target()
+                             : find_thread_idx_to_schedule();
     // Disable interrupts so that systick cannot read the kalarm heap with a
     // race condition.
     disable_interrupts();
@@ -248,7 +289,7 @@ __attribute__((naked)) void isr_pendsv()
 
 void start_scheduling()
 {
-    request_reschedule();
+    request_reschedule(NULL);
     while (1)
         asm volatile("wfi");
 }

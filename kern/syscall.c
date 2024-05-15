@@ -7,19 +7,37 @@
 #include <l4/kip.h>
 #include <l4/syscalls.h>
 #include <l4/thread.h>
+#include <stddef.h>
 
 struct tcb_t *caller;
 
+static unsigned *get_psp()
+{
+    unsigned *res;
+    asm volatile("mrs %0, PSP\n" : "=r"(res));
+    return res;
+}
+
 static __attribute__((used)) void __isr_svcall()
 {
-    struct tcb_t *current_thread = get_current_thread();
-    if (current_thread != get_kernel_tcb())
+    register unsigned syscall_number asm("r7");
+    unsigned *const psp = get_psp();
+    switch (syscall_number)
     {
+    case SYS_THREAD_SWITCH:
+        request_reschedule(
+            find_thread_by_global_id((L4_thread_id)psp[THREAD_CTX_STACK_R0]));
+        break;
+    default:
+    {
+        struct tcb_t *const current_thread = get_current_thread();
         caller = current_thread;
         set_thread_state(current_thread, TS_SVC_BLOCKED);
         softirq_schedule(SIRQ_SVC_CALL);
+        request_reschedule(get_kernel_tcb());
     }
-    request_reschedule();
+    break;
+    }
 }
 
 DECLARE_ISR(isr_svcall, __isr_svcall)
@@ -62,13 +80,8 @@ void softirq_svc()
                 ->kernel_id.raw;
         break;
     case SYS_THREAD_SWITCH:
-        if (!L4_is_nil_thread(
-                (L4_thread_id)((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]))
-            panic("Attempt to switch thread to specific thread %u, not "
-                  "implemented yet\n",
-                  ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0]);
-        // We don't need to do anything, as we just scheduled from the
-        // requesting thread to the kernel.
+        panic("SoftIRQ is meant to handle thread switch, while that should "
+              "have been done in the ISR\n");
         break;
     case SYS_SPACE_CONTROL:
     case SYS_THREAD_CONTROL:

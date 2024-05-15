@@ -70,8 +70,9 @@ struct tcb_t
 };
 
 void init_thread_system();
+struct tcb_t *find_thread_by_global_id(L4_thread_id id);
 struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_id id);
-void request_reschedule();
+void request_reschedule(struct tcb_t *target);
 void schedule_next_thread();
 void set_thread_state(struct tcb_t *thread, enum thread_state_t state);
 struct tcb_t *thread_tcb(L4_thread_id thread);
