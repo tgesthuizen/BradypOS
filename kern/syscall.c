@@ -1,3 +1,4 @@
+#include "kern/kalarm.h"
 #include <kern/debug.h>
 #include <kern/interrupts.h>
 #include <kern/platform.h>
@@ -28,6 +29,13 @@ static __attribute__((used)) void __isr_svcall()
         request_reschedule(
             find_thread_by_global_id((L4_thread_id)psp[THREAD_CTX_STACK_R0]));
         break;
+    case SYS_SYSTEM_CLOCK:
+    {
+        uint64_t time = get_current_time();
+        psp[THREAD_CTX_STACK_R0] = time & ~(unsigned)0;
+        psp[THREAD_CTX_STACK_R1] = time >> 32;
+    }
+    break;
     default:
     {
         struct tcb_t *const current_thread = get_current_thread();
@@ -80,8 +88,11 @@ void softirq_svc()
                 ->kernel_id.raw;
         break;
     case SYS_THREAD_SWITCH:
-        panic("SoftIRQ is meant to handle thread switch, while that should "
-              "have been done in the ISR\n");
+    case SYS_SYSTEM_CLOCK:
+        panic(
+            "Kernel thread is meant to handle syscall %u (%s), but ISR should "
+            "have handled it\n",
+            syscall_id, syscall_names[syscall_id]);
         break;
     case SYS_SPACE_CONTROL:
     case SYS_THREAD_CONTROL:
@@ -91,7 +102,6 @@ void softirq_svc()
     case SYS_LIPC:
     case SYS_UNMAP:
     case SYS_EXCHANGE_REGISTERS:
-    case SYS_SYSTEM_CLOCK:
     case SYS_SCHEDULE:
         fail_syscall(syscall_names[syscall_id]);
         break;
