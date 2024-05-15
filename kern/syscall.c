@@ -50,11 +50,6 @@ static __attribute__((used)) void __isr_svcall()
 
 DECLARE_ISR(isr_svcall, __isr_svcall)
 
-static __attribute__((noreturn)) void fail_syscall(const char *type)
-{
-    panic("%s is not yet implemented\n", type);
-}
-
 static const char *const syscall_names[] = {
     "SYS_KERNEL_INTERFACE",
     "SYS_SPACE_CONTROL",
@@ -103,7 +98,7 @@ void softirq_svc()
     case SYS_UNMAP:
     case SYS_EXCHANGE_REGISTERS:
     case SYS_SCHEDULE:
-        fail_syscall(syscall_names[syscall_id]);
+        panic("%s is not yet implemented\n", syscall_names[syscall_id]);
         break;
     }
 
