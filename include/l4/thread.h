@@ -9,16 +9,28 @@ typedef unsigned L4_thread_id;
 #define L4_ANYTHREAD (0xFFFFFFFF)
 #define L4_ANYLOCALTHREAD (0xFFFFFFB0)
 
-static inline L4_thread_id L4_global_id(unsigned number, unsigned version)
+inline L4_thread_id L4_global_id(unsigned number, unsigned version)
 {
-    return (number << 6) | version;
+    return (number << 14) | version;
 }
-static inline unsigned L4_version(L4_thread_id tid) { return tid & 0xF3; }
-static inline unsigned L4_thread_no(L4_thread_id tid) { return tid >> 6; }
-static inline bool L4_same_threads(L4_thread_id lhs, L4_thread_id rhs)
+inline unsigned L4_version(L4_thread_id tid) { return tid & ((1 << 15) - 1); }
+inline unsigned L4_thread_no(L4_thread_id tid) { return tid >> 14; }
+inline bool L4_same_threads(L4_thread_id lhs, L4_thread_id rhs)
 {
     return L4_thread_no(lhs) == L4_thread_no(rhs);
 }
-static inline bool L4_is_nil_thread(L4_thread_id tid) { return tid == L4_NILTHREAD; }
+inline bool L4_is_nil_thread(L4_thread_id tid) { return tid == L4_NILTHREAD; }
+inline bool L4_is_local_id(L4_thread_id tid)
+{
+    return (tid & ((1 << 7) - 1)) == 0;
+}
+inline bool L4_is_global_id(L4_thread_id tid)
+{
+    return (tid & ((1 << 7) - 1)) != 0;
+}
+L4_thread_id L4_local_id_of(L4_thread_id tid);
+L4_thread_id L4_global_id_of(L4_thread_id tid);
+L4_thread_id L4_my_global_id();
+L4_thread_id L4_my_local_id();
 
 #endif

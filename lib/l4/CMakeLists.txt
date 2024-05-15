@@ -4,6 +4,7 @@ add_library(
   ipc.c
   schedule.c
   space.c
+  thread.c
 )
 target_link_libraries(
   l4

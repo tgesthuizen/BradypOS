@@ -6,6 +6,7 @@
 
 struct L4_utcb
 {
+    L4_thread_id global_id;
     uint32_t processor_no;
     uint32_t user_defined_handle;
     L4_thread_id t_pager;
