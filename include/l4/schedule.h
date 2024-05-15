@@ -48,12 +48,13 @@ inline bool L4_is_clock_not_equal(L4_clock_t l, L4_clock_t r)
 
 inline L4_clock_t L4_system_clock()
 {
-    register L4_clock_t clock asm("r0");
+    register unsigned clock_low asm("r0");
+    register unsigned clock_high asm("r1");
     asm volatile("movs r7, %[SYS_CLOCK]\n\t"
                  "svc #0\n\t"
-                 : "=r"(clock)
+                 : "=r"(clock_low), "=r"(clock_high)
                  : [SYS_CLOCK] "i"(SYS_SYSTEM_CLOCK));
-    return clock;
+    return (L4_clock_t){.raw = clock_low | ((uint64_t)clock_high << 32)};
 }
 
 typedef union
