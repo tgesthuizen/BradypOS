@@ -44,6 +44,22 @@ target_compile_options(
   -msingle-pic-base
   -mno-pic-data-is-text-relative
 )
+# Some libraries are compiled with `-ffunction-sections` as they
+# contain a lot of inline definitions that are needed for correctness,
+# but are sparsely used.
+# Make sure we only link what we use by garbage collecting sections.
+# BUG: The resulting binaries do not actually have the the functions
+# in question removed.
+# https://stackoverflow.com/questions/56283941/why-gcc-gc-sections-and-ffunction-sections-is-not-working-cmake-build
+# indicates that this is because -Wl,--gc-sections is incompatible
+# with dynamic executables, even if only a selected set of symbols is
+# exported.
+target_link_options(
+  pie_binary
+  INTERFACE
+  -fvisibility=hidden
+  -Wl,--gc-sections
+)
 link_libraries(pie_binary)
 
 add_subdirectory(kern)
