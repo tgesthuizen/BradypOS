@@ -159,7 +159,8 @@ inline unsigned L4_space_control(L4_thread_id space_specifier, unsigned control,
                  : "=r"(result), "=r"(control)
                  : [SYS_SPACE_CONTROL] "i"(SYS_SPACE_CONTROL),
                    "0"(rspace_specifier), "1"(rcontrol), "r"(rkip_area),
-                   "r"(rutcb_area), "r"(rredirector));
+                   "r"(rutcb_area), "r"(rredirector)
+                 : "r7");
     *old_control = control;
     return result;
 }

@@ -62,16 +62,16 @@ struct tcb_t
     enum thread_state_t state;
     struct thread_context_t ctx;
     struct as_t *as;
-    struct utcb_t *utcb;
+    L4_utcb_t *utcb;
     unsigned priority;
 
     L4_thread_id ipc_from;
-    uint32_t timeout_event;
+    unsigned timeout_event;
 };
 
 void init_thread_system();
 struct tcb_t *find_thread_by_global_id(L4_thread_id id);
-struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_id id);
+struct tcb_t *insert_thread(L4_utcb_t *utcb, L4_thread_id id);
 void request_reschedule(struct tcb_t *target);
 void schedule_next_thread();
 void set_thread_state(struct tcb_t *thread, enum thread_state_t state);

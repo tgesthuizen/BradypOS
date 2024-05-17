@@ -25,6 +25,7 @@ target_sources(
   kalarm.c
   kip.s
   main.c
+  memory.c
   softirq.c
   syscall.c
   systhread.c

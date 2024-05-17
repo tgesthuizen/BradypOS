@@ -82,6 +82,10 @@ void softirq_svc()
                                                  the_kip.kern_desc_ptr))
                 ->kernel_id.raw;
         break;
+    case SYS_SPACE_CONTROL:
+        extern void syscall_space_control();
+        syscall_space_control();
+        break;
     case SYS_THREAD_SWITCH:
     case SYS_SYSTEM_CLOCK:
         panic(
@@ -89,7 +93,6 @@ void softirq_svc()
             "have handled it\n",
             syscall_id, syscall_names[syscall_id]);
         break;
-    case SYS_SPACE_CONTROL:
     case SYS_THREAD_CONTROL:
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:

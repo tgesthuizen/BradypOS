@@ -20,6 +20,7 @@ target_link_libraries(
   root
   PUBLIC
   l4
+  semihosting
 )
 target_link_options(
   root

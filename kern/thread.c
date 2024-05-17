@@ -97,7 +97,7 @@ struct tcb_t *allocate_tcb()
     return NULL;
 }
 
-struct tcb_t *insert_thread(struct utcb_t *utcb, L4_thread_id global_id)
+struct tcb_t *insert_thread(L4_utcb_t *utcb, L4_thread_id global_id)
 {
     if (L4_version(global_id) == 0)
         return NULL;

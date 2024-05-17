@@ -20,7 +20,9 @@ the_kip:
 	.word 0 /* Memory info, needs dynamic initialization */
 
 	.zero 0x50
-	.word 0 /* TODO: UTCB info */
+	// Minimal UTCB area size is 512 bytes, UTCBs are 2^3 byte
+	// aligned and are at least 160 byte large
+	.word (9 << 16) | (3 << 10) | (160 / 4)
 	.word 0xA0 /* KIP is 1024 bytes */
 	.zero 0x8
 	.word __L4_boot_info - the_kip
