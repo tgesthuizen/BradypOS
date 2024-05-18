@@ -1,8 +1,12 @@
 #include <kern/debug.h>
 #include <kern/hardware.h>
 #include <kern/kalarm.h>
+#include <kern/memory.h>
 #include <kern/platform.h>
+#include <kern/systhread.h>
 #include <kern/thread.h>
+#include <l4/errors.h>
+#include <l4/space.h>
 #include <l4/thread.h>
 #include <stddef.h>
 
@@ -73,7 +77,7 @@ static unsigned thread_list_find(L4_thread_id global_id)
 static unsigned thread_map_find(L4_thread_id global_id)
 {
     unsigned idx = thread_list_find(global_id);
-    if (idx == THREAD_IDX_INVALID)
+    if (!L4_same_threads(tcb_store[thread_list[idx]].global_id, global_id))
         return THREAD_IDX_INVALID;
     return thread_list[idx];
 }
