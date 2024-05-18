@@ -31,7 +31,8 @@ _start:
 	ldr   r5, [r6, r5]
 	str   r1, [r5]
 	ldr   r4, .Lroot_got_got
-	str   r2, [r6, r4]
+	ldr   r4, [r6, r4]
+	str   r2, [r4]
 	
 	bl    main
 	
