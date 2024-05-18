@@ -86,6 +86,10 @@ void softirq_svc()
         extern void syscall_space_control();
         syscall_space_control();
         break;
+    case SYS_THREAD_CONTROL:
+        extern void syscall_thread_control();
+        syscall_thread_control();
+        break;
     case SYS_THREAD_SWITCH:
     case SYS_SYSTEM_CLOCK:
         panic(
@@ -93,7 +97,6 @@ void softirq_svc()
             "have handled it\n",
             syscall_id, syscall_names[syscall_id]);
         break;
-    case SYS_THREAD_CONTROL:
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:
     case SYS_IPC:
