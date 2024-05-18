@@ -28,7 +28,7 @@ the_kip:
 	.word __L4_boot_info - the_kip
 	.word proc_desc - the_kip
 	.word 0 /* TODO: clock info */
-	.word (64 << 20) | (48 << 8) | (16 << 0) /* Thread info */
+	.word (0x40 << 20) | (0x30 << 8) | (16 << 0) /* Thread info */
 	.word ~((1 << 11) - 1) | 0b111 /* Page info: all rights changeable, all page sizes supported */
 	.word (4 << 28) | (0 << 0) /* Processor info: 1 Processor (for now), each record is 2^4 */
 

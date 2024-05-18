@@ -4,6 +4,13 @@
 #include <l4/thread.h>
 #include <l4/utcb.h>
 
+enum thread_number_bounds
+{
+    SYSTEM_THREAD_START = 0x30,
+    USER_THREAD_START = 0x40,
+    THREAD_COUNT = (1 << 16),
+};
+
 enum thread_kind_t
 {
     TK_KERNEL,
