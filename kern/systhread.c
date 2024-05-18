@@ -100,6 +100,7 @@ void create_sys_threads()
     root_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
     root_tcb->ctx.sp = (unsigned)root_sp;
     root_tcb->ctx.ret = 0xFFFFFFFD;
+    root_tcb->ctx.r[THREAD_CTX_R9] = (unsigned)root_got;
     root_tcb->priority = 42;
     set_thread_state(root_tcb, TS_RUNNABLE);
 }
