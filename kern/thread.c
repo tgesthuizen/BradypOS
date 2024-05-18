@@ -97,7 +97,7 @@ static void swap_unsigned_char(unsigned char *lhs, unsigned char *rhs)
     *rhs = tmp;
 }
 
-struct tcb_t *allocate_tcb()
+static struct tcb_t *allocate_tcb()
 {
     for (unsigned i = 0; i < THREAD_MAX_COUNT; ++i)
     {
