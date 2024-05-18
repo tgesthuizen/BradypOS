@@ -52,15 +52,15 @@ void init_thread_system()
     current_thread_idx = THREAD_IDX_INVALID;
 }
 
-static unsigned thread_map_find(L4_thread_id global_id)
+static unsigned thread_list_find(L4_thread_id global_id)
 {
-    int high = thread_count;
-    int low = 0;
+    unsigned high = thread_count;
+    unsigned low = 0;
     unsigned thread_no = L4_thread_no(global_id);
     while (low <= high)
     {
         if (high - low <= 1)
-            return thread_list[low];
+            return low;
         const unsigned mid = low + (high - low) / 2;
         if (L4_thread_no(tcb_store[thread_list[mid]].global_id) >= thread_no)
             high = mid;
@@ -68,6 +68,14 @@ static unsigned thread_map_find(L4_thread_id global_id)
             low = mid;
     }
     return THREAD_IDX_INVALID;
+}
+
+static unsigned thread_map_find(L4_thread_id global_id)
+{
+    unsigned idx = thread_list_find(global_id);
+    if (idx == THREAD_IDX_INVALID)
+        return THREAD_IDX_INVALID;
+    return thread_list[idx];
 }
 
 struct tcb_t *find_thread_by_global_id(L4_thread_id global_id)
@@ -103,7 +111,7 @@ struct tcb_t *insert_thread(L4_utcb_t *utcb, L4_thread_id global_id)
         return NULL;
     if (thread_count == THREAD_MAX_COUNT)
         return NULL;
-    unsigned idx = thread_map_find(global_id);
+    unsigned idx = thread_list_find(global_id);
     if (idx == THREAD_IDX_INVALID)
         return NULL;
 
