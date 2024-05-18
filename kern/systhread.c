@@ -39,6 +39,8 @@ void *root_got;
 
 void create_sys_threads()
 {
+    register unsigned kern_got asm("r9");
+
     kern_id = L4_global_id(46, 1);
     kern_tcb = insert_thread(NULL, kern_id);
     unsigned *kern_sp = (unsigned *)(kern_stack + 256);
@@ -51,6 +53,7 @@ void create_sys_threads()
     kern_sp[THREAD_CTX_STACK_LR] = 0;
     kern_sp[THREAD_CTX_STACK_PC] = (unsigned)kern_task;
     kern_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
+    kern_tcb->ctx.r[THREAD_CTX_R9] = kern_got;
     kern_tcb->ctx.sp = (unsigned)kern_sp;
     kern_tcb->ctx.ret = 0xFFFFFFFD;
     kern_tcb->priority = 0;
@@ -68,6 +71,7 @@ void create_sys_threads()
     idle_sp[THREAD_CTX_STACK_LR] = 0;
     idle_sp[THREAD_CTX_STACK_PC] = (unsigned)idle_task;
     idle_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
+    idle_tcb->ctx.r[THREAD_CTX_R9] = kern_got;
     idle_tcb->ctx.sp = (unsigned)idle_sp;
     idle_tcb->ctx.ret = 0xFFFFFFFD;
     idle_tcb->priority = ~0;
@@ -98,9 +102,9 @@ void create_sys_threads()
     root_sp[THREAD_CTX_STACK_LR] = 0;
     root_sp[THREAD_CTX_STACK_PC] = (unsigned)current_record->initial_ip;
     root_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
+    root_tcb->ctx.r[THREAD_CTX_R9] = (unsigned)root_got;
     root_tcb->ctx.sp = (unsigned)root_sp;
     root_tcb->ctx.ret = 0xFFFFFFFD;
-    root_tcb->ctx.r[THREAD_CTX_R9] = (unsigned)root_got;
     root_tcb->priority = 42;
     set_thread_state(root_tcb, TS_RUNNABLE);
 }

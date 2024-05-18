@@ -30,10 +30,15 @@ void nvic_set_pending(unsigned interrupt, bool pends);
 #define DECLARE_ISR(isr, func)                                                 \
     __attribute__((naked)) void isr()                                          \
     {                                                                          \
-        asm("ldr r0, =0x20040000\n\t"                                          \
+        asm("movs r0, r9\n\t"                                                  \
+            "push {r0, lr}\n\t"                                                \
+            "ldr r0, =0x20040000\n\t"                                          \
             "ldr r0, [r0]\n\t"                                                 \
             "mov r9, r0\n\t"                                                   \
-            "b " #func);                                                       \
+            "bl " #func "\n\t"                                                 \
+            "pop {r0}\n\t"                                                     \
+            "movs r9, r0\n\t"                                                  \
+            "pop {pc}\n\t");                                                   \
     }
 
 #endif
