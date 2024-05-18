@@ -71,6 +71,8 @@ struct tcb_t
     struct as_t *as;
     L4_utcb_t *utcb;
     unsigned priority;
+    L4_thread_id pager;
+    L4_thread_id scheduler;
 
     L4_thread_id ipc_from;
     unsigned timeout_event;

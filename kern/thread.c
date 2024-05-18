@@ -119,7 +119,9 @@ struct tcb_t *insert_thread(L4_utcb_t *utcb, L4_thread_id global_id)
     if (!tcb)
         return NULL;
     tcb->global_id = global_id;
-    tcb->local_id = 0;
+    tcb->local_id = (unsigned)utcb;
+    tcb->pager = get_kernel_tcb()->global_id;
+    tcb->scheduler = get_kernel_tcb()->global_id;
     tcb->as = NULL;
     tcb->priority = 42; // TODO
     tcb->state = TS_INACTIVE;
@@ -130,6 +132,8 @@ struct tcb_t *insert_thread(L4_utcb_t *utcb, L4_thread_id global_id)
         swap_unsigned_char(&tmp, thread_list + i);
     }
     ++thread_count;
+    if (utcb)
+        write_utcb(tcb);
     return &tcb_store[thread_list[idx]];
 }
 
