@@ -43,15 +43,16 @@ inline unsigned floorlog2(unsigned value)
 inline L4_fpage_t L4_fpage(unsigned base_address, int fpage_size)
 {
     return (L4_fpage_t){
-        .s = floorlog2(fpage_size), .b = base_address, .perm = 0};
+        .s = floorlog2(fpage_size), .b = base_address >> 9, .perm = 0};
 }
 
 inline L4_fpage_t L4_fpage_log2(unsigned base_address, int fpage_size_log2)
 {
-    return (L4_fpage_t){.s = fpage_size_log2, .b = base_address, .perm = 0};
+    return (L4_fpage_t){
+        .s = fpage_size_log2, .b = base_address >> 9, .perm = 0};
 }
 
-inline unsigned L4_address(L4_fpage_t fpage) { return fpage.b; }
+inline unsigned L4_address(L4_fpage_t fpage) { return fpage.b << 9; }
 
 inline unsigned L4_size(L4_fpage_t fpage) { return 1 << fpage.s; }
 inline unsigned L4_size_log2(L4_fpage_t fpage) { return fpage.s; }
