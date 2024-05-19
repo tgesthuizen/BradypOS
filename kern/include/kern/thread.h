@@ -76,6 +76,9 @@ struct tcb_t
 
     L4_thread_id ipc_from;
     unsigned timeout_event;
+
+    struct tcb_t *next_sibling;
+    struct tcb_t *prev_sibling;
 };
 
 void init_thread_system();
