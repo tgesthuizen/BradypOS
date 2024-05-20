@@ -1,6 +1,7 @@
 #ifndef BRADYPOS_L4_IPC_H
 #define BRADYPOS_L4_IPC_H
 
+#include <l4/syscalls.h>
 #include <l4/utcb.h>
 #include <stdbool.h>
 
@@ -180,5 +181,21 @@ struct L4_compound_string_item
     unsigned cont : 1;
     unsigned substring_length : 22;
 };
+
+inline L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
+                           unsigned timeouts, L4_thread_id *from)
+{
+    register L4_thread_id r0 asm("r0") = to;
+    register L4_thread_id r1 asm("r1") = from_specifier;
+    register unsigned r2 asm("r2") = timeouts;
+    L4_thread_id result;
+    asm volatile("movs r7, %[SYS_IPC]\n\t"
+                 "svc #0\n\t"
+                 : "=l"(result)
+                 : [SYS_IPC] "i"(SYS_IPC), "0"(r0), "l"(r1), "l"(r2)
+                 : "r7");
+    *from = result;
+    return L4_msg_tag();
+}
 
 #endif

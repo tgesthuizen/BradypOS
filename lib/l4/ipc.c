@@ -45,3 +45,5 @@ void L4_store_mrs(int offset, int count, unsigned *words);
 void L4_load_mrs(int offset, int count, const unsigned *words);
 
 bool L4_is_map_item(unsigned *m);
+L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
+                    unsigned timeouts, L4_thread_id *from);
