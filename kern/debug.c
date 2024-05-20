@@ -1,7 +1,11 @@
-#include "kern/interrupts.h"
 #include <kern/debug.h>
+#include <kern/interrupts.h>
 #include <semihosting.h>
 #include <stdarg.h>
+
+#ifndef NO_DEBUG_LOG
+char debug_should_log[DBG_CATEGORY_LAST];
+#endif
 
 void dbg_puts(const char *str) { sh_write0(str); }
 static void dbg_vprintf(const char *fmt, va_list args);
@@ -91,6 +95,7 @@ void panic(const char *fmt, ...)
 
 static __attribute__((used)) void __isr_hardfault()
 {
+    dbg_log(DBG_INTERRUPT, "Executing HardFault\n");
     panic("!!! PANIC: Hardfault triggered\n");
 }
 DECLARE_ISR(isr_hardfault, __isr_hardfault)

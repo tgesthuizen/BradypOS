@@ -64,6 +64,7 @@ static struct kalarm_event pop_kalarm_event()
 
 static __attribute__((used)) void __isr_systick()
 {
+    dbg_log(DBG_INTERRUPT, "Executing systick\n");
     ++current_time;
     while (has_pending_kalarm())
     {

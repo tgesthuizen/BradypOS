@@ -1,3 +1,4 @@
+#include <kern/debug.h>
 #include <kern/systick.h>
 
 struct systick_t

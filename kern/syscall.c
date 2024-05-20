@@ -1,6 +1,6 @@
-#include "kern/kalarm.h"
 #include <kern/debug.h>
 #include <kern/interrupts.h>
+#include <kern/kalarm.h>
 #include <kern/platform.h>
 #include <kern/softirq.h>
 #include <kern/systhread.h>
@@ -22,6 +22,7 @@ static unsigned *get_psp()
 static __attribute__((used)) void __isr_svcall()
 {
     register unsigned syscall_number asm("r7");
+    dbg_log(DBG_INTERRUPT, "Executing SVCall\n");
     unsigned *const psp = get_psp();
     switch (syscall_number)
     {

@@ -279,10 +279,13 @@ static __attribute__((used)) struct thread_context_t *get_current_ctx()
 static struct thread_context_t *__attribute__((used))
 switch_context(struct thread_context_t *current_context)
 {
+    dbg_log(DBG_INTERRUPT, "Executing pend_sv\n");
     struct thread_context_t *tcb_ctx = get_current_ctx();
     if (tcb_ctx != NULL)
         *tcb_ctx = *current_context;
     schedule_next_thread();
+    dbg_log(DBG_SCHEDULE, "Switched to thread #%x",
+            get_current_thread()->global_id);
     return get_current_ctx();
 }
 
