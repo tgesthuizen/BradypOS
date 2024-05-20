@@ -284,7 +284,7 @@ switch_context(struct thread_context_t *current_context)
     if (tcb_ctx != NULL)
         *tcb_ctx = *current_context;
     schedule_next_thread();
-    dbg_log(DBG_SCHEDULE, "Switched to thread #%x",
+    dbg_log(DBG_SCHEDULE, "Switched to thread #%x\n",
             get_current_thread()->global_id);
     return get_current_ctx();
 }
