@@ -211,7 +211,7 @@ void schedule_next_thread()
     // race condition.
     disable_interrupts();
     // TODO: Actual quota management
-    register_kalarm_event(get_current_time() + 10, request_reschedule);
+    update_kalarm_event(KALARM_RESCHEDULE, get_current_time() + 10);
     enable_interrupts();
     current_thread_idx = idx;
 }

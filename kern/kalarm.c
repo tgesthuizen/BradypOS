@@ -1,13 +1,15 @@
-#include "kern/interrupts.h"
 #include <kern/debug.h>
+#include <kern/interrupts.h>
 #include <kern/kalarm.h>
 #include <kern/systick.h>
+#include <kern/thread.h>
 #include <stdbool.h>
 
 struct kalarm_event
 {
     unsigned long when;
-    void (*what)();
+    enum kalarm_type event;
+    unsigned data;
 };
 
 enum
@@ -39,12 +41,32 @@ void kalarm_init()
     current_time = 0;
 }
 
-void register_kalarm_event(unsigned long when, void (*what)())
+static unsigned find_first_kalarm_event(enum kalarm_type type)
 {
-    if (kalarm_heap_insert((struct kalarm_event){.when = when, .what = what}) ==
-        kalarm_heap_fail)
+    for (unsigned i = 0; i < kalarm_heap_state.size; ++i)
+        if (kalarm_heap_state.data[i].event == type)
+            return i;
+    return kalarm_heap_fail;
+}
+
+void register_kalarm_event(enum kalarm_type type, unsigned long when)
+{
+    if (kalarm_heap_insert((struct kalarm_event){
+            .when = when, .event = type}) == kalarm_heap_fail)
     {
         panic("Kernel cannot queue kalarm event\n");
+    }
+}
+
+void update_kalarm_event(enum kalarm_type type, unsigned long when)
+{
+    unsigned idx = find_first_kalarm_event(type);
+    if (idx == kalarm_heap_fail)
+        register_kalarm_event(when, type);
+    else
+    {
+        kalarm_heap_state.data[idx].when = when;
+        kalarm_heap_sink(kalarm_heap_swim(idx));
     }
 }
 
@@ -62,13 +84,16 @@ static struct kalarm_event pop_kalarm_event()
     return result;
 }
 
+static void request_next_thread() { request_reschedule(L4_NILTHREAD); }
+static void (*kalarm_event_funcs[])() = {request_next_thread};
+
 static __attribute__((used)) void __isr_systick()
 {
     dbg_log(DBG_INTERRUPT, "Executing systick\n");
     ++current_time;
     while (has_pending_kalarm())
     {
-        pop_kalarm_event().what();
+        kalarm_event_funcs[pop_kalarm_event().event]();
     }
 }
 DECLARE_ISR(isr_systick, __isr_systick)
