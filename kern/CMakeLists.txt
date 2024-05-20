@@ -39,8 +39,9 @@ target_link_libraries(
   heap
   kernel_headers
   l4
-  semihosting
   libstring
+  semihosting
+  tinyprintf
 )
 target_compile_options(
   libkern

@@ -2,60 +2,27 @@
 #include <kern/interrupts.h>
 #include <semihosting.h>
 #include <stdarg.h>
+#include <tinyprintf.h>
 
 #ifndef NO_DEBUG_LOG
 char debug_should_log[DBG_CATEGORY_LAST];
+char debug_buf[128];
 #endif
 
 void dbg_puts(const char *str) { sh_write0(str); }
-static void dbg_vprintf(const char *fmt, va_list args);
+
+static void dbg_vprintf(const char *fmt, va_list args)
+{
+    tfp_vsprintf(debug_buf, fmt, args);
+    sh_write0(debug_buf);
+}
+
 void dbg_printf(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-
     dbg_vprintf(fmt, args);
-
     va_end(args);
-}
-
-static void dbg_vprintf(const char *fmt, va_list args)
-{
-    char c;
-    while (1)
-    {
-        c = *fmt++;
-        switch (c)
-        {
-        case '\0':
-            return;
-        case '%':
-            c = *fmt++;
-            switch (c)
-            {
-            case '%':
-                sh_writec('%');
-                break;
-            case 'd':
-                /** TODO: Print integer */
-                (void)va_arg(args, int);
-                sh_write0("int");
-                break;
-            case 'f':
-                /** TODO: Print float */
-                (void)va_arg(args, double);
-                sh_write0("double");
-                break;
-            case 's':
-                sh_write0(va_arg(args, const char *));
-                break;
-            }
-            break;
-        default:
-            sh_writec(c);
-            break;
-        }
-    }
 }
 
 // TODO: Make this reusable and move it somewhere in the platform code.
