@@ -5,6 +5,7 @@ enum L4_boot_info_record_type
 {
     L4_BOOT_INFO_MODULE = 0x1,
     L4_BOOT_INFO_EXE = 0x2,
+    L4_BOOT_INFO_VARIABLES = 0x40,
     L4_BOOT_INFO_EFI_TABLES = 0x101,
     L4_BOOT_INFO_MULTIBOOT = 0x102,
 };
@@ -48,6 +49,21 @@ struct L4_boot_info_record_exe
 
     unsigned label;
     unsigned cmdline_offset;
+};
+
+struct L4_boot_info_variables_entry
+{
+    char name[12];
+    unsigned value;
+};
+
+struct L4_boot_info_variables
+{
+    unsigned type;
+    unsigned version;
+    unsigned offset_next;
+    unsigned variable_count;
+    struct L4_boot_info_variables_entry entries[];
 };
 
 #endif
