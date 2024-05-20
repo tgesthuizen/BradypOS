@@ -1,5 +1,3 @@
 #include <romfs.h>
 
-void romfs_start() {
-  
-}
+void romfs_start() {}

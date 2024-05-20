@@ -1,8 +1,8 @@
 #include <l4/ipc.h>
-#include <l4/thread.h>
 #include <l4/kip.h>
 #include <l4/schedule.h>
 #include <l4/space.h>
+#include <l4/thread.h>
 #include <stddef.h>
 
 __attribute__((naked)) void _start() { __asm__("b main\n\t"); }
