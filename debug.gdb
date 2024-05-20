@@ -6,7 +6,7 @@ monitor arm semihosting enable
 define reflash
   dont-repeat
   monitor program build/dist/bradypos.bin 0x10000000 verify
-endif
+end
 
 define launch_into_kernel
   delete breakpoints
