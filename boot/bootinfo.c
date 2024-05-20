@@ -1,6 +1,6 @@
-#include "string.h"
 #include <l4/bootinfo.h>
 #include <libelf.h>
+#include <string.h>
 
 static void elf_to_boot_segment(const struct libelf_loaded_segment *in,
                                 struct L4_boot_segment_info *out)
