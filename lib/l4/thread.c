@@ -13,3 +13,7 @@ extern L4_utcb_t __utcb;
 
 L4_thread_id L4_my_global_id() { return __utcb.global_id; }
 L4_thread_id L4_my_local_id() { return *(unsigned *)&__utcb; }
+
+unsigned L4_thread_control(L4_thread_id dest, L4_thread_id space_specifier,
+                           L4_thread_id scheduler, L4_thread_id pager,
+                           void *utcb_location);
