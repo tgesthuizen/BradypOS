@@ -3,9 +3,12 @@
 source lib/elf/elf-sniffer.py
 monitor arm semihosting enable
 
-define launch_into_kernel
-  monitor reset
+define reflash
+  dont-repeat
   monitor program build/dist/bradypos.bin 0x10000000 verify
+endif
+
+define launch_into_kernel
   delete breakpoints
   file
   file build/boot/boot.elf
