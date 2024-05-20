@@ -45,4 +45,6 @@ struct as_t
     struct tcb_t *first_thread;
 };
 
+void init_memory();
+
 #endif

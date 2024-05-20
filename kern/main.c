@@ -2,6 +2,7 @@
 #include <kern/debug.h>
 #include <kern/interrupts.h>
 #include <kern/kalarm.h>
+#include <kern/memory.h>
 #include <kern/platform.h>
 #include <kern/systhread.h>
 #include <kern/systick.h>
@@ -19,6 +20,7 @@ int main()
     kalarm_init();
     init_thread_system();
     create_sys_threads();
+    init_memory();
     enable_interrupts();
     dbg_puts("Interrupts are enabled, we have booted!\n");
     start_scheduling();
