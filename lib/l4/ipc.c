@@ -41,5 +41,7 @@ void L4_msg_store(L4_msg_tag_t tag, L4_msg_t *msg)
 void L4_msg_clear(L4_msg_t *msg);
 void L4_store_mr(int i, unsigned *word);
 void L4_load_mr(int i, unsigned word);
+void L4_store_mrs(int offset, int count, unsigned *words);
+void L4_load_mrs(int offset, int count, const unsigned *words);
 
 bool L4_is_map_item(unsigned *m);
