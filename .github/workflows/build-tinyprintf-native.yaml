@@ -1,0 +1,20 @@
+name: Build native tinyprintf
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-tinyprintf-native.yaml
+      - lib/tinyprintf/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: configure
+        run: cmake -S lib/tinyprintf -B build -DCMAKE_BUILD_TYPE=Debug -DTINYPRINTF_ENABLE_TESTS=ON
+      - name: build
+        run: cmake --build build
+      - name: test
+        run: cmake --build build --target test
