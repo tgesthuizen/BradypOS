@@ -1,9 +1,9 @@
 #ifndef BRADYPOS_L4_SPACE_H
 #define BRADYPOS_L4_SPACE_H
 
-#include "l4/thread.h"
 #include <l4/ipc.h>
 #include <l4/syscalls.h>
+#include <l4/thread.h>
 #include <stdbool.h>
 
 // L4 specification 4.1
