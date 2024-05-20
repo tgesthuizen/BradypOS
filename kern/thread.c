@@ -61,17 +61,20 @@ static unsigned thread_list_find(L4_thread_id global_id)
     unsigned high = thread_count;
     unsigned low = 0;
     unsigned thread_no = L4_thread_no(global_id);
-    while (low <= high)
+    do
     {
-        if (high - low <= 1)
-            return low;
-        const unsigned mid = low + (high - low) / 2;
-        if (L4_thread_no(tcb_store[thread_list[mid]].global_id) >= thread_no)
-            high = mid;
+        const unsigned mid = (low + high) / 2;
+        const unsigned current_no =
+            L4_thread_no(tcb_store[thread_list[mid]].global_id);
+        if (current_no == thread_no)
+            return mid;
+        else if (current_no < thread_no)
+            low = mid + 1;
         else
-            low = mid;
-    }
-    return THREAD_IDX_INVALID;
+            high = mid - 1;
+    } while (low < high);
+
+    return low;
 }
 
 static unsigned thread_map_find(L4_thread_id global_id)
