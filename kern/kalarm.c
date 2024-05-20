@@ -72,5 +72,5 @@ static __attribute__((used)) void __isr_systick()
     }
 }
 DECLARE_ISR(isr_systick, __isr_systick)
-     
+
 unsigned long get_current_time() { return current_time; }
