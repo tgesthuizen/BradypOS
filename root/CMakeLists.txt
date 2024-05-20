@@ -9,6 +9,7 @@ project(
 add_executable(
   root
   data.s
+  romfs_server.c
   root.c
 )
 target_compile_options(
@@ -20,7 +21,7 @@ target_link_libraries(
   root
   PUBLIC
   l4
-  semihosting
+  libromfs
 )
 target_link_options(
   root
