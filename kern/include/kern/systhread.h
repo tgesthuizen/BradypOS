@@ -5,5 +5,6 @@
 
 void create_sys_threads();
 struct tcb_t *get_kernel_tcb();
+struct tcb_t *get_root_tcb();
 
 #endif
