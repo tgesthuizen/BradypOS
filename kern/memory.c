@@ -62,6 +62,7 @@ void syscall_space_control()
 
     target_thread->as->utcb_page = utcb_area;
 
-    sp[THREAD_CTX_STACK_R1] = 1;
+    sp[THREAD_CTX_STACK_R0] = 1;
+    sp[THREAD_CTX_STACK_R1] = 0;
     return;
 }
