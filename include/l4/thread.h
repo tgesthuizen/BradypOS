@@ -45,10 +45,10 @@ inline unsigned L4_thread_control(L4_thread_id dest,
     register L4_thread_id rp asm("r3") = pager;
     register void *rul asm("r4") = utcb_location;
     unsigned ret;
-    asm volatile("movs r7, %[SYS_SPACE_CONTROL]\n\t"
+    asm volatile("movs r7, %[SYS_THREAD_CONTROL]\n\t"
                  "svc #0\n\t"
                  : "=r"(ret)
-                 : [SYS_SPACE_CONTROL] "i"(SYS_SPACE_CONTROL), "0"(rdest),
+                 : [SYS_THREAD_CONTROL] "i"(SYS_THREAD_CONTROL), "0"(rdest),
                    "r"(rss), "r"(rs), "r"(rp), "r"(rul)
                  : "r7");
     return ret;
