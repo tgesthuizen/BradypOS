@@ -347,6 +347,10 @@ static bool fpage_contains_object(L4_fpage_t page, void *object_base,
 
 static void syscall_thread_control_delete(unsigned *sp, struct tcb_t *dest_tcb)
 {
+    if (dest_tcb == get_root_tcb())
+    {
+        panic("The root thread exited!");
+    }
     // Remove thread from scheduler heap, if present
     if (dest_tcb->state == TS_RUNNABLE)
     {
