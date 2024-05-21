@@ -7,6 +7,9 @@ on:
 jobs:
   build-bradypos:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type: ["MinSizeRel", "Release", "Debug"]
     container:
       image: ghcr.io/${{ github.actor }}/builder-arm-none-eabi
       credentials:
@@ -21,7 +24,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
       - name: configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=arm-gcc.tc -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_INSTALL_PREFIX=$PWD/install
+        run: cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=arm-gcc.tc -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_INSTALL_PREFIX=$PWD/install
       - name: build
         run: cmake --build build
       - name: install
@@ -29,6 +32,6 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@v4
         with:
-          name: bradypos
+          name: bradypos-${{ matrix.build-type }}
           path: install/
           if-no-files-found: warn
