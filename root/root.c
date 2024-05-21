@@ -53,7 +53,7 @@ int main()
     const L4_thread_id romfs_thread_id = L4_global_id(47, 1);
     if (L4_thread_control(romfs_thread_id, my_thread_id, L4_NILTHREAD,
                           my_thread_id,
-                          (unsigned char *)&__utcb + UTCB_ALIGN) != 0)
+                          (unsigned char *)&__utcb + UTCB_ALIGN) != 1)
     {
         kill_root_thread();
     }
