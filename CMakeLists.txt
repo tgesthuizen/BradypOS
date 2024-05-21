@@ -43,6 +43,7 @@ target_compile_options(
   -fPIE
   -msingle-pic-base
   -mno-pic-data-is-text-relative
+  -fomit-frame-pointer
 )
 # Some libraries are compiled with `-ffunction-sections` as they
 # contain a lot of inline definitions that are needed for correctness,
