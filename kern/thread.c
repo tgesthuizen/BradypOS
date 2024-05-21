@@ -323,7 +323,8 @@ __attribute__((naked)) void isr_pendsv()
         "movs  r10, r6\n\t"
         "movs  r11, r7\n\t"
         "ldmia r0!, {r4-r7}\n\t"
-        "bx lr\n\t");
+        "bx lr\n\t"
+	".pool\n\t");
     // TODO: Pass in functions as input operands. GCC is really doing anything
     // in its power not to accept it.
 }
@@ -483,7 +484,6 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
 
 void syscall_thread_control()
 {
-
     unsigned *const sp = (unsigned *)caller->ctx.sp;
     const L4_thread_id dest = sp[THREAD_CTX_STACK_R0];
     const L4_thread_id space_specifier = sp[THREAD_CTX_STACK_R1];
