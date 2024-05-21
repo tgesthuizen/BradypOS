@@ -78,7 +78,7 @@ static bool has_pending_kalarm()
 
 static struct kalarm_event pop_kalarm_event()
 {
-    kassert(kalarm_count);
+    kassert(kalarm_heap_state.size > 0);
     const struct kalarm_event result = kalarm_heap_state.data[0];
     kalarm_heap_pop();
     return result;
