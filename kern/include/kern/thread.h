@@ -23,6 +23,7 @@ enum thread_kind_t
 enum thread_state_t
 {
     TS_INACTIVE,
+    TS_ACTIVE,
     TS_RUNNABLE,
     TS_SVC_BLOCKED,
     TS_RECV_BLOCKED,

@@ -84,6 +84,10 @@ void softirq_svc()
         extern void syscall_thread_control();
         syscall_thread_control();
         break;
+    case SYS_IPC:
+        extern void syscall_ipc();
+        syscall_ipc();
+        break;
     case SYS_THREAD_SWITCH:
     case SYS_SYSTEM_CLOCK:
         panic(
@@ -91,13 +95,16 @@ void softirq_svc()
             "have handled it\n",
             syscall_id, syscall_names[syscall_id]);
         break;
+    case SYS_SCHEDULE:
+        extern void syscall_schedule();
+        syscall_schedule();
+        break;
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:
-    case SYS_IPC:
     case SYS_LIPC:
     case SYS_UNMAP:
     case SYS_EXCHANGE_REGISTERS:
-    case SYS_SCHEDULE:
+
         panic("%s is not yet implemented\n", syscall_names[syscall_id]);
         break;
     }

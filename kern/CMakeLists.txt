@@ -22,11 +22,13 @@ target_sources(
   INTERFACE
   debug.c
   interrupts.c
+  ipc.c
   kalarm.c
   kip.s
   main.c
   memory.c
   platform.c
+  schedule.c
   softirq.c
   syscall.c
   systhread.c
