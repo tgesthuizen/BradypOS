@@ -67,7 +67,7 @@ void syscall_space_control()
     utcb_area.raw = sp[THREAD_CTX_STACK_R3];
     L4_thread_id redirector = caller->ctx.r[THREAD_CTX_R4];
 
-    // THe returned control is always 0
+    // The returned control is always 0
     sp[THREAD_CTX_STACK_R1] = 0;
 
     struct tcb_t *target_thread = find_thread_by_global_id(space_specifier);

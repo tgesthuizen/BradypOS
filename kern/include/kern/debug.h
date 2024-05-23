@@ -29,8 +29,9 @@ extern char debug_should_log[];
 
 #ifndef NDEBUG
 #define kassert(cond)                                                          \
-    (!(cond) ? panic("%s:%d: kassert(%s) failed!\n", __FILE__, __LINE__, #cond) \
-            : (void)0)
+    (!(cond)                                                                   \
+         ? panic("%s:%d: kassert(%s) failed!\n", __FILE__, __LINE__, #cond)    \
+         : (void)0)
 #else
 #define kassert(cond) ((void)0)
 #endif
