@@ -12,13 +12,6 @@
 
 struct tcb_t *caller;
 
-static unsigned *get_psp()
-{
-    unsigned *res;
-    asm volatile("mrs %0, PSP\n" : "=r"(res));
-    return res;
-}
-
 static __attribute__((used)) void __isr_svcall()
 {
     register unsigned syscall_number asm("r7");
