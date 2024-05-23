@@ -11,6 +11,20 @@
 #include <stddef.h>
 
 struct tcb_t *caller;
+static const char *const syscall_names[] = {
+    "SYS_KERNEL_INTERFACE",
+    "SYS_SPACE_CONTROL",
+    "SYS_THREAD_CONTROL",
+    "SYS_PROCESSOR_CONTROL",
+    "SYS_MEMORY_CONTROL",
+    "SYS_IPC",
+    "SYS_LIPC",
+    "SYS_UNMAP",
+    "SYS_EXCHANGE_REGISTERS",
+    "SYS_SYSTEM_CLOCK",
+    "SYS_THREAD_SWITCH",
+    "SYS_SCHEDULE",
+};
 
 static __attribute__((used)) void __isr_svcall()
 {
@@ -19,6 +33,8 @@ static __attribute__((used)) void __isr_svcall()
     unsigned *const psp = get_psp();
     struct tcb_t *const current_thread = get_current_thread();
     kassert(current_thread != NULL);
+    dbg_log(DBG_SYSCALL, "Thread %x has issued syscall #%x\n",
+            get_current_thread(), syscall_number);
     switch (syscall_number)
     {
     case SYS_THREAD_SWITCH:
@@ -42,21 +58,6 @@ static __attribute__((used)) void __isr_svcall()
 }
 
 DECLARE_ISR(isr_svcall, __isr_svcall)
-
-static const char *const syscall_names[] = {
-    "SYS_KERNEL_INTERFACE",
-    "SYS_SPACE_CONTROL",
-    "SYS_THREAD_CONTROL",
-    "SYS_PROCESSOR_CONTROL",
-    "SYS_MEMORY_CONTROL",
-    "SYS_IPC",
-    "SYS_LIPC",
-    "SYS_UNMAP",
-    "SYS_EXCHANGE_REGISTERS",
-    "SYS_SYSTEM_CLOCK",
-    "SYS_THREAD_SWITCH",
-    "SYS_SCHEDULE",
-};
 
 void softirq_svc()
 {

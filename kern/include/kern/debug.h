@@ -10,6 +10,7 @@ enum debug_log_category
 {
     DBG_SCHEDULE,
     DBG_INTERRUPT,
+    DBG_SYSCALL,
     DBG_CATEGORY_LAST,
 };
 
