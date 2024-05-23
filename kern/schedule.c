@@ -1,13 +1,75 @@
+#include "l4/schedule.h"
 #include <kern/thread.h>
+#include <l4/errors.h>
+#include <stddef.h>
 
 extern struct tcb_t *caller;
 
 void syscall_schedule()
 {
-    unsigned *const sp = caller->ctx.sp;
+    unsigned *const sp = (unsigned *)caller->ctx.sp;
     const L4_thread_id dest = sp[THREAD_CTX_STACK_R0];
     const unsigned time_control = sp[THREAD_CTX_STACK_R1];
     const unsigned processor_control = sp[THREAD_CTX_STACK_R2];
     const unsigned prio = sp[THREAD_CTX_STACK_R3];
     const unsigned preemption_control = caller->ctx.r[THREAD_CTX_R4];
+
+    struct tcb_t *const dest_tcb = find_thread_by_global_id(dest);
+    if (dest_tcb == NULL)
+    {
+        caller->utcb->error = L4_error_invalid_thread;
+        sp[THREAD_CTX_STACK_R0] = 0;
+        return;
+    }
+    struct tcb_t *dest_scheduler_tcb =
+        find_thread_by_global_id(dest_tcb->scheduler);
+    if (dest_scheduler_tcb == NULL || caller->as != dest_scheduler_tcb->as)
+    {
+        caller->utcb->error = L4_error_no_privilege;
+        sp[THREAD_CTX_STACK_R0] = 0;
+        return;
+    }
+
+    (void)time_control;
+    if (processor_control != 0)
+    {
+        caller->utcb->error = L4_error_invalid_parameter;
+        sp[THREAD_CTX_STACK_R0] = 0;
+        return;
+    }
+    if (caller->priority < prio)
+    {
+        caller->utcb->error = L4_error_invalid_parameter;
+        sp[THREAD_CTX_STACK_R0] = 0;
+        return;
+    }
+    (void)preemption_control;
+
+    // All checks passed, apply changes
+    dest_tcb->priority = prio;
+    dest_tcb->utcb->processor_no = 0;
+    unsigned tstate = L4_tstate_error;
+    switch (dest_tcb->state)
+    {
+    case TS_INACTIVE:
+        tstate = L4_tstate_inactive;
+        break;
+    case TS_RUNNABLE:
+        tstate = L4_tstate_running;
+        break;
+    case TS_ACTIVE:
+    case TS_SVC_BLOCKED:
+        // TODO: Is this the right thing to do?
+        tstate = L4_tstate_recving;
+        break;
+    case TS_RECV_BLOCKED:
+        tstate = L4_tstate_pending_recv;
+        break;
+    case TS_SEND_BLOCKED:
+        tstate = L4_tstate_pending_send;
+        break;
+    }
+    sp[THREAD_CTX_STACK_R0] = tstate;
+    // TODO: Revisit when time slices are implemented
+    sp[THREAD_CTX_STACK_R1] = 0;
 }
