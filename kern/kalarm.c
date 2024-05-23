@@ -52,7 +52,7 @@ static unsigned find_first_kalarm_event(enum kalarm_type type)
 void register_kalarm_event(enum kalarm_type type, unsigned long when)
 {
     if (kalarm_heap_insert((struct kalarm_event){
-            .when = when, .event = type}) == kalarm_heap_fail)
+            .when = when, .event = type, .data = 0}) == kalarm_heap_fail)
     {
         panic("Kernel cannot queue kalarm event\n");
     }
@@ -62,7 +62,7 @@ void update_kalarm_event(enum kalarm_type type, unsigned long when)
 {
     unsigned idx = find_first_kalarm_event(type);
     if (idx == kalarm_heap_fail)
-        register_kalarm_event(when, type);
+        register_kalarm_event(type, when);
     else
     {
         kalarm_heap_state.data[idx].when = when;
