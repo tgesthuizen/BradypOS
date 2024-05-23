@@ -17,6 +17,8 @@ static __attribute__((used)) void __isr_svcall()
     register unsigned syscall_number asm("r7");
     dbg_log(DBG_INTERRUPT, "Executing SVCall\n");
     unsigned *const psp = get_psp();
+    struct tcb_t *const current_thread = get_current_thread();
+    kassert(current_thread != NULL);
     switch (syscall_number)
     {
     case SYS_THREAD_SWITCH:
@@ -31,14 +33,11 @@ static __attribute__((used)) void __isr_svcall()
     }
     break;
     default:
-    {
-        struct tcb_t *const current_thread = get_current_thread();
         caller = current_thread;
         set_thread_state(current_thread, TS_SVC_BLOCKED);
         softirq_schedule(SIRQ_SVC_CALL);
         request_reschedule(get_kernel_tcb());
-    }
-    break;
+        break;
     }
 }
 
