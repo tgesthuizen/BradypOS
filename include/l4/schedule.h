@@ -89,6 +89,40 @@ bool L4_is_time_not_equal(L4_time_t l, L4_time_t r);
 
 /* TODO: Implement L4_schedule and friends */
 
+enum L4_tstate
+{
+    L4_tstate_error,
+    L4_tstate_dead,
+    L4_tstate_inactive,
+    L4_tstate_running,
+    L4_tstate_pending_send,
+    L4_tstate_sending,
+    L4_tstate_pending_recv,
+    L4_tstate_recving,
+};
+
+inline unsigned L4_schedule(L4_thread_id dest, unsigned time_control,
+                            unsigned processor_control, unsigned prio,
+                            unsigned preemption_control,
+                            unsigned *old_time_control)
+{
+    register L4_thread_id rdest asm("r0") = dest;
+    register unsigned rtc asm("r1") = time_control;
+    register unsigned pc asm("r2") = processor_control;
+    register unsigned rprio asm("r3") = prio;
+    register unsigned rprec asm("r4") = preemption_control;
+    unsigned result;
+    unsigned rold_time_control;
+    asm volatile("movs r7, %[SYS_SCHEDULE]\n\t"
+                 "svc #0\n\t"
+                 : "=l"(result), "=l"(rold_time_control)
+                 : [SYS_SCHEDULE] "i"(SYS_SCHEDULE), "0"(rdest), "1"(rtc),
+                   "l"(pc), "l"(rprio), "l"(rprec)
+                 : "r7");
+    *old_time_control = rold_time_control;
+    return result;
+}
+
 inline void L4_thread_switch(L4_thread_id dest)
 {
     register L4_thread_id rdest asm("r0") = dest;
