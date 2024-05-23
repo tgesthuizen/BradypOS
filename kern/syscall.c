@@ -28,7 +28,11 @@ static const char *const syscall_names[] = {
 
 static __attribute__((used)) void __isr_svcall()
 {
-    register unsigned syscall_number asm("r7");
+    // BUG: GCC has generated code before that has overwritten the value in r7,
+    // meaning that this little stunt is not guaranteed to preserve the pre-call
+    // r7 value.
+    register unsigned rsyscall_number asm("r7");
+    unsigned syscall_number = rsyscall_number;
     dbg_log(DBG_INTERRUPT, "Executing SVCall\n");
     unsigned *const psp = get_psp();
     struct tcb_t *const current_thread = get_current_thread();
