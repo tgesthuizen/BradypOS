@@ -125,23 +125,24 @@ static __attribute__((noinline)) unsigned char *align_ptr(unsigned char *ptr,
     return (unsigned char *)(((uintptr_t)ptr + align_mask) & ~align_mask);
 }
 
-static int elf_alloc_rw(void **location, size_t size, size_t align, int perm,
-                        void *user)
+static int elf_alloc_rw(void **location, size_t size, size_t align,
+                        size_t align_offset, int perm, void *user)
 {
     (void)perm;
     struct elf_file_state *state = user;
 
-    state->sram_marker = align_ptr(state->sram_marker, align);
+    state->sram_marker = align_ptr(state->sram_marker, align) + align_offset;
     *location = state->sram_marker;
     state->sram_marker += size;
     return 0;
 }
 
 static int elf_map(void **location, size_t offset, size_t size, size_t align,
-                   int perm, void *user)
+                   size_t align_offset, int perm, void *user)
 {
     (void)size;
     (void)align;
+    (void)align_offset;
     (void)perm;
     struct elf_file_state *state = user;
 

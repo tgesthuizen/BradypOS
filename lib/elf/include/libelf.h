@@ -19,10 +19,17 @@ enum libelf_access_permission
 struct libelf_ops
 {
     int (*read_elf_file)(size_t offset, size_t size, void *data, void *user);
-    int (*alloc_rw)(void **location, size_t size, size_t align, int perm,
-                    void *user);
+    /**
+     * ELF has an interesting idea of alignment: Allocations have to respect the
+     * alignment, but the source section can not be aligned to the alignment
+     * requirement, and the same offset must be added to the actually linked
+     * address. I.e. align = 2^9, vaddr=515, then a valid loaded address would
+     * be 1027, but 1024 wouldn't be.
+     */
+    int (*alloc_rw)(void **location, size_t size, size_t align,
+                    size_t align_offset, int perm, void *user);
     int (*map)(void **location, size_t offset, size_t size, size_t align,
-               int perm, void *user);
+               size_t align_offset, int perm, void *user);
     int (*symbol)(char *name, size_t *loc, void *user);
 };
 
