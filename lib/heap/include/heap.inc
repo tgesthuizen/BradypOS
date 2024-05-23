@@ -10,10 +10,16 @@
 #define HEAP_CONCAT(a, b) HEAP_CONCAT_IMPL(a, b)
 #define HEAP_CONCAT_IMPL(a, b) a##b
 
+enum
+{
+    HEAP_CONCAT(HEAP_PREFIX, _maxsize) = HEAP_SIZE,
+    HEAP_CONCAT(HEAP_PREFIX, _fail) = ~(unsigned)0,
+};
+
 struct HEAP_CONCAT(HEAP_PREFIX, _type)
 {
     unsigned size;
-    HEAP_VALUE_TYPE data[HEAP_SIZE];
+    HEAP_VALUE_TYPE data[HEAP_CONCAT(HEAP_PREFIX, _maxsize)];
 };
 
 static struct HEAP_CONCAT(HEAP_PREFIX, _type) HEAP_CONCAT(HEAP_PREFIX, _state);
@@ -22,11 +28,6 @@ void HEAP_CONCAT(HEAP_PREFIX, _init)()
 {
     HEAP_CONCAT(HEAP_PREFIX, _state).size = 0;
 }
-
-enum
-{
-    HEAP_CONCAT(HEAP_PREFIX, _fail) = ~(unsigned)0,
-};
 
 static inline void HEAP_CONCAT(HEAP_PREFIX, _swap)(HEAP_VALUE_TYPE *lhs,
                                                    HEAP_VALUE_TYPE *rhs)
