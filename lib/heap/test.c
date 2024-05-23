@@ -58,6 +58,31 @@ static int heap_starts_empty()
     return 0;
 }
 
+static void set_all_heap_elements_to(int value)
+{
+    for (int i = 0; i < test_heap_maxsize; i++)
+        test_heap_state.data[i] = value;
+}
+
+static int heap_access_first_element()
+{
+    // Check with value lower than dead data
+    set_all_heap_elements_to(1);
+    TEST_CMP(0, test_heap_insert(0));
+    TEST_CMP(test_heap_state.data[0], 0);
+    // Check with value higher than dead data
+    reset_heap();
+    set_all_heap_elements_to(1);
+    TEST_CMP(0, test_heap_insert(42));
+    TEST_CMP(test_heap_state.data[0], 42);
+    // Check with value equal to dead data
+    reset_heap();
+    set_all_heap_elements_to(1);
+    TEST_CMP(0, test_heap_insert(1));
+    TEST_CMP(test_heap_state.data[0], 1);
+    return 0;
+}
+
 static int basic_order_test()
 {
     test_heap_insert(4);
@@ -105,6 +130,10 @@ int main()
 {
     int ret;
     ret = heap_starts_empty();
+    if (ret)
+        return ret;
+    reset_heap();
+    ret = heap_access_first_element();
     if (ret)
         return ret;
     reset_heap();
