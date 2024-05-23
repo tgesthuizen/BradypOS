@@ -114,7 +114,9 @@ static void free_tcb(struct tcb_t *tcb)
 static void thread_list_insert(unsigned tcb_idx, L4_thread_id global_id)
 {
     unsigned idx = thread_list_find(global_id);
-    kassert(tcb_store[thread_list[idx]].global_id != global_id);
+    // Assert the thread is not already present
+    kassert(thread_count <= idx ||
+            tcb_store[thread_list[idx]].global_id != global_id);
     ++thread_count;
     for (unsigned i = idx; i < thread_count; ++i)
     {
@@ -324,7 +326,7 @@ __attribute__((naked)) void isr_pendsv()
         "movs  r11, r7\n\t"
         "ldmia r0!, {r4-r7}\n\t"
         "bx lr\n\t"
-	".pool\n\t");
+        ".pool\n\t");
     // TODO: Pass in functions as input operands. GCC is really doing anything
     // in its power not to accept it.
 }
