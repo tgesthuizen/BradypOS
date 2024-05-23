@@ -26,6 +26,7 @@ target_sources(
   kip.s
   main.c
   memory.c
+  platform.c
   softirq.c
   syscall.c
   systhread.c
