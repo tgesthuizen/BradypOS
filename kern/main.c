@@ -14,7 +14,7 @@ int main()
     // Interrupts should be disabled. But better be safe than sorry.
     disable_interrupts();
     *(volatile uintptr_t *)(PPB_BASE + VTOR_OFFSET) = (uintptr_t)__vector;
-    asm volatile("dsb" ::: "memory");
+    dsb();
     systick_init();
     interrupts_init();
     kalarm_init();
