@@ -116,10 +116,7 @@ static int elf_read_file(size_t offset, size_t size, void *data, void *user)
 }
 
 // Assume align is a power of two
-// BUG: Right now we need noinline so that GCC does not inline this function
-// into elf_alloc_rw and generate incorrect code.
-static __attribute__((noinline)) unsigned char *align_ptr(unsigned char *ptr,
-                                                          unsigned align)
+static unsigned char *align_ptr(unsigned char *ptr, unsigned align)
 {
     const unsigned align_mask = align - 1;
     return (unsigned char *)(((uintptr_t)ptr + align_mask) & ~align_mask);
