@@ -57,7 +57,7 @@ int main()
     {
         kill_root_thread();
     }
-    if (L4_set_priority(romfs_thread_id, 60) != L4_tstate_recving)
+    if (L4_set_priority(romfs_thread_id, 60) != L4_tstate_error)
     {
         kill_root_thread();
     }
