@@ -1,3 +1,4 @@
+#include "kern/platform.h"
 #include <kern/debug.h>
 #include <kern/thread.h>
 #include <l4/errors.h>
@@ -51,9 +52,11 @@ void syscall_schedule()
     }
 
     // All checks passed, apply changes
+    disable_interrupts();
     if (prio != (unsigned)-1)
-        dest_tcb->priority = prio;
+        set_thread_priority(dest_tcb, prio);
     dest_tcb->utcb->processor_no = 0;
+    enable_interrupts();
     unsigned tstate = L4_tstate_error;
     switch (dest_tcb->state)
     {
