@@ -258,6 +258,17 @@ void set_thread_state(struct tcb_t *thread, enum thread_state_t state)
     thread->state = state;
 }
 
+void set_thread_priority(struct tcb_t *thread, unsigned prio)
+{
+    thread->priority = prio;
+    // Update scheduler heap
+    const unsigned idx = thread - tcb_store;
+    unsigned heap_idx = find_idx_in_heap(idx);
+    if (heap_idx == thread_schedule_fail)
+        return;
+    thread_schedule_swim(thread_schedule_sink(heap_idx));
+}
+
 struct tcb_t *thread_tcb(L4_thread_id thread)
 {
     const int idx = thread_map_find(thread);
