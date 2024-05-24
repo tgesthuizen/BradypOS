@@ -1,3 +1,4 @@
+#include <kern/debug.h>
 #include <kern/thread.h>
 #include <l4/errors.h>
 #include <l4/schedule.h>
@@ -31,22 +32,27 @@ void syscall_schedule()
     }
 
     (void)time_control;
-    if (processor_control != 0)
+    if (processor_control != (unsigned)-1 && processor_control != 0)
     {
         caller->utcb->error = L4_error_invalid_parameter;
         sp[THREAD_CTX_STACK_R0] = 0;
         return;
     }
-    if (caller->priority < prio)
+    if (prio != (unsigned)-1 && caller->priority < prio)
     {
         caller->utcb->error = L4_error_invalid_parameter;
         sp[THREAD_CTX_STACK_R0] = 0;
         return;
     }
-    (void)preemption_control;
+    if (preemption_control != (unsigned)-1)
+    {
+        panic("Thread tried to modify preemption control, which is not "
+              "implemented\n");
+    }
 
     // All checks passed, apply changes
-    dest_tcb->priority = prio;
+    if (prio != (unsigned)-1)
+        dest_tcb->priority = prio;
     dest_tcb->utcb->processor_no = 0;
     unsigned tstate = L4_tstate_error;
     switch (dest_tcb->state)
