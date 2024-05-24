@@ -38,7 +38,7 @@ void syscall_schedule()
         sp[THREAD_CTX_STACK_R0] = 0;
         return;
     }
-    if (prio != (unsigned)-1 && caller->priority < prio)
+    if (prio != (unsigned)-1 && caller->priority > prio)
     {
         caller->utcb->error = L4_error_invalid_parameter;
         sp[THREAD_CTX_STACK_R0] = 0;
