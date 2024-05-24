@@ -1,6 +1,6 @@
-#include "l4/schedule.h"
 #include <kern/thread.h>
 #include <l4/errors.h>
+#include <l4/schedule.h>
 #include <stddef.h>
 
 extern struct tcb_t *caller;
