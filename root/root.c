@@ -51,13 +51,13 @@ int main()
     }
 
     const L4_thread_id romfs_thread_id = L4_global_id(47, 1);
-    if (L4_thread_control(romfs_thread_id, my_thread_id, L4_NILTHREAD,
+    if (L4_thread_control(romfs_thread_id, my_thread_id, my_thread_id,
                           my_thread_id,
                           (unsigned char *)&__utcb + UTCB_ALIGN) != 1)
     {
         kill_root_thread();
     }
-    if (L4_set_priority(romfs_thread_id, 60) != 1)
+    if (L4_set_priority(romfs_thread_id, 60) != L4_tstate_recving)
     {
         kill_root_thread();
     }
