@@ -57,6 +57,10 @@ int main()
     {
         kill_root_thread();
     }
+    if (L4_set_priority(romfs_thread_id, 60) != 1)
+    {
+        kill_root_thread();
+    }
 
     unsigned *romfs_sp =
         (unsigned *)(romfs_server_stack + ROMFS_SERVER_STACK_SIZE) - 1;
