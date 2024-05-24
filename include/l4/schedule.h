@@ -87,8 +87,6 @@ bool L4_is_time_shorter(L4_time_t l, L4_time_t r);
 bool L4_is_time_equal(L4_time_t l, L4_time_t r);
 bool L4_is_time_not_equal(L4_time_t l, L4_time_t r);
 
-/* TODO: Implement L4_schedule and friends */
-
 enum L4_tstate
 {
     L4_tstate_error,
@@ -121,6 +119,42 @@ inline unsigned L4_schedule(L4_thread_id dest, unsigned time_control,
                  : "r7");
     *old_time_control = rold_time_control;
     return result;
+}
+
+inline unsigned L4_set_priority(L4_thread_id dest, unsigned prio)
+{
+    unsigned old_control;
+    return L4_schedule(dest, -1, -1, prio, -1, &old_control);
+}
+
+inline unsigned L4_set_processor_no(L4_thread_id dest, unsigned processor_no)
+{
+    unsigned old_control;
+    return L4_schedule(dest, -1, processor_no, -1, -1, &old_control);
+}
+
+inline unsigned L4_time_slice(L4_thread_id dest, L4_time_t *ts, L4_time_t *tq)
+{
+    unsigned old_control;
+    const unsigned ret = L4_schedule(dest, -1, -1, -1, -1, &old_control);
+    ts->raw = old_control >> 16;
+    tq->raw = old_control & (((unsigned)1 << 17) - 1);
+    return ret;
+}
+
+inline unsigned L4_set_time_slice(L4_thread_id dest, L4_time_t ts, L4_time_t tq)
+{
+    unsigned old_control;
+    return L4_schedule(dest, ts.raw << 16 | tq.raw, -1, -1, -1, &old_control);
+}
+
+inline unsigned L4_set_preemption_delay(L4_thread_id dest,
+                                        unsigned sensitive_prio,
+                                        unsigned max_delay)
+{
+    unsigned old_control;
+    return L4_schedule(dest, -1, -1, -1, sensitive_prio << 16 | max_delay,
+                       &old_control);
 }
 
 inline void L4_thread_switch(L4_thread_id dest)

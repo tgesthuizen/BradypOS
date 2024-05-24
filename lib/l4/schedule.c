@@ -13,6 +13,13 @@ L4_clock_t L4_system_clock();
 unsigned L4_schedule(L4_thread_id dest, unsigned time_control,
                      unsigned processor_control, unsigned prio,
                      unsigned preemption_control, unsigned *old_time_control);
+unsigned L4_set_priority(L4_thread_id dest, unsigned prio);
+unsigned L4_set_processor_no(L4_thread_id dest, unsigned processor_no);
+unsigned L4_time_slice(L4_thread_id dest, L4_time_t *ts, L4_time_t *tq);
+unsigned L4_set_time_slice(L4_thread_id dest, L4_time_t ts, L4_time_t tq);
+unsigned L4_set_preemption_delay(L4_thread_id dest, unsigned sensitive_prio,
+                                 unsigned max_delay);
+void L4_thread_switch(L4_thread_id dest);
 
 void L4_thread_switch(L4_thread_id dest);
 void L4_yield();
