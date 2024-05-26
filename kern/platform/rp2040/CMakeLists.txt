@@ -44,34 +44,3 @@ set_target_properties(
   OUTPUT_NAME kern
   LINK_DEPENDS ${KERN_FLASH_LINKER_SCRIPT}
 )
-
-add_executable(
-  kern_ram
-
-  start.s
-)
-target_link_libraries(
-  kern_ram
-  PUBLIC
-  libkern
-)
-target_compile_definitions(
-  kern_ram
-  PUBLIC
-  KERN_TARGET=ram
-)
-target_link_options(
-  kern_ram
-  PUBLIC
-  -T ${KERN_RAM_LINKER_SCRIPT}
-)
-set_target_properties(
-  kern_ram
-  PROPERTIES
-  LINK_DEPENDS ${KERN_RAM_LINKER_SCRIPT}
-)
-
-install(
-  TARGETS kern_ram
-  DESTINATION ${BRADYPOS_INSTALL_BINDIR}
-)
