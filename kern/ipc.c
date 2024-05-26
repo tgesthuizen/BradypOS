@@ -1,5 +1,5 @@
-#include "l4/thread.h"
 #include <kern/thread.h>
+#include <l4/thread.h>
 
 extern struct tcb_t *caller;
 
