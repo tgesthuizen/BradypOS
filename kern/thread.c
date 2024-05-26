@@ -142,26 +142,23 @@ static void write_utcb(struct tcb_t *tcb)
     tcb->utcb->error = 0;
 }
 
-struct tcb_t *insert_thread(L4_utcb_t *utcb, L4_thread_id global_id)
+struct tcb_t *create_thread(L4_thread_id global_id)
 {
-    if (L4_version(global_id) == 0)
-        return NULL;
+    kassert(L4_version(global_id) != 0);
     if (thread_count == THREAD_MAX_COUNT)
         return NULL;
     struct tcb_t *tcb = allocate_tcb();
     if (!tcb)
         return NULL;
     tcb->global_id = global_id;
-    tcb->local_id = (unsigned)utcb;
-    tcb->pager = get_kernel_tcb()->global_id;
-    tcb->scheduler = get_kernel_tcb()->global_id;
+    tcb->local_id = 0;
+    tcb->pager = L4_NILTHREAD;
+    tcb->scheduler = L4_NILTHREAD;
     tcb->as = NULL;
     tcb->priority = 42; // TODO
     tcb->state = TS_INACTIVE;
-    tcb->utcb = utcb;
+    tcb->utcb = NULL;
     thread_list_insert(tcb - tcb_store, global_id);
-    if (utcb)
-        write_utcb(tcb);
     return tcb;
 }
 
@@ -482,7 +479,7 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
         return;
     }
 
-    struct tcb_t *tcb = allocate_tcb();
+    struct tcb_t *tcb = create_thread(dest);
     tcb->global_id = dest;
     tcb->local_id = (L4_thread_id)&utcb_location;
     tcb->state = TS_INACTIVE;
@@ -490,7 +487,9 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     tcb->pager = pager;
     tcb->scheduler = scheduler;
     if ((unsigned)utcb_location != (unsigned)-1)
+    {
         tcb->utcb = utcb_location;
+    }
 
     sp[THREAD_CTX_STACK_R0] = 1;
 }

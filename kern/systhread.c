@@ -42,7 +42,9 @@ void create_sys_threads()
     register unsigned kern_got asm("r9");
 
     kern_id = L4_global_id(46, 1);
-    kern_tcb = insert_thread(NULL, kern_id);
+    kern_tcb = create_thread(kern_id);
+    kern_tcb->scheduler = kern_id;
+    kern_tcb->pager = kern_id;
     unsigned *kern_sp = (unsigned *)(kern_stack + 256);
     kern_sp -= 8;
     kern_sp[THREAD_CTX_STACK_R0] = 0;
@@ -60,7 +62,9 @@ void create_sys_threads()
     set_thread_state(kern_tcb, TS_INACTIVE);
 
     idle_id = L4_global_id(47, 1);
-    idle_tcb = insert_thread(NULL, idle_id);
+    idle_tcb = create_thread(idle_id);
+    idle_tcb->pager = kern_id;
+    idle_tcb->scheduler = kern_id;
     unsigned *idle_sp = (unsigned *)(idle_stack + 128);
     idle_sp -= 8;
     idle_sp[THREAD_CTX_STACK_R0] = 0;
@@ -91,7 +95,9 @@ void create_sys_threads()
                                                current_record->offset_next);
     }
     root_id = L4_global_id(64, 1);
-    root_tcb = insert_thread(NULL, root_id);
+    root_tcb = create_thread(root_id);
+    root_tcb->scheduler = kern_id;
+    root_tcb->pager = kern_id;
     unsigned *root_sp = (unsigned *)root_stack;
     root_sp -= 8;
     root_sp[THREAD_CTX_STACK_R0] = 0;
