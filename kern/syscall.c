@@ -63,6 +63,13 @@ static __attribute__((used)) void __isr_svcall()
 
 DECLARE_ISR(isr_svcall, __isr_svcall)
 
+static void unblock_svc_caller()
+{
+    disable_interrupts();
+    set_thread_state(caller, TS_RUNNABLE);
+    enable_interrupts();
+}
+
 void softirq_svc()
 {
     const unsigned syscall_id = caller->ctx.r[THREAD_CTX_R7];
@@ -79,18 +86,22 @@ void softirq_svc()
             ((struct kern_desc *)L4_read_kip_ptr(&the_kip,
                                                  the_kip.kern_desc_ptr))
                 ->kernel_id.raw;
+        unblock_svc_caller();
         break;
     case SYS_SPACE_CONTROL:
         extern void syscall_space_control();
         syscall_space_control();
+        unblock_svc_caller();
         break;
     case SYS_THREAD_CONTROL:
         extern void syscall_thread_control();
         syscall_thread_control();
+        unblock_svc_caller();
         break;
     case SYS_IPC:
         extern void syscall_ipc();
         syscall_ipc();
+	unblock_svc_caller();
         break;
     case SYS_THREAD_SWITCH:
     case SYS_SYSTEM_CLOCK:
@@ -102,18 +113,14 @@ void softirq_svc()
     case SYS_SCHEDULE:
         extern void syscall_schedule();
         syscall_schedule();
+        unblock_svc_caller();
         break;
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:
     case SYS_LIPC:
     case SYS_UNMAP:
     case SYS_EXCHANGE_REGISTERS:
-
         panic("%s is not yet implemented\n", syscall_names[syscall_id]);
         break;
     }
-
-    disable_interrupts();
-    set_thread_state(caller, TS_RUNNABLE);
-    enable_interrupts();
 }
