@@ -168,6 +168,9 @@ struct kip
     uint32_t reserved[17];
     kip_mem_desc_ptr_t memory_info;
     uint32_t reserved2[20];
+    uint32_t utcb_info;
+    uint32_t kip_area_info;
+    uint32_t reserved3[2];
     uint32_t boot_info;
     uint32_t proc_desc_ptr;
     uint32_t clock_info;
