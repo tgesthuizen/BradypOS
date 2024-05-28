@@ -19,6 +19,14 @@ union L4_msg_tag
     unsigned raw;
 };
 
+enum L4_msg_tag_flags
+{
+    L4_msg_tag_flag_propagated_ipc,
+    L4_msg_tag_flag_redirected_ipc,
+    L4_msg_tag_flag_cross_processor_ipc,
+    L4_msg_tag_flag_error_indicator,
+};
+
 typedef union L4_msg_tag L4_msg_tag_t;
 
 #define L4_NILTAG ((L4_msg_tag_t){.raw = 0})
@@ -181,6 +189,32 @@ struct L4_compound_string_item
     unsigned cont : 1;
     unsigned substring_length : 22;
 };
+
+// Non-standard extension
+enum L4_ipc_error_code
+{
+    L4_ipc_error_none,
+    L4_ipc_error_timeout,
+    L4_ipc_error_nonexistent_partner,
+    L4_ipc_error_canceled,
+    L4_ipc_error_message_overflow,
+    L4_ipc_error_xfer_timeout_invoker,
+    L4_ipc_error_xfer_timeout_partner,
+    L4_ipc_error_aborted,
+};
+
+// Non-standard extension
+union L4_ipc_error
+{
+    struct
+    {
+        unsigned p : 1;
+        unsigned err : 3;
+        unsigned offset : 28;
+    };
+    unsigned raw;
+};
+typedef union L4_ipc_error L4_ipc_error_t;
 
 inline L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
                            unsigned timeouts, L4_thread_id *from)
