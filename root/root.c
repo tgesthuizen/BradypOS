@@ -32,7 +32,7 @@ int main()
 
     the_kip = L4_kernel_interface(NULL, NULL, NULL);
     unsigned old_ctrl;
-    my_thread_id = L4_global_id(0x40, 1);
+    my_thread_id = L4_global_id(L4_USER_THREAD_START, 1);
 
     starting_time = L4_system_clock();
 
@@ -50,7 +50,8 @@ int main()
         kill_root_thread();
     }
 
-    const L4_thread_id romfs_thread_id = L4_global_id(0x41, 1);
+    const L4_thread_id romfs_thread_id =
+        L4_global_id(L4_USER_THREAD_START + 1, 1);
     if (L4_thread_control(romfs_thread_id, my_thread_id, my_thread_id,
                           my_thread_id,
                           (unsigned char *)&__utcb + UTCB_ALIGN) != 1)
