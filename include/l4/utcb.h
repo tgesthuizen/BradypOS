@@ -3,6 +3,13 @@
 
 #include <l4/thread.h>
 
+// These symbols are not standardized
+enum
+{
+    L4_MR_COUNT = 16,
+    L4_BR_COUNT = 8,
+};
+
 struct L4_utcb
 {
     L4_thread_id global_id;
