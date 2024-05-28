@@ -32,6 +32,9 @@ void nvic_set_pending(unsigned interrupt, bool pends);
     {                                                                          \
         asm("movs r0, r9\n\t"                                                  \
             "push {r0, lr}\n\t"                                                \
+            ".cfi_def_cfa_offset 8\n\t"                                        \
+            ".cfi_offset 9, -8\n\t"                                            \
+            ".cfi_offset 14, -4\n\t"                                           \
             "ldr r0, =0x20040000\n\t"                                          \
             "ldr r0, [r0]\n\t"                                                 \
             "mov r9, r0\n\t"                                                   \
