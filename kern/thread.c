@@ -308,26 +308,32 @@ __attribute__((naked)) void isr_pendsv()
         // Store context on stack
         "movs  r1, sp\n\t" // Save original sp
         "push  {r4-r7}\n\t"
+#ifndef NDEBUG
         ".cfi_def_cfa_offset 16\n\t"
         ".cfi_offset 4, -16\n\t"
         ".cfi_offset 5, -12\n\t"
         ".cfi_offset 6, -8\n\t"
         ".cfi_offset 7, -4\n\t"
+#endif
         "movs  r4, r8\n\t"
         "movs  r5, r9\n\t"
         "movs  r6, r10\n\t"
         "movs  r7, r11\n\t"
         "push  {r4-r7}\n\t"
+#ifndef NDEBUG
         ".cfi_def_cfa_offset 32\n\t"
         ".cfi_offset 8, -32\n\t"
         ".cfi_offset 9, -28\n\t"
         ".cfi_offset 10, -24\n\t"
         ".cfi_offset 11, -20\n\t"
+#endif
         "mrs   r0, psp\n\t"
         "push  {r0, lr}\n\t"
+#ifndef NDEBUG
         ".cfi_def_cfa_offset 40\n\t"
         ".cfi_offset 0, -40\n\t"
         ".cfi_offset 14, -36\n\t"
+#endif
         // Restore GOT location
         "ldr   r0, =#0x20040000\n\t"
         "ldr   r0, [r0]\n\t"

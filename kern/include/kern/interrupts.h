@@ -27,6 +27,7 @@ bool nvic_is_pending(unsigned interrupt);
 void nvic_set_pending(unsigned interrupt, bool pends);
 
 // TODO: Get GCC to accept referencing kern_stack_base here
+#ifndef NDEBUG
 #define DECLARE_ISR(isr, func)                                                 \
     __attribute__((naked)) void isr()                                          \
     {                                                                          \
@@ -43,5 +44,20 @@ void nvic_set_pending(unsigned interrupt, bool pends);
             "movs r9, r0\n\t"                                                  \
             "pop {pc}\n\t");                                                   \
     }
+#else
+#define DECLARE_ISR(isr, func)                                                 \
+    __attribute__((naked)) void isr()                                          \
+    {                                                                          \
+        asm("movs r0, r9\n\t"                                                  \
+            "push {r0, lr}\n\t"                                                \
+            "ldr r0, =0x20040000\n\t"                                          \
+            "ldr r0, [r0]\n\t"                                                 \
+            "mov r9, r0\n\t"                                                   \
+            "bl " #func "\n\t"                                                 \
+            "pop {r0}\n\t"                                                     \
+            "movs r9, r0\n\t"                                                  \
+            "pop {pc}\n\t");                                                   \
+    }
 
+#endif
 #endif
