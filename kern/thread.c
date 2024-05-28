@@ -72,9 +72,17 @@ static unsigned thread_list_find(L4_thread_id global_id)
         if (current_no == thread_no)
             return mid;
         else if (current_no < thread_no)
+        {
+            if (mid == thread_count)
+                return mid;
             low = mid + 1;
+        }
         else
+        {
+            if (mid == 0)
+                return 0;
             high = mid - 1;
+        }
     } while (low < high);
 
     return low;
