@@ -516,6 +516,13 @@ void syscall_thread_control()
     const L4_thread_id pager = sp[THREAD_CTX_STACK_R3];
     void *utcb_location = (void *)caller->ctx.r[THREAD_CTX_R4];
 
+    if (!L4_is_nil_thread(dest) && L4_thread_no(dest) < L4_USER_THREAD_START)
+    {
+        ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0] = 0;
+        caller->utcb->error = L4_error_no_privilege;
+        return;
+    }
+    
     struct tcb_t *const dest_tcb = find_thread_by_global_id(dest);
     if (dest_tcb)
     {
