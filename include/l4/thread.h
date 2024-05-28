@@ -4,6 +4,14 @@
 #include <l4/syscalls.h>
 #include <stdbool.h>
 
+// Non-standard
+enum L4_thread_number_bounds
+{
+    L4_SYSTEM_THREAD_START = 0x30,
+    L4_USER_THREAD_START = 0x40,
+    L4_THREAD_COUNT = (1 << 16),
+};
+
 typedef unsigned L4_thread_id;
 
 #define L4_NILTHREAD (0)
