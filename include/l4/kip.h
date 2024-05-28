@@ -180,7 +180,7 @@ struct kip
     uint32_t syscalls[12];
 };
 
-typedef struct kip kip_t;
+typedef struct kip L4_kip_t;
 
 static inline void *L4_read_kip_ptr(void *kip, uint32_t kip_ptr)
 {

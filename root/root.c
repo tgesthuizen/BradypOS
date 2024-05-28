@@ -7,7 +7,7 @@
 
 __attribute__((naked)) void _start() { __asm__("b main\n\t"); }
 
-kip_t *the_kip;
+L4_kip_t *the_kip;
 static L4_clock_t starting_time;
 static L4_thread_id my_thread_id;
 

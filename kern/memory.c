@@ -7,7 +7,7 @@
 #include <l4/utcb.h>
 #include <stddef.h>
 
-extern kip_t the_kip;
+extern L4_kip_t the_kip;
 static L4_fpage_t kip_fpage;
 
 enum

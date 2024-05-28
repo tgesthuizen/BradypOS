@@ -76,7 +76,7 @@ void softirq_svc()
     switch (syscall_id)
     {
     case SYS_KERNEL_INTERFACE:
-        extern kip_t the_kip;
+        extern L4_kip_t the_kip;
         ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R0] = (unsigned)&the_kip;
         ((unsigned *)caller->ctx.sp)[THREAD_CTX_STACK_R1] =
             the_kip.api_version.raw;
