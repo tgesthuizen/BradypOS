@@ -69,7 +69,7 @@ typedef union
     uint16_t raw;
 } L4_time_t;
 
-#define L4_never ((L4_time_t){.raw = 0});
+#define L4_never ((L4_time_t){.raw = 0})
 #define L4_zero_time ((L4_time_t){.point = 0, .e = 1, .m = 0})
 
 L4_time_t L4_time_add_usec(L4_time_t l, uint32_t r);
