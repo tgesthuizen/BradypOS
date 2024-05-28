@@ -24,6 +24,7 @@ static inline bool compare_thread_by_prio(unsigned char lhs, unsigned char rhs)
 {
     return tcb_store[lhs].priority < tcb_store[rhs].priority;
 }
+static struct kalarm_event reschedule_event;
 
 #define HEAP_VALUE_TYPE unsigned char
 #define HEAP_SIZE THREAD_MAX_COUNT
@@ -54,6 +55,8 @@ void init_thread_system()
     tcb_store_allocated = 0;
     thread_count = 0;
     current_thread_idx = THREAD_IDX_INVALID;
+    reschedule_event.type = KALARM_RESCHEDULE;
+    reschedule_event.when = 0;
 }
 
 static unsigned thread_list_find(L4_thread_id global_id)
@@ -213,7 +216,7 @@ void schedule_next_thread()
     // race condition.
     disable_interrupts();
     // TODO: Actual quota management
-    update_kalarm_event(KALARM_RESCHEDULE, get_current_time() + 10);
+    update_kalarm_event(&reschedule_event, get_current_time() + 10);
     enable_interrupts();
     current_thread_idx = idx;
 }
