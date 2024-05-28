@@ -71,15 +71,15 @@ static __attribute__((used)) void __isr_hardfault(unsigned lr)
     dbg_printf(
         "Context stored to %s\n"
         "mode:\t%s\n"
-        "SP:\t0x%8x\n"
-        "PSR:\t0x%8x\n"
-        "r0:\t0x%8x\n"
-        "r1:\t0x%8x\n"
-        "r2:\t0x%8x\n"
-        "r3:\t0x%8x\n"
-        "r12:\t0x%8x\n"
-        "lr:\t0x%8x\n"
-        "pc:\t0x%8x\n",
+        "SP:\t0x%08x\n"
+        "PSR:\t0x%08x\n"
+        "r0:\t0x%08x\n"
+        "r1:\t0x%08x\n"
+        "r2:\t0x%08x\n"
+        "r3:\t0x%08x\n"
+        "r12:\t0x%08x\n"
+        "lr:\t0x%08x\n"
+        "pc:\t0x%08x\n",
         uses_psp ? "PSP" : "MSP", fault_in_thread_mode ? "thread" : "handler",
         (unsigned)faulted_sp, faulted_sp[THREAD_CTX_STACK_PSR],
         faulted_sp[THREAD_CTX_STACK_R0], faulted_sp[THREAD_CTX_STACK_R1],
