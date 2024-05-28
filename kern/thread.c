@@ -218,17 +218,6 @@ void schedule_next_thread()
     current_thread_idx = idx;
 }
 
-static unsigned char reverse_lookup_thread(struct tcb_t *thread)
-{
-    const unsigned char target_idx = thread - tcb_store;
-    for (unsigned char i = 0; i < thread_count; ++i)
-    {
-        if (thread_list[i] == target_idx)
-            return i;
-    }
-    return THREAD_IDX_INVALID;
-}
-
 static unsigned find_idx_in_heap(unsigned idx)
 {
     for (unsigned i = 0; i < thread_schedule_state.size; ++i)
