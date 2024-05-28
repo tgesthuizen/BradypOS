@@ -101,7 +101,6 @@ void softirq_svc()
     case SYS_IPC:
         extern void syscall_ipc();
         syscall_ipc();
-	unblock_svc_caller();
         break;
     case SYS_THREAD_SWITCH:
     case SYS_SYSTEM_CLOCK:
