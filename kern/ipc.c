@@ -40,6 +40,19 @@ static bool set_thread_timeout(struct tcb_t *thread, L4_time_t timeout,
     return true;
 }
 
+static void pager_start_thread(struct tcb_t *pager, struct tcb_t *target)
+{
+    // Thread start message
+    target->ctx.sp = pager->utcb->mr[2];
+    target->ctx.ret = 0xFFFFFFFD;
+    unsigned *const sp = (unsigned *)target->ctx.sp;
+    sp[THREAD_CTX_STACK_PC] = pager->utcb->mr[1];
+    sp[THREAD_CTX_STACK_PSR] = (1 << 24); // Thumb bit set
+    disable_interrupts();
+    set_thread_state(target, TS_RUNNABLE);
+    enable_interrupts();
+}
+
 static unsigned ipc_send(L4_thread_id to, L4_time_t timeout)
 {
     if (L4_is_nil_thread(to))
@@ -64,15 +77,25 @@ static unsigned ipc_send(L4_thread_id to, L4_time_t timeout)
             return 1;
         }
     }
-    else if (to_tcb->state == TS_RUNNABLE)
+    // TODO: Allow any thread in the address space of the pager to send the
+    // starting message.
+    else if (to_tcb->state == TS_ACTIVE &&
+             L4_same_threads(to_tcb->pager, caller->global_id))
     {
-        if (!set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+        // Message from pager to active thread
+        L4_msg_tag_t tag = {.raw = caller->utcb->mr[0]};
+        if (tag.flags == 0 && tag.label == 0 && tag.t == 0 && tag.u == 2)
         {
-            L4_ipc_error_t code = {
-                .p = 0, .err = L4_ipc_error_aborted, .offset = 0};
-            caller->utcb->error = code.raw;
-            return 1;
+            pager_start_thread(caller, to_tcb);
+            return 0;
         }
+    }
+    else if (!set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+    {
+        L4_ipc_error_t code = {
+            .p = 0, .err = L4_ipc_error_aborted, .offset = 0};
+        caller->utcb->error = code.raw;
+        return 1;
     }
 
     return 0;
@@ -92,7 +115,7 @@ static unsigned ipc_recv(L4_thread_id from, L4_time_t timeout)
     return 0;
 }
 
-static void set_ipc_error()
+static inline void set_ipc_error()
 {
     ((L4_msg_tag_t *)&caller->utcb->mr[0])->flags |=
         1 << L4_msg_tag_flag_error_indicator;
@@ -118,6 +141,10 @@ void syscall_ipc()
         set_ipc_error();
         goto done;
     }
+
+    disable_interrupts();
+    set_thread_state(caller, TS_RUNNABLE);
+    enable_interrupts();
 
 done:
     sp[THREAD_CTX_STACK_R0] = from;
