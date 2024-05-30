@@ -501,7 +501,7 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     struct tcb_t *tcb = create_thread(dest);
     tcb->global_id = dest;
     tcb->local_id = (L4_thread_id)&utcb_location;
-    tcb->state = TS_INACTIVE;
+    tcb->state = L4_is_nil_thread(pager) ? TS_INACTIVE : TS_ACTIVE;
     tcb->as = space_control_tcb->as;
     tcb->pager = pager;
     tcb->scheduler = scheduler;
@@ -528,7 +528,7 @@ void syscall_thread_control()
         caller->utcb->error = L4_error_no_privilege;
         return;
     }
-    
+
     struct tcb_t *const dest_tcb = find_thread_by_global_id(dest);
     if (dest_tcb)
     {
