@@ -86,6 +86,7 @@ static void unpause_thread(unsigned data)
     disable_interrupts();
     set_thread_state(target, TS_RUNNABLE);
     enable_interrupts();
+    request_reschedule(NULL);
 }
 static void request_next_thread(unsigned data)
 {
