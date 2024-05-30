@@ -77,6 +77,9 @@ void syscall_schedule()
     case TS_SEND_BLOCKED:
         tstate = L4_tstate_pending_send;
         break;
+    case TS_PAUSED:
+        tstate = L4_tstate_dead;
+        break;
     }
     sp[THREAD_CTX_STACK_R0] = tstate;
     // TODO: Revisit when time slices are implemented

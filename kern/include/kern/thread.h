@@ -1,6 +1,7 @@
 #ifndef BRADYPOS_KERN_TASK_H
 #define BRADYPOS_KERN_TASK_H
 
+#include <kern/kalarm.h>
 #include <l4/thread.h>
 #include <l4/utcb.h>
 
@@ -21,6 +22,7 @@ enum thread_state_t
     TS_SVC_BLOCKED,
     TS_RECV_BLOCKED,
     TS_SEND_BLOCKED,
+    TS_PAUSED,
 };
 
 enum thread_context_registers
@@ -69,7 +71,7 @@ struct tcb_t
     L4_thread_id scheduler;
 
     L4_thread_id ipc_from;
-    unsigned timeout_event;
+    struct kalarm_event kevent;
 
     struct tcb_t *next_sibling;
     struct tcb_t *prev_sibling;

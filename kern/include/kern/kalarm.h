@@ -4,12 +4,14 @@
 enum kalarm_type
 {
     KALARM_RESCHEDULE,
+    KALARM_UNPAUSE,
 };
 
 struct kalarm_event
 {
-    enum kalarm_type type;
     unsigned long when;
+    enum kalarm_type type;
+    unsigned data;
     struct kalarm_event *prev;
     struct kalarm_event *next;
 };

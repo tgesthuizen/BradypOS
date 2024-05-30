@@ -1,6 +1,7 @@
 #include <kern/debug.h>
 #include <kern/interrupts.h>
 #include <kern/kalarm.h>
+#include <kern/platform.h>
 #include <kern/thread.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -75,8 +76,24 @@ static inline struct kalarm_event *pop_kalarm_event()
     return current;
 }
 
-static void request_next_thread() { request_reschedule(L4_NILTHREAD); }
-static void (*kalarm_event_funcs[])() = {request_next_thread};
+static void unpause_thread(unsigned data)
+{
+    struct tcb_t *target = find_thread_by_global_id((L4_thread_id)data);
+    if (!target)
+    {
+        panic("Processing unpause event for non-existent thread %u\n", target);
+    }
+    disable_interrupts();
+    set_thread_state(target, TS_RUNNABLE);
+    enable_interrupts();
+}
+static void request_next_thread(unsigned data)
+{
+    (void)data;
+    request_reschedule(L4_NILTHREAD);
+}
+static void (*kalarm_event_funcs[])(unsigned data) = {request_next_thread,
+                                                      unpause_thread};
 
 static __attribute__((used)) void __isr_systick()
 {
@@ -84,7 +101,8 @@ static __attribute__((used)) void __isr_systick()
     ++current_time;
     while (has_pending_kalarm())
     {
-        kalarm_event_funcs[pop_kalarm_event()->type]();
+        struct kalarm_event *const ev = pop_kalarm_event();
+        kalarm_event_funcs[ev->type](ev->data);
     }
 }
 DECLARE_ISR(isr_systick, __isr_systick)
