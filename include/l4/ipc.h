@@ -55,7 +55,7 @@ inline L4_msg_tag_t *L4_msg_tg_add_label_to(L4_msg_tag_t *tag, unsigned label)
     return tag;
 }
 
-extern L4_utcb_t __utcb;
+extern volatile L4_utcb_t __utcb;
 
 inline L4_msg_tag_t L4_msg_tag()
 {
@@ -227,7 +227,7 @@ inline L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
                  "svc #0\n\t"
                  : "=l"(result)
                  : [SYS_IPC] "i"(SYS_IPC), "0"(r0), "l"(r1), "l"(r2)
-                 : "r7");
+                 : "r7", "memory");
     *from = result;
     return L4_msg_tag();
 }
