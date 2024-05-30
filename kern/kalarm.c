@@ -90,7 +90,7 @@ static void unpause_thread(unsigned data)
 static void request_next_thread(unsigned data)
 {
     (void)data;
-    request_reschedule(L4_NILTHREAD);
+    request_reschedule(NULL);
 }
 static void (*kalarm_event_funcs[])(unsigned data) = {request_next_thread,
                                                       unpause_thread};
