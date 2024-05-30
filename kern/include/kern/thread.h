@@ -5,15 +5,6 @@
 #include <l4/thread.h>
 #include <l4/utcb.h>
 
-enum thread_kind_t
-{
-    TK_KERNEL,
-    TK_IDLE,
-    TK_ROOT,
-    TK_INTERRUPT,
-    TK_USER,
-};
-
 enum thread_state_t
 {
     TS_INACTIVE,
