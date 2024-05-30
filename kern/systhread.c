@@ -116,6 +116,5 @@ void create_sys_threads()
     set_thread_state(root_tcb, TS_RUNNABLE);
 }
 
-void switch_to_kernel() { panic("kernel switch not yet implemented\n"); }
 struct tcb_t *get_kernel_tcb() { return kern_tcb; }
 struct tcb_t *get_root_tcb() { return root_tcb; }
