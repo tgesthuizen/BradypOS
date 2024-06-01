@@ -43,7 +43,8 @@ static bool set_thread_timeout(struct tcb_t *thread, L4_time_t timeout,
 static void pager_start_thread(struct tcb_t *pager, struct tcb_t *target)
 {
     // Thread start message
-    target->ctx.sp = pager->utcb->mr[2];
+    target->ctx.sp =
+        pager->utcb->mr[2] - THREAD_CTX_STACK_WORD_COUNT * sizeof(unsigned);
     target->ctx.ret = 0xFFFFFFFD;
     unsigned *const sp = (unsigned *)target->ctx.sp;
     sp[THREAD_CTX_STACK_PC] = pager->utcb->mr[1];

@@ -38,6 +38,7 @@ enum thread_context_stack_registers
     THREAD_CTX_STACK_LR,
     THREAD_CTX_STACK_PC,
     THREAD_CTX_STACK_PSR,
+    THREAD_CTX_STACK_WORD_COUNT,
 };
 
 struct thread_context_t
