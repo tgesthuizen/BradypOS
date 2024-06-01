@@ -75,6 +75,7 @@ struct tcb_t *create_thread(L4_thread_id global_id);
 void request_reschedule(struct tcb_t *target);
 void set_thread_state(struct tcb_t *thread, enum thread_state_t state);
 void set_thread_priority(struct tcb_t *thread, unsigned priority);
+void pause_thread(struct tcb_t *thread, unsigned long until);
 struct tcb_t *thread_tcb(L4_thread_id thread);
 struct tcb_t *get_current_thread();
 __attribute__((noreturn)) void start_scheduling();

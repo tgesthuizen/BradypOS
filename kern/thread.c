@@ -266,6 +266,15 @@ void set_thread_priority(struct tcb_t *thread, unsigned prio)
     thread_schedule_swim(thread_schedule_sink(heap_idx));
 }
 
+void pause_thread(struct tcb_t *thread, unsigned long until)
+{
+    kassert(thread->kevent.prev == NULL && thread->kevent.next == NULL);
+    thread->kevent = (struct kalarm_event){
+        .when = until, .type = KALARM_UNPAUSE, .data = thread->global_id};
+    register_kalarm_event(&thread->kevent);
+    set_thread_state(thread, TS_PAUSED);
+}
+
 struct tcb_t *thread_tcb(L4_thread_id thread)
 {
     const int idx = thread_map_find(thread);
