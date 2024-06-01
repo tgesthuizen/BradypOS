@@ -5,6 +5,8 @@
 #include <l4/thread.h>
 #include <stddef.h>
 
+register void *__got_location asm("r9");
+
 __attribute__((naked)) void _start() { __asm__("b main\n\t"); }
 
 L4_kip_t *the_kip;
@@ -64,8 +66,9 @@ int main()
     }
 
     unsigned *romfs_sp =
-        (unsigned *)(romfs_server_stack + ROMFS_SERVER_STACK_SIZE) - 1;
-    *romfs_sp = (unsigned)((unsigned char *)&__utcb + UTCB_ALIGN);
+        (unsigned *)(romfs_server_stack + ROMFS_SERVER_STACK_SIZE);
+    *--romfs_sp = (unsigned)__got_location;
+    *--romfs_sp = (unsigned)((unsigned char *)&__utcb + UTCB_ALIGN);
 
     extern void romfs_start();
     L4_set_msg_tag((L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = 0});

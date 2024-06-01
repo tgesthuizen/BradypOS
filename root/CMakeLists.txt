@@ -22,6 +22,7 @@ target_link_libraries(
   PUBLIC
   l4
   libromfs
+  libstring
 )
 target_link_options(
   root
