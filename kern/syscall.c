@@ -44,12 +44,7 @@ static __attribute__((used)) void __isr_svcall()
     case SYS_THREAD_SWITCH:
     {
         disable_interrupts();
-        set_thread_state(current_thread, TS_PAUSED);
-        current_thread->kevent =
-            (struct kalarm_event){.when = get_current_time() + 1,
-                                  .type = KALARM_UNPAUSE,
-                                  .data = current_thread->global_id};
-        register_kalarm_event(&current_thread->kevent);
+        pause_thread(current_thread, get_current_time() + 1);
         enable_interrupts();
         request_reschedule(
             find_thread_by_global_id((L4_thread_id)psp[THREAD_CTX_STACK_R0]));
