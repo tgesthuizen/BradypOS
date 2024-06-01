@@ -24,18 +24,13 @@ struct full_boot_info
     struct L4_boot_info_variables_entry var_entries[BOOTINFO_VARIABLE_COUNT];
 };
 
-enum
-{
-    BOOT_INFO_MAGIC = 0x14B0021D
-};
-
 #define COPY_LITERAL(s, x) memcpy((s), x, sizeof(x));
 
 void construct_boot_info(struct libelf_state *kern_state,
                          struct libelf_state *root_state, void *addr)
 {
     struct full_boot_info *info = addr;
-    info->hdr.magic = BOOT_INFO_MAGIC;
+    info->hdr.magic = L4_BOOT_INFO_MAGIC;
     info->hdr.version = 1;
     info->hdr.first_entry = sizeof(struct L4_boot_info_header);
     info->hdr.num_entries = 3;

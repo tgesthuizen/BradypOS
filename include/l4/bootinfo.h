@@ -1,6 +1,11 @@
 #ifndef BRADYPOS_L4_BOOTINFO_H
 #define BRADYPOS_L4_BOOTINFO_H
 
+enum
+{
+    L4_BOOT_INFO_MAGIC = 0x14B0021D,
+};
+
 enum L4_boot_info_record_type
 {
     L4_BOOT_INFO_MODULE = 0x1,
