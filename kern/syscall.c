@@ -44,7 +44,8 @@ static __attribute__((used)) void __isr_svcall()
     case SYS_THREAD_SWITCH:
     {
         disable_interrupts();
-        pause_thread(current_thread, get_current_time() + 1);
+        if (current_thread != get_kernel_tcb())
+            pause_thread(current_thread, get_current_time() + 1);
         enable_interrupts();
         request_reschedule(
             find_thread_by_global_id((L4_thread_id)psp[THREAD_CTX_STACK_R0]));
