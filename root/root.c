@@ -9,7 +9,8 @@ __attribute__((naked)) void _start() { __asm__("b main\n\t"); }
 
 L4_kip_t *the_kip;
 static L4_clock_t starting_time;
-static L4_thread_id my_thread_id;
+L4_thread_id my_thread_id;
+L4_thread_id romfs_thread_id;
 
 // This is our method of indicating a failure in the root thread startup.
 // We can't do much, but killing the root thread will make the kernel panic.
@@ -50,8 +51,7 @@ int main()
         kill_root_thread();
     }
 
-    const L4_thread_id romfs_thread_id =
-        L4_global_id(L4_USER_THREAD_START + 1, 1);
+    romfs_thread_id = L4_global_id(L4_USER_THREAD_START + 1, 1);
     if (L4_thread_control(romfs_thread_id, my_thread_id, my_thread_id,
                           my_thread_id,
                           (unsigned char *)&__utcb + UTCB_ALIGN) != 1)
