@@ -27,6 +27,7 @@ void register_kalarm_event(struct kalarm_event *ev)
 {
     struct kalarm_event **ins_ptr = find_insertion_point(ev->when);
     struct kalarm_event *old_ev = *ins_ptr;
+    kassert(*ins_ptr != ev);
     *ins_ptr = ev;
     ev->prev = old_ev;
     if (old_ev)
@@ -72,6 +73,7 @@ static inline struct kalarm_event *pop_kalarm_event()
         next->prev = NULL;
     }
     struct kalarm_event *const current = next_event;
+    current->prev = current->next = NULL;
     next_event = next;
     return current;
 }
