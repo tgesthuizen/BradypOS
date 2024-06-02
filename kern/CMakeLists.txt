@@ -31,6 +31,7 @@ target_sources(
   schedule.c
   softirq.c
   syscall.c
+  syscall/thread_control.c
   systhread.c
   systick.c
   thread.c
