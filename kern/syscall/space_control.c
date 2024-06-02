@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 extern L4_kip_t the_kip;
-static L4_fpage_t kip_fpage;
+extern L4_fpage_t kip_fpage;
 
 void syscall_space_control()
 {

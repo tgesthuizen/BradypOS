@@ -8,7 +8,7 @@
 #include <stddef.h>
 
 extern L4_kip_t the_kip;
-static L4_fpage_t kip_fpage;
+L4_fpage_t kip_fpage;
 
 enum
 {
