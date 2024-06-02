@@ -1,5 +1,6 @@
 #include <kern/debug.h>
 #include <kern/platform.h>
+#include <kern/syscall.h>
 #include <kern/thread.h>
 #include <l4/errors.h>
 #include <l4/ipc.h>
@@ -9,8 +10,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-
-extern struct tcb_t *caller;
 
 static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
 {

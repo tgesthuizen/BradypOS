@@ -22,15 +22,17 @@ target_sources(
   INTERFACE
   debug.c
   interrupts.c
-  ipc.c
   kalarm.c
   kip.s
   main.c
   memory.c
   platform.c
-  schedule.c
   softirq.c
   syscall.c
+  syscall/ipc.c
+  syscall/space_control.c
+  syscall/thread_control.c
+  syscall/schedule.c
   systhread.c
   systick.c
   thread.c

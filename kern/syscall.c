@@ -3,6 +3,7 @@
 #include <kern/kalarm.h>
 #include <kern/platform.h>
 #include <kern/softirq.h>
+#include <kern/syscall.h>
 #include <kern/systhread.h>
 #include <kern/thread.h>
 #include <l4/kip.h>
@@ -11,6 +12,9 @@
 #include <stddef.h>
 
 struct tcb_t *caller;
+
+void unblock_caller();
+
 static const char *const syscall_names[] = {
     "SYS_KERNEL_INTERFACE",
     "SYS_SPACE_CONTROL",
@@ -95,16 +99,13 @@ void softirq_svc()
         unblock_svc_caller();
         break;
     case SYS_SPACE_CONTROL:
-        extern void syscall_space_control();
         syscall_space_control();
         unblock_svc_caller();
         break;
     case SYS_THREAD_CONTROL:
-        extern void syscall_thread_control();
         syscall_thread_control();
         break;
     case SYS_IPC:
-        extern void syscall_ipc();
         syscall_ipc();
         break;
     case SYS_THREAD_SWITCH:
@@ -115,7 +116,6 @@ void softirq_svc()
             syscall_id, syscall_names[syscall_id]);
         break;
     case SYS_SCHEDULE:
-        extern void syscall_schedule();
         syscall_schedule();
         unblock_svc_caller();
         break;
