@@ -1,11 +1,10 @@
-#include "kern/platform.h"
 #include <kern/debug.h>
+#include <kern/platform.h>
+#include <kern/syscall.h>
 #include <kern/thread.h>
 #include <l4/errors.h>
 #include <l4/schedule.h>
 #include <stddef.h>
-
-extern struct tcb_t *caller;
 
 void syscall_schedule()
 {
