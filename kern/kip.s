@@ -7,7 +7,6 @@
 	.type the_kip, %object
 the_kip:
 	.ascii "L4\x230K"
-	.zero 4
 .Lkip_api_version:
 	.word (0x84 << 24) | (7 << 16)
 .Lkip_api_flags:
