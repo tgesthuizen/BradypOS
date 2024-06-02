@@ -376,6 +376,13 @@ void start_scheduling()
 
 extern struct tcb_t *caller;
 
+static inline void unblock_caller()
+{
+    disable_interrupts();
+    set_thread_state(caller, TS_RUNNABLE);
+    enable_interrupts();
+}
+
 static bool fpage_contains_object(L4_fpage_t page, void *object_base,
                                   size_t object_size)
 {
@@ -406,6 +413,11 @@ static void syscall_thread_control_delete(unsigned *sp, struct tcb_t *dest_tcb)
     free_tcb(dest_tcb);
 
     sp[THREAD_CTX_STACK_R0] = 1;
+    // Only unblock caller if they haven't deleted themself right now
+    if (dest_tcb != caller)
+    {
+        unblock_caller();
+    }
 }
 
 static void syscall_thread_control_modify(unsigned *sp, struct tcb_t *dest_tcb,
@@ -464,6 +476,7 @@ static void syscall_thread_control_modify(unsigned *sp, struct tcb_t *dest_tcb,
         dest_tcb->utcb = utcb_location;
     write_utcb(dest_tcb);
     sp[THREAD_CTX_STACK_R0] = 1;
+    unblock_caller();
 }
 
 static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
@@ -520,6 +533,7 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     }
 
     sp[THREAD_CTX_STACK_R0] = 1;
+    unblock_caller();
 }
 
 void syscall_thread_control()
