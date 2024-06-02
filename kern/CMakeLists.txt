@@ -31,6 +31,7 @@ target_sources(
   softirq.c
   syscall.c
   syscall/ipc.c
+  syscall/space_control.c
   syscall/thread_control.c
   systhread.c
   systick.c

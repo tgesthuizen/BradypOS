@@ -46,5 +46,6 @@ struct as_t
 };
 
 void init_memory();
+struct as_t *create_as(struct tcb_t *owner);
 
 #endif
