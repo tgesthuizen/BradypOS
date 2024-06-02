@@ -22,7 +22,6 @@ target_sources(
   INTERFACE
   debug.c
   interrupts.c
-  ipc.c
   kalarm.c
   kip.s
   main.c
@@ -31,6 +30,7 @@ target_sources(
   schedule.c
   softirq.c
   syscall.c
+  syscall/ipc.c
   syscall/thread_control.c
   systhread.c
   systick.c
