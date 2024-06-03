@@ -34,7 +34,7 @@ enum L4_fpage_permissions
 #define L4_complete_address_space ((L4_fpage_t){.perm = 0, .s = 1, .b = 0})
 #define L4_nilpage ((L4_fpage_t){.raw = 0})
 
-inline bool is_nil_fpage(L4_fpage_t fpage) { return fpage.raw == 0; }
+inline bool L4_is_nil_fpage(L4_fpage_t fpage) { return fpage.raw == 0; }
 inline unsigned floorlog2(unsigned value)
 {
     return sizeof(value) - __builtin_clz(value);
