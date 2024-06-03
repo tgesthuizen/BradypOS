@@ -1,7 +1,6 @@
 #ifndef BRADYPOS_L4_SPACE_H
 #define BRADYPOS_L4_SPACE_H
 
-#include <l4/ipc.h>
 #include <l4/syscalls.h>
 #include <l4/thread.h>
 #include <stdbool.h>
@@ -90,43 +89,11 @@ inline void L4_unmap(unsigned control)
                  "r"(rcontrol));
 }
 
-inline L4_fpage_t L4_unmap_fpage(L4_fpage_t f)
-{
-    L4_load_mr(0, f.raw);
-    L4_unmap(0);
-    L4_store_mr(0, &f.raw);
-    return f;
-}
-
-inline void L4_unmap_fpages(unsigned n, L4_fpage_t *fpages)
-{
-    L4_load_mrs(0, n, (unsigned *)fpages);
-    L4_unmap(n - 1);
-    L4_store_mrs(0, n, (unsigned *)fpages);
-}
-
-inline L4_fpage_t L4_flush_fpage(L4_fpage_t f)
-{
-    L4_load_mr(0, f.raw);
-    L4_unmap(64);
-    L4_store_mr(0, &f.raw);
-    return f;
-}
-
-inline void L4_flush_fpages(unsigned count, L4_fpage_t *pages)
-{
-    L4_load_mrs(0, count, (unsigned *)pages);
-    L4_unmap(64 + count - 1);
-    L4_store_mrs(0, count, (unsigned *)pages);
-}
-
-inline L4_fpage_t L4_get_status(L4_fpage_t fpage)
-{
-    L4_load_mr(0, L4_fpage_remove_rights(fpage, L4_fully_accessible).raw);
-    L4_unmap(0);
-    L4_store_mr(0, &fpage.raw);
-    return fpage;
-}
+L4_fpage_t L4_unmap_fpage(L4_fpage_t f);
+void L4_unmap_fpages(unsigned n, L4_fpage_t *fpages);
+L4_fpage_t L4_flush_fpage(L4_fpage_t f);
+void L4_flush_fpages(unsigned count, L4_fpage_t *pages);
+L4_fpage_t L4_get_status(L4_fpage_t fpage);
 
 inline bool L4_was_referenced(L4_fpage_t fpage)
 {
