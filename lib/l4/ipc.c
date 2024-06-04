@@ -2,7 +2,7 @@
 
 bool L4_msg_tag_eq(L4_msg_tag_t lhs, L4_msg_tag_t rhs);
 bool L4_msg_tag_ne(L4_msg_tag_t lhs, L4_msg_tag_t rhs);
-unsigned L4_label(L4_msg_tag_t tag);
+
 unsigned L4_untyped_words(L4_msg_tag_t tag);
 unsigned L4_typed_words(L4_msg_tag_t tag);
 L4_msg_tag_t L4_msg_tag_add_label(L4_msg_tag_t tag, unsigned label);
@@ -45,5 +45,35 @@ void L4_store_mrs(int offset, int count, unsigned *words);
 void L4_load_mrs(int offset, int count, const unsigned *words);
 
 bool L4_is_map_item(unsigned *m);
+L4_acceptor_t L4_add_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs);
+void L4_add_acceptor_to(L4_acceptor_t *lhs, L4_acceptor_t rhs);
+L4_acceptor_t L4_remove_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs);
+L4_fpage_t L4_recv_window(L4_acceptor_t acceptor);
+
+void L4_accept(L4_acceptor_t acceptor);
+void L4_accept_strings(L4_acceptor_t acceptor, struct L4_msg_buffer *strings)
+{
+    // TODO
+}
+L4_acceptor_t L4_accepted();
+void L4_msg_buffer_clear(L4_msg_buffer_t *buffer)
+{
+    // TODO
+}
+void L4_msg_buffer_append_simple_rcv_string(L4_msg_buffer_t *buffer,
+                                            unsigned string_item)
+{
+    // TODO
+}
+void L4_msg_buffer_append_rcv_string(L4_msg_buffer_t *bufer,
+                                     unsigned *string_items)
+{
+    // TODO
+}
+void L4_store_br(int i, unsigned *word);
+void L4_load_br(int i, unsigned word);
+void L4_store_brs(int i, int k, unsigned *words);
+void L4_load_brs(int i, int k, unsigned *words);
+
 L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
                     unsigned timeouts, L4_thread_id *from);

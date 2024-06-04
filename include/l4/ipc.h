@@ -1,6 +1,7 @@
 #ifndef BRADYPOS_L4_IPC_H
 #define BRADYPOS_L4_IPC_H
 
+#include <l4/fpage.h>
 #include <l4/syscalls.h>
 #include <l4/utcb.h>
 #include <stdbool.h>
@@ -189,6 +190,104 @@ struct L4_compound_string_item
     unsigned cont : 1;
     unsigned substring_length : 22;
 };
+
+union L4_acceptor
+{
+    struct
+    {
+        unsigned s : 1;
+        unsigned c : 1;
+        unsigned reserved : 2;
+        unsigned recv_window : 28;
+    };
+    unsigned raw;
+};
+
+typedef union L4_acceptor L4_acceptor_t;
+
+#define L4_untyped_words_acceptor                                              \
+    ((L4_acceptor_t){.s = 0, .c = 0, .recv_window = L4_NILPAGE.raw})
+#define L4_string_items_acceptor                                               \
+    ((L4_acceptor_t){.s = 1, .c = 0, .recv_window = L4_NILPAGE.raw})
+#define L4_ctrl_xfer_items_acceptor                                            \
+    ((L4_acceptor_t){.s = 0, .c = 1, .recv_window = L4_NILPAGE.raw})
+
+inline L4_fpage_t L4_recv_window(L4_acceptor_t acceptor);
+
+inline L4_acceptor_t L4_add_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs)
+{
+    L4_acceptor_t res = {.raw = 0};
+    res.s = lhs.s || rhs.s;
+    res.c = lhs.c || rhs.c;
+    const L4_fpage_t rhs_recv_page = L4_recv_window(rhs);
+    res.recv_window =
+        rhs_recv_page.raw == 0 ? lhs.recv_window : rhs.recv_window;
+    return res;
+}
+inline void L4_add_acceptor_to(L4_acceptor_t *lhs, L4_acceptor_t rhs)
+{
+    *lhs = L4_add_acceptor(*lhs, rhs);
+}
+
+inline L4_acceptor_t L4_remove_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs)
+{
+    L4_acceptor_t res;
+    res.s = rhs.s ? 0 : lhs.s;
+    res.c = rhs.c ? 0 : rhs.c;
+    res.recv_window = rhs.recv_window ? 0 : lhs.recv_window;
+    return res;
+}
+inline void L4_remove_acceptor_from(L4_acceptor_t *lhs, L4_acceptor_t rhs)
+{
+    *lhs = L4_remove_acceptor(*lhs, rhs);
+}
+
+inline bool L4_has_string_items(L4_acceptor_t acceptor) { return acceptor.s; }
+inline bool L4_has_map_grant_items(L4_acceptor_t acceptor)
+{
+    return L4_recv_window(acceptor).raw != L4_NILTHREAD;
+}
+
+inline L4_fpage_t L4_recv_window(L4_acceptor_t acceptor)
+{
+    return (L4_fpage_t){.perm = 0,
+                        .s = acceptor.recv_window & ((1 << 7) - 1),
+                        .b = acceptor.recv_window >> 6};
+}
+
+struct L4_msg_buffer;
+
+inline void L4_accept(L4_acceptor_t acceptor) { __utcb.br[0] = acceptor.raw; }
+void L4_accept_strings(L4_acceptor_t acceptor, struct L4_msg_buffer *strings);
+inline L4_acceptor_t L4_accepted()
+{
+    return (L4_acceptor_t){.raw = __utcb.br[0]};
+}
+
+struct L4_msg_buffer
+{
+    unsigned raw[L4_BR_COUNT];
+};
+typedef struct L4_msg_buffer L4_msg_buffer_t;
+
+void L4_msg_buffer_clear(L4_msg_buffer_t *buffer);
+void L4_msg_buffer_append_simple_rcv_string(L4_msg_buffer_t *buffer,
+                                            unsigned string_item);
+void L4_msg_buffer_append_rcv_string(L4_msg_buffer_t *bufer,
+                                     unsigned *string_items);
+
+inline void L4_store_br(int i, unsigned *word) { *word = __utcb.br[i]; }
+inline void L4_load_br(int i, unsigned word) { __utcb.br[i] = word; }
+inline void L4_store_brs(int i, int k, unsigned *words)
+{
+    for (int j = 0; j < k; ++j)
+        words[j] = __utcb.br[i + j];
+}
+inline void L4_load_brs(int i, int k, unsigned *words)
+{
+    for (int j = 0; j < k; ++j)
+        __utcb.br[i + j] = words[j];
+}
 
 // Non-standard extension
 enum L4_ipc_error_code
