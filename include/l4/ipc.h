@@ -70,7 +70,7 @@ inline void L4_set_msg_tag(L4_msg_tag_t tag)
 
 struct L4_msg
 {
-    unsigned raw[16];
+    unsigned raw[L4_MR_COUNT];
 };
 
 typedef struct L4_msg L4_msg_t;
