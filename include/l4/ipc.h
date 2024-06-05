@@ -207,11 +207,11 @@ union L4_acceptor
 typedef union L4_acceptor L4_acceptor_t;
 
 #define L4_untyped_words_acceptor                                              \
-    ((L4_acceptor_t){.s = 0, .c = 0, .recv_window = L4_NILPAGE.raw})
+    ((L4_acceptor_t){.s = 0, .c = 0, .recv_window = L4_nilpage.raw})
 #define L4_string_items_acceptor                                               \
-    ((L4_acceptor_t){.s = 1, .c = 0, .recv_window = L4_NILPAGE.raw})
+    ((L4_acceptor_t){.s = 1, .c = 0, .recv_window = L4_nilpage.raw})
 #define L4_ctrl_xfer_items_acceptor                                            \
-    ((L4_acceptor_t){.s = 0, .c = 1, .recv_window = L4_NILPAGE.raw})
+    ((L4_acceptor_t){.s = 0, .c = 1, .recv_window = L4_nilpage.raw})
 
 inline L4_fpage_t L4_recv_window(L4_acceptor_t acceptor);
 
