@@ -44,7 +44,11 @@ void L4_load_mr(int i, unsigned word);
 void L4_store_mrs(int offset, int count, unsigned *words);
 void L4_load_mrs(int offset, int count, const unsigned *words);
 
+struct L4_map_item L4_map_item(L4_fpage_t fpage, unsigned snd_base);
 bool L4_is_map_item(unsigned *m);
+L4_fpage_t L4_map_item_snd_fpage(struct L4_map_item *item);
+unsigned L4_map_item_snd_base(struct L4_map_item *item);
+
 L4_acceptor_t L4_add_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs);
 void L4_add_acceptor_to(L4_acceptor_t *lhs, L4_acceptor_t rhs);
 L4_acceptor_t L4_remove_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs);

@@ -148,9 +148,27 @@ struct L4_map_item
     unsigned snd_fpage : 28;
 };
 
+inline struct L4_map_item L4_map_item(L4_fpage_t fpage, unsigned snd_base)
+{
+    return (struct L4_map_item){.c = 0,
+                                .type = L4_data_type_map_item,
+                                .snd_base = snd_base >> 9,
+                                .perm = fpage.perm,
+                                .snd_fpage = fpage.raw >> 4};
+}
 inline bool L4_is_map_item(unsigned *m)
 {
     return ((struct L4_map_item *)m)->type == L4_data_type_map_item;
+}
+inline L4_fpage_t L4_map_item_snd_fpage(struct L4_map_item *item)
+{
+    return (L4_fpage_t){.s = item->snd_fpage & ((1 << 7) - 1),
+                        .b = item->snd_fpage >> 6,
+                        .perm = item->perm};
+}
+inline unsigned L4_map_item_snd_base(struct L4_map_item *item)
+{
+    return item->snd_base << 9;
 }
 
 struct L4_grant_item
