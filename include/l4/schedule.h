@@ -3,6 +3,7 @@
 
 #include <l4/syscalls.h>
 #include <l4/thread.h>
+#include <l4/time.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -57,20 +58,6 @@ inline L4_clock_t L4_system_clock()
                  : "r7");
     return (L4_clock_t){.raw = clock_low | ((uint64_t)clock_high << 32)};
 }
-
-typedef union
-{
-    struct
-    {
-        unsigned m : 10;
-        unsigned e : 5;
-        unsigned point : 1;
-    };
-    uint16_t raw;
-} L4_time_t;
-
-#define L4_never ((L4_time_t){.raw = 0})
-#define L4_zero_time ((L4_time_t){.point = 0, .e = 1, .m = 0})
 
 L4_time_t L4_time_add_usec(L4_time_t l, uint32_t r);
 L4_time_t *L4_time_add_usec_to(L4_time_t *l, uint32_t r);
