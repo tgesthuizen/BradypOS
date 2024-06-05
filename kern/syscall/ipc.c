@@ -27,6 +27,7 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
 static bool set_thread_timeout(struct tcb_t *thread, L4_time_t timeout,
                                enum thread_state_t target_state)
 {
+    (void)thread;
     if (L4_is_time_equal(timeout, L4_never))
     {
         return true;
