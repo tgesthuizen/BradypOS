@@ -107,7 +107,7 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
         L4_load_brs(0, 3, ipc_buffers.raw);
 
         tag = L4_ipc(L4_NILTHREAD, L4_ANYTHREAD, 0, &from);
-        if (tag.flags & 0b1000)
+        if (L4_ipc_failed(tag))
         {
             // TODO: Log error about IPC error
             continue;
