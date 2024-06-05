@@ -184,10 +184,10 @@ struct L4_grant_item
 inline struct L4_grant_item L4_grant_item(L4_fpage_t fpage, unsigned snd_base)
 {
     return (struct L4_grant_item){.c = 0,
-                                .type = L4_data_type_grant_item,
-                                .snd_base = snd_base >> 9,
-                                .perm = fpage.perm,
-                                .snd_fpage = fpage.raw >> 4};
+                                  .type = L4_data_type_grant_item,
+                                  .snd_base = snd_base >> 9,
+                                  .perm = fpage.perm,
+                                  .snd_fpage = fpage.raw >> 4};
 }
 inline bool L4_is_grant_item(unsigned *m)
 {
@@ -213,6 +213,19 @@ struct L4_ctrl_xfer_item
     unsigned psr;
     unsigned r[16];
 };
+
+inline bool L4_is_ctrl_xfer_item(unsigned *item)
+{
+    return ((struct L4_ctrl_xfer_item *)item)->type =
+               L4_data_type_ctrl_xfer_item;
+}
+
+inline void L4_ctrl_xfer_item_init(struct L4_ctrl_xfer_item *item, unsigned id)
+{
+    item->id = id;
+    item->type = L4_data_type_ctrl_xfer_item;
+    item->c = 0;
+}
 
 struct L4_simple_string_item
 {

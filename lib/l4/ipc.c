@@ -54,6 +54,8 @@ bool L4_is_grant_item(unsigned *m);
 L4_fpage_t L4_grant_item_snd_fpage(struct L4_grant_item *item);
 unsigned L4_grant_item_snd_base(struct L4_grant_item *item);
 
+bool L4_is_ctrl_xfer_item(unsigned *item);
+void L4_ctrl_xfer_item_init(struct L4_ctrl_xfer_item *item, unsigned id);
 
 L4_acceptor_t L4_add_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs);
 void L4_add_acceptor_to(L4_acceptor_t *lhs, L4_acceptor_t rhs);
