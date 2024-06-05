@@ -3,6 +3,7 @@
 
 #include <l4/fpage.h>
 #include <l4/syscalls.h>
+#include <l4/time.h>
 #include <l4/utcb.h>
 #include <stdbool.h>
 
@@ -290,6 +291,15 @@ inline void L4_load_brs(int i, int k, unsigned *words)
 }
 
 // Non-standard extension
+enum L4_ipc_flag_bits
+{
+    L4_ipc_flag_propagated_ipc,
+    L4_ipc_flag_redirected_ipc,
+    L4_ipc_flag_cross_processor_ipc,
+    L4_ipc_flag_error_indicator,
+};
+
+// Non-standard extension
 enum L4_ipc_error_code
 {
     L4_ipc_error_none,
@@ -329,6 +339,39 @@ inline L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
                  : "r7", "memory");
     *from = result;
     return L4_msg_tag();
+}
+
+inline bool L4_ipc_succeeded(L4_msg_tag_t tag)
+{
+    return (tag.flags & L4_ipc_flag_error_indicator) == 0;
+}
+inline bool L4_ipc_failed(L4_msg_tag_t tag)
+{
+    return (tag.flags & L4_ipc_flag_error_indicator) != 0;
+}
+inline bool L4_ipc_propagated(L4_msg_tag_t tag)
+{
+    return (tag.flags & L4_ipc_flag_propagated_ipc) != 0;
+}
+inline bool L4_ipc_redirected(L4_msg_tag_t tag)
+{
+    return (tag.flags & L4_ipc_flag_redirected_ipc) != 0;
+}
+inline bool L4_ipc_xcpu(L4_msg_tag_t tag)
+{
+    return (tag.flags & L4_ipc_flag_cross_processor_ipc) != 0;
+}
+inline unsigned L4_error_code() { return __utcb.error; }
+inline L4_thread_id L4_intended_receiver() { return __utcb.intended_receiver; }
+inline L4_thread_id L4_actual_sender() { return __utcb.sender; }
+inline void L4_set_propagation(L4_msg_tag_t *tag)
+{
+    tag->flags |= L4_ipc_flag_propagated_ipc;
+}
+inline void L4_virtual_sender(L4_thread_id sender) { __utcb.sender = sender; }
+inline unsigned L4_timeouts(L4_time_t snd_timeout, L4_time_t recv_timeout)
+{
+    return ((unsigned)snd_timeout.raw << 16) | recv_timeout.raw;
 }
 
 #endif

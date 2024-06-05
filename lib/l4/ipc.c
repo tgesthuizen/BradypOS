@@ -77,3 +77,15 @@ void L4_load_brs(int i, int k, unsigned *words);
 
 L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
                     unsigned timeouts, L4_thread_id *from);
+
+bool L4_ipc_succeeded(L4_msg_tag_t tag);
+bool L4_ipc_failed(L4_msg_tag_t tag);
+bool L4_ipc_propagated(L4_msg_tag_t tag);
+bool L4_ipc_redirected(L4_msg_tag_t tag);
+bool L4_ipc_xcpu(L4_msg_tag_t tag);
+unsigned L4_error_code();
+L4_thread_id L4_intended_receiver();
+L4_thread_id L4_actual_sender();
+void L4_set_propagation(L4_msg_tag_t *tag);
+void L4_virtual_sender(L4_thread_id sender);
+unsigned L4_timeouts(L4_time_t snd_timeout, L4_time_t recv_timeout);
