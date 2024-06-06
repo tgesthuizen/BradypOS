@@ -1,10 +1,12 @@
 #include "variables.h"
+#include <errno.h>
 #include <l4/bootinfo.h>
 #include <l4/ipc.h>
 #include <l4/kip.h>
 #include <l4/schedule.h>
 #include <l4/space.h>
 #include <l4/thread.h>
+#include <l4/time.h>
 #include <l4/utcb.h>
 #include <romfs.h>
 #include <string.h>
@@ -86,6 +88,72 @@ __attribute__((noreturn, naked)) void romfs_start()
 
 static char filename_buf[VFS_PATH_MAX + 1];
 
+static void make_ipc_error(int errno)
+{
+    L4_msg_tag_t msg_tag;
+    msg_tag.flags = 0;
+    msg_tag.label = VFS_ERROR;
+    msg_tag.u = 1;
+    msg_tag.t = 0;
+    L4_load_mr(0, msg_tag.raw);
+    L4_load_mr(1, errno);
+}
+
+static void handle_vfs_openroot(L4_msg_tag_t msg_tag)
+{
+    (void)msg_tag;
+    // TODO: Implement openroot
+}
+
+static void handle_vfs_openat(L4_msg_tag_t msg_tag)
+{
+    if (msg_tag.u != 1 || msg_tag.t != 1)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    struct L4_simple_string_item item;
+    L4_store_mr(1, (unsigned *)&fd);
+    L4_store_mrs(2, 2, (unsigned *)&item);
+    if (item.type != L4_data_type_string_item)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    if (item.compound)
+    {
+        // TODO: This is really an internal problem and should not affect the
+        // caller.
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int new_fd = 0;
+    // TODO: File opening logic
+    L4_msg_tag_t answer_tag;
+    answer_tag.flags = 0;
+    answer_tag.label = VFS_OPENAT_RET;
+    answer_tag.u = 1;
+    answer_tag.t = 0;
+    L4_load_mr(0, answer_tag.raw);
+    L4_load_mr(1, new_fd);
+}
+static void handle_vfs_close(L4_msg_tag_t msg_tag)
+{
+    (void)msg_tag;
+    // TODO: implement file closing
+}
+static void handle_vfs_read(L4_msg_tag_t msg_tag)
+{
+    (void)msg_tag;
+    // TODO: Implement file reading
+}
+static void handle_vfs_write(L4_msg_tag_t msg_tag)
+{
+    (void)msg_tag;
+    // TODO: Implement file writing
+}
+
 __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
 {
     (void)utcb;
@@ -103,23 +171,40 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
     while (1)
     {
         L4_thread_id from;
-        L4_msg_tag_t tag;
+        L4_msg_tag_t msg_tag;
         L4_load_brs(0, 3, ipc_buffers.raw);
 
-        tag = L4_ipc(L4_NILTHREAD, L4_ANYTHREAD, 0, &from);
-        if (L4_ipc_failed(tag))
+        msg_tag = L4_ipc(L4_NILTHREAD, L4_ANYTHREAD, 0, &from);
+        if (L4_ipc_failed(msg_tag))
         {
             // TODO: Log error about IPC error
             continue;
         }
-        switch (tag.label)
+        switch (msg_tag.label)
         {
-        case VFS_OPENAT:
-        case VFS_CLOSE:
-        case VFS_READ:
-        case VFS_WRITE:
-            // TODO
+        case VFS_OPENROOT:
+            handle_vfs_openroot(msg_tag);
             break;
+        case VFS_OPENAT:
+            handle_vfs_openat(msg_tag);
+            break;
+        case VFS_CLOSE:
+            handle_vfs_close(msg_tag);
+            break;
+        case VFS_READ:
+            handle_vfs_read(msg_tag);
+            break;
+        case VFS_WRITE:
+            handle_vfs_write(msg_tag);
+            break;
+        }
+
+        const L4_msg_tag_t answer_tag = L4_ipc(
+            from, L4_NILTHREAD, L4_timeouts(L4_zero_time, L4_zero_time), &from);
+        if (L4_ipc_failed(answer_tag))
+        {
+            // TODO: Log error about IPC error
+            continue;
         }
     }
     // In case we reach the end of this program, delete us
