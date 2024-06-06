@@ -112,11 +112,15 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
             // TODO: Log error about IPC error
             continue;
         }
-        //switch (tag.label)
-        //{
-        //case VFS_OPENAT:
-	//
-        //}
+        switch (tag.label)
+        {
+        case VFS_OPENAT:
+        case VFS_CLOSE:
+        case VFS_READ:
+        case VFS_WRITE:
+            // TODO
+            break;
+        }
     }
     // In case we reach the end of this program, delete us
     delete_romfs_thread();
