@@ -7,8 +7,10 @@ enum
     VFS_PATH_MAX = 64,
 };
 
+// TODO: Add operation for mapping files to memory
 enum vfs_ops
 {
+    VFS_OPENROOT,
     VFS_OPENAT,
     VFS_CLOSE,
     VFS_READ,
@@ -34,6 +36,16 @@ enum vfs_read_args
     VFS_READ_FD,
     VFS_READ_OFFSET,
     VFS_READ_SIZE,
+};
+
+enum vfs_answer_ops
+{
+    VFS_ERROR,
+    VFS_OPENROOT_RET,
+    VFS_OPENAT_RET,
+    VFS_CLOSE_RET,
+    VFS_READ_RET,
+    VFS_WRITE_RET,
 };
 
 #endif
