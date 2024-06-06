@@ -6,9 +6,20 @@ project(
   VERSION 0.0.1
 )
 
+add_library(
+  libroot
+  INTERFACE
+)
+target_include_directories(
+  libroot
+  INTERFACE
+  include
+)
+
 add_executable(
   root
   data.s
+  memory.c
   romfs_server.c
   root.c
 )
@@ -21,7 +32,9 @@ target_link_libraries(
   root
   PUBLIC
   l4
+  libbuddy
   libromfs
+  libroot
   libstring
 )
 target_link_options(
