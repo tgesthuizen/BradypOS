@@ -128,7 +128,7 @@ int main()
             break;
         }
         const L4_msg_tag_t answer_tag = L4_ipc(
-            from, L4_NILTHREAD, L4_timeouts(L4_zerotime, L4_zerotime), &from);
+            from, L4_NILTHREAD, L4_timeouts(L4_zero_time, L4_zero_time), &from);
 	if(L4_ipc_failed(answer_tag)) {
 	  // TODO: Properly log error
 	  continue;
