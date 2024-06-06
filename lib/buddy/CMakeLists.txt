@@ -6,7 +6,12 @@ project(
   VERSION 0.0.1
 )
 
-add_library(libbuddy STATIC buddy.c)
+add_library(
+  libbuddy
+  STATIC
+  buddy.c
+  linked_list_alloc.c
+)
 target_include_directories(
   libbuddy
   PUBLIC
