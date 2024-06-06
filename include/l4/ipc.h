@@ -267,6 +267,11 @@ typedef union L4_acceptor L4_acceptor_t;
 #define L4_ctrl_xfer_items_acceptor                                            \
     ((L4_acceptor_t){.s = 0, .c = 1, .recv_window = L4_nilpage.raw})
 
+inline L4_acceptor_t L4_map_grant_items(L4_fpage_t recv_window)
+{
+    return (L4_acceptor_t){.s = 0, .c = 0, .recv_window = recv_window.raw >> 4};
+}
+
 inline L4_fpage_t L4_recv_window(L4_acceptor_t acceptor);
 
 inline L4_acceptor_t L4_add_acceptor(L4_acceptor_t lhs, L4_acceptor_t rhs)
