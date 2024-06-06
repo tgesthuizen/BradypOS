@@ -216,8 +216,8 @@ struct L4_ctrl_xfer_item
 
 inline bool L4_is_ctrl_xfer_item(unsigned *item)
 {
-    return ((struct L4_ctrl_xfer_item *)item)->type =
-               L4_data_type_ctrl_xfer_item;
+    return ((struct L4_ctrl_xfer_item *)item)->type ==
+           L4_data_type_ctrl_xfer_item;
 }
 
 inline void L4_ctrl_xfer_item_init(struct L4_ctrl_xfer_item *item, unsigned id)
