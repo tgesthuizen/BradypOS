@@ -36,9 +36,9 @@ SECTIONS
       *(.data.*)
     } :rw
     .bss (NOLOAD) : {
-      __bss_start = .;
+      PROVIDE(__bss_start = .);
       *(.bss)
       *(.bss.*)
-      __bss_end = .;
+      PROVIDE(__bss_end = .);
     } :rw
 }
