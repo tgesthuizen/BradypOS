@@ -5,7 +5,7 @@ implementing an adapted version of the L4 kernel API.
 Not to be confused:
 
 Bradypus:
-![Bradypus](https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Bradypus.jpg/800px-Bradypus.jpg)
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Bradypus.jpg/800px-Bradypus.jpg" width="30%">
 
 BradypOS:
 ```
