@@ -1,6 +1,9 @@
 #include "memory.h"
-#include "l4/ipc.h"
+#include "variables.h"
 #include <errno.h>
+#include <l4/bootinfo.h>
+#include <l4/ipc.h>
+#include <l4/kip.h>
 #include <linked_list_alloc.h>
 #include <root.h>
 
@@ -16,17 +19,45 @@ enum
 
 static struct linked_list_alloc_state state;
 
+static unsigned align_to_page(unsigned value)
+{
+    const unsigned align_mask = LINKED_LIST_ALLOC_PAGE_SIZE - 1;
+    return (value + align_mask) & ~align_mask;
+}
+
+static unsigned find_heap_start()
+{
+    struct L4_boot_info_header *const header =
+        L4_read_kip_ptr(the_kip, the_kip->boot_info);
+    const unsigned num_entries = L4_boot_info_entries(header);
+    L4_boot_info_rec_t *current_entry = L4_boot_info_first_entry(header);
+    unsigned highest_bss_address = 0;
+    for (unsigned i = 0; i < num_entries;
+         ++i, current_entry = L4_boot_rec_next(current_entry))
+    {
+        if (L4_boot_rec_type(current_entry) != L4_BOOT_INFO_EXE)
+        {
+            continue;
+        }
+        struct L4_boot_info_record_exe *const exe =
+            (struct L4_boot_info_record_exe *)current_entry;
+        const unsigned max_address_data = exe->data.vstart + exe->data.size;
+        if (max_address_data > highest_bss_address)
+            highest_bss_address = max_address_data;
+        const unsigned max_address_bss = exe->bss.vstart + exe->bss.size;
+        if (max_address_bss > highest_bss_address)
+            highest_bss_address = max_address_bss;
+    }
+    return align_to_page(highest_bss_address);
+}
+
 void init_memory_management()
 {
-    unsigned char *heap_base = &__bss_end;
-    // Align to next page
-    heap_base =
-        (unsigned char *)(((unsigned)heap_base +
-                           (LINKED_LIST_ALLOC_PAGE_SIZE - 1)) &
-                          ((1 << (LINKED_LIST_ALLOC_PAGE_SIZE_LOG2 + 1)) - 1));
-    const size_t num_pages = (RPI_PICO_SRAM_END - (unsigned)heap_base) >>
-                             LINKED_LIST_ALLOC_PAGE_SIZE_LOG2;
-    init_linked_list_alloc_state(&state, heap_base, num_pages);
+    const unsigned heap_base_aligned = find_heap_start();
+    const unsigned num_pages = (RPI_PICO_SRAM_END - heap_base_aligned) >>
+                               LINKED_LIST_ALLOC_PAGE_SIZE_LOG2;
+    init_linked_list_alloc_state(&state, (unsigned char *)heap_base_aligned,
+                                 num_pages);
 }
 
 void *alloc_pages(size_t num_pages)

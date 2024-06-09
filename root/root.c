@@ -60,6 +60,7 @@ int main()
     my_thread_id = L4_global_id(L4_USER_THREAD_START, 1);
 
     starting_time = L4_system_clock();
+    init_memory_management();
 
     // The kernel has cheated a bit when it created us.
     // Add the necessary pages and address space information now in the
@@ -129,9 +130,10 @@ int main()
         }
         const L4_msg_tag_t answer_tag = L4_ipc(
             from, L4_NILTHREAD, L4_timeouts(L4_zero_time, L4_zero_time), &from);
-	if(L4_ipc_failed(answer_tag)) {
-	  // TODO: Properly log error
-	  continue;
-	}
+        if (L4_ipc_failed(answer_tag))
+        {
+            // TODO: Properly log error
+            continue;
+        }
     }
 }
