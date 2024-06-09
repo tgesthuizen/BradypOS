@@ -42,6 +42,27 @@ def read_elf_file(file):
             })
     return loads, sects
 
+def construct_call(filename, elf_state):
+    segments = (elf_state['segments'][i] for i in range(elf_state['num_segments']))
+    addr_translate = dict((int(segment['linked_addr']), int(segment['loaded_addr'])) for segment in segments)
+
+    with open(filename, 'rb') as f:
+        loads, sects = read_elf_file(f)
+
+    cmd = "add-symbol-file %s" % filename
+    for s in sects:
+        addr = s['sh_addr']
+
+        in_loads = (l for l in loads if l['p_vaddr'] <= addr and (l['p_vaddr'] + l['p_memsz']) >= addr)
+        try:
+            target = next(in_loads)['p_vaddr']
+            offset = addr - target
+            cmd += " -s %s 0x%08x" % (s['sh_name'], addr_translate[target] + offset)
+        except Exception as e:
+            print(f"Oops: {e} {type(e)}")
+    return cmd
+
+
 class AddSymbolFileForPie(gdb.Command):
     """Let GDB load debug symbols for an executable loaded by libelf."""
 
@@ -56,26 +77,7 @@ class AddSymbolFileForPie(gdb.Command):
         elf_state = gdb.parse_and_eval(argv[1])
         if elf_state.type.name != 'libelf_state':
             raise RuntimeError('Parameter is not a struct libelf_state')
-        print('test')
-        segments = (elf_state['segments'][i] for i in range(elf_state['num_segments']))
-        addr_translate = dict((int(segment['linked_addr']), int(segment['loaded_addr'])) for segment in segments)
-        print(addr_translate)
-        with open(filename, 'rb') as f:
-            loads, sects = read_elf_file(f)
-
-        cmd = "add-symbol-file %s" % filename
-        for s in sects:
-            addr = s['sh_addr']
-
-            in_loads = (l for l in loads if l['p_vaddr'] <= addr and (l['p_vaddr'] + l['p_memsz']) >= addr)
-            try:
-                target = next(in_loads)['p_vaddr']
-                offset = addr - target
-                cmd += " -s %s 0x%08x" % (s['sh_name'], addr_translate[target] + offset)
-            except Exception as e:
-                print("Oops: %s" % e)
-
-        print(cmd)
+        cmd = construct_call(filename, elf_state)
         gdb.execute(cmd)
 
 AddSymbolFileForPie()
