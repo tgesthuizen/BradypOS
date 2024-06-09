@@ -130,14 +130,13 @@ void syscall_ipc()
     const unsigned timeout = sp[THREAD_CTX_STACK_R2];
     L4_thread_id from = L4_NILTHREAD;
 
-    if (ipc_send(to, (L4_time_t){.raw = timeout >> 16}) == 1)
+    if (ipc_send(to, L4_send_timeout(timeout)) == 1)
     {
         set_ipc_error();
         goto done;
     }
 
-    if (ipc_recv(from_specifier,
-                 (L4_time_t){.raw = timeout & ((1 << 17) - 1)}) == 1)
+    if (ipc_recv(from_specifier, L4_recv_timeout(timeout)) == 1)
     {
         set_ipc_error();
         goto done;

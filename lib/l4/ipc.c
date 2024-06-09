@@ -102,5 +102,5 @@ L4_thread_id L4_actual_sender();
 void L4_set_propagation(L4_msg_tag_t *tag);
 void L4_virtual_sender(L4_thread_id sender);
 unsigned L4_timeouts(L4_time_t snd_timeout, L4_time_t recv_timeout);
-L4_time_t L4_send_timeout(unsignd timeout);
+L4_time_t L4_send_timeout(unsigned timeout);
 L4_time_t L4_recv_timeout(unsigned timeout);
