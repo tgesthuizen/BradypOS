@@ -433,4 +433,15 @@ inline unsigned L4_timeouts(L4_time_t snd_timeout, L4_time_t recv_timeout)
     return ((unsigned)snd_timeout.raw << 16) | recv_timeout.raw;
 }
 
+// Non-standard extension
+inline L4_time_t L4_send_timeout(unsigned timeouts)
+{
+    return (L4_time_t){.raw = timeouts >> 16};
+}
+// Non-standard extension
+inline L4_time_t L4_recv_timeout(unsigned timeouts)
+{
+    return (L4_time_t){.raw = timeouts & ((1 << 17) - 1)};
+}
+
 #endif
