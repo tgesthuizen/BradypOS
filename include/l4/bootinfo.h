@@ -1,6 +1,8 @@
 #ifndef BRADYPOS_L4_BOOTINFO_H
 #define BRADYPOS_L4_BOOTINFO_H
 
+#include <stdbool.h>
+
 enum
 {
     L4_BOOT_INFO_MAGIC = 0x14B0021D,
@@ -23,6 +25,15 @@ struct L4_boot_info_header
     unsigned first_entry;
     unsigned num_entries;
 };
+
+struct L4_boot_info_rec
+{
+    unsigned type;
+    unsigned version;
+    unsigned offset_next;
+};
+
+typedef struct L4_boot_info_rec L4_boot_info_rec_t;
 
 struct L4_boot_segment_info
 {
@@ -70,5 +81,35 @@ struct L4_boot_info_variables
     unsigned variable_count;
     struct L4_boot_info_variables_entry entries[];
 };
+
+inline bool L4_boot_info_valid(void *boot_info)
+{
+    struct L4_boot_info_header *const bi = boot_info;
+    return bi->magic == L4_BOOT_INFO_MAGIC;
+}
+
+inline unsigned L4_boot_info_size(void *boot_info)
+{
+    struct L4_boot_info_header *const bi = boot_info;
+    return bi->size;
+}
+
+inline L4_boot_info_rec_t *L4_boot_info_first_entry(void *boot_info)
+{
+    struct L4_boot_info_header *const bi = boot_info;
+    return (L4_boot_info_rec_t *)((unsigned char *)bi + bi->first_entry);
+}
+
+inline unsigned L4_boot_info_entries(void *boot_info)
+{
+    struct L4_boot_info_header *const bi = boot_info;
+    return bi->num_entries;
+}
+
+inline unsigned L4_boot_rec_type(L4_boot_info_rec_t *rec) { return rec->type; }
+inline L4_boot_info_rec_t *L4_boot_rec_next(L4_boot_info_rec_t *rec)
+{
+    return (L4_boot_info_rec_t *)((unsigned char *)rec + rec->offset_next);
+}
 
 #endif

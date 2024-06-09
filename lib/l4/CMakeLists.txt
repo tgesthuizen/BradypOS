@@ -1,6 +1,7 @@
 add_library(
   l4
   STATIC
+  bootinfo.c
   ipc.c
   schedule.c
   space.c
