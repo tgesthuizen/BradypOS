@@ -16,6 +16,7 @@ inline void unblock_caller()
 void syscall_thread_control();
 void syscall_space_control();
 void syscall_ipc();
+void syscall_unmap();
 void syscall_schedule();
 
 #endif

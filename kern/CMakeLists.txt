@@ -30,9 +30,10 @@ target_sources(
   softirq.c
   syscall.c
   syscall/ipc.c
+  syscall/schedule.c
   syscall/space_control.c
   syscall/thread_control.c
-  syscall/schedule.c
+  syscall/unmap.c
   systhread.c
   systick.c
   thread.c

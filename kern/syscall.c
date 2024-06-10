@@ -108,6 +108,9 @@ void softirq_svc()
     case SYS_IPC:
         syscall_ipc();
         break;
+    case SYS_UNMAP:
+        syscall_unmap();
+        break;
     case SYS_THREAD_SWITCH:
     case SYS_SYSTEM_CLOCK:
         panic(
@@ -122,7 +125,6 @@ void softirq_svc()
     case SYS_PROCESSOR_CONTROL:
     case SYS_MEMORY_CONTROL:
     case SYS_LIPC:
-    case SYS_UNMAP:
     case SYS_EXCHANGE_REGISTERS:
         panic("%s is not yet implemented\n", syscall_names[syscall_id]);
         break;
