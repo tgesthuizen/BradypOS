@@ -26,8 +26,8 @@ inline L4_fpage_t L4_fpage_log2(unsigned base_address, int fpage_size_log2)
 
 inline unsigned L4_address(L4_fpage_t fpage) { return fpage.b << 9; }
 
-inline unsigned L4_size(L4_fpage_t fpage) { return 1 << fpage.s; }
-inline unsigned L4_size_log2(L4_fpage_t fpage) { return fpage.s; }
+inline unsigned L4_size(L4_fpage_t fpage) { return 1 << (fpage.s + 9); }
+inline unsigned L4_size_log2(L4_fpage_t fpage) { return fpage.s + 9; }
 inline unsigned L4_rights(L4_fpage_t fpage) { return fpage.perm; }
 inline void L4_set_rights(L4_fpage_t *fpage, unsigned access_rights)
 {
