@@ -45,7 +45,7 @@ static void syscall_thread_control_modify(unsigned *sp, struct tcb_t *dest_tcb,
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_invalid_space;
-        goto done;
+        return;
     }
 
     if (!L4_is_nil_thread(scheduler))
@@ -55,7 +55,7 @@ static void syscall_thread_control_modify(unsigned *sp, struct tcb_t *dest_tcb,
         {
             sp[THREAD_CTX_STACK_R0] = 0;
             caller->utcb->error = L4_error_invalid_scheduler;
-            goto done;
+            return;
         }
     }
 
@@ -66,7 +66,7 @@ static void syscall_thread_control_modify(unsigned *sp, struct tcb_t *dest_tcb,
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_utcb_area;
-        goto done;
+        return;
     }
 
     /* NOTE: We do not check for the existence of the pager thread, because
@@ -87,8 +87,6 @@ static void syscall_thread_control_modify(unsigned *sp, struct tcb_t *dest_tcb,
         dest_tcb->utcb = utcb_location;
     write_utcb(dest_tcb);
     sp[THREAD_CTX_STACK_R0] = 1;
-done:
-    unblock_caller();
 }
 
 static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
@@ -105,13 +103,13 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_invalid_space;
-        goto done;
+        return;
     }
     if (space_control_tcb->as == NULL)
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_invalid_space;
-        goto done;
+        return;
     }
     struct tcb_t *scheduler_tcb = NULL;
     if (!L4_is_nil_thread(scheduler))
@@ -121,7 +119,7 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
         {
             sp[THREAD_CTX_STACK_R0] = 0;
             caller->utcb->error = L4_error_invalid_scheduler;
-            goto done;
+            return;
         }
     }
     if (!fpage_contains_object(space_control_tcb->as->utcb_page, utcb_location,
@@ -129,7 +127,7 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_kip_area;
-        goto done;
+        return;
     }
 
     struct tcb_t *tcb = create_thread(dest);
@@ -145,8 +143,6 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     }
 
     sp[THREAD_CTX_STACK_R0] = 1;
-done:
-    unblock_caller();
 }
 
 void syscall_thread_control()
@@ -178,6 +174,7 @@ void syscall_thread_control()
             // dest exists, space_specifier != nilthread => Modify dest
             syscall_thread_control_modify(sp, dest_tcb, dest, space_specifier,
                                           scheduler, pager, utcb_location);
+            unblock_caller();
         }
     }
     else
@@ -186,11 +183,13 @@ void syscall_thread_control()
         {
             sp[THREAD_CTX_STACK_R0] = 0;
             caller->utcb->error = L4_error_invalid_space;
+            unblock_caller();
         }
         else
         {
             syscall_thread_control_create(sp, dest, space_specifier, scheduler,
                                           pager, utcb_location);
+            unblock_caller();
         }
     }
 }
