@@ -1,5 +1,4 @@
-#include "romfs.h"
-#include "include/romfs.h"
+#include <romfs.h>
 
 static inline bool is_romfs_magic(char *data)
 {
@@ -38,7 +37,7 @@ bool romfs_info(const struct romfs_block_iface *iface, void *user,
                 struct romfs_info *info)
 {
     unsigned char *data = NULL;
-    if(iface->map((void **)&data, 0, 32, user) != 0)
+    if (iface->map((void **)&data, 0, 32, user) != 0)
         return false;
     for (unsigned i = 0; i < 16; ++i)
         info->name[i] = data[i + 16];
