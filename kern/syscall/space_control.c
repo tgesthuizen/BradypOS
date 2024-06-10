@@ -34,12 +34,6 @@ void syscall_space_control()
         caller->utcb->error = L4_error_kip_area;
         return;
     }
-    if (utcb_area.s < 9)
-    {
-        sp[THREAD_CTX_STACK_R0] = 0;
-        caller->utcb->error = L4_error_utcb_area;
-        return;
-    }
 
     if (target_thread->as == NULL)
     {

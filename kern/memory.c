@@ -20,9 +20,8 @@ static unsigned as_allocated;
 
 void init_memory()
 {
-    kip_fpage.b = (unsigned)&the_kip / 512;
-    kip_fpage.s = 10;
-    kip_fpage.perm = L4_readable;
+    kip_fpage =
+        L4_fpage_add_rights(L4_fpage_log2((unsigned)&the_kip, 10), L4_readable);
     as_allocated = 0;
 }
 
