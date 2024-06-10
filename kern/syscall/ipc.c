@@ -37,6 +37,10 @@ static bool set_thread_timeout(struct tcb_t *thread, L4_time_t timeout,
         return false;
     }
 
+    disable_interrupts();
+    set_thread_state(thread, target_state);
+    enable_interrupts();
+
     return true;
 }
 
@@ -54,17 +58,24 @@ static void pager_start_thread(struct tcb_t *pager, struct tcb_t *target)
     enable_interrupts();
 }
 
-static unsigned ipc_send(L4_thread_id to, L4_time_t timeout)
+enum ipc_phase_result
+{
+    ipc_phase_done,
+    ipc_phase_error,
+    ipc_phase_wait,
+};
+
+static enum ipc_phase_result ipc_send(L4_thread_id to, L4_time_t timeout)
 {
     if (L4_is_nil_thread(to))
-        return 0;
+        return ipc_phase_done;
     struct tcb_t *to_tcb = find_thread_by_global_id(to);
     if (to_tcb == NULL)
     {
         L4_ipc_error_t ret = {
             .p = 0, .err = L4_ipc_error_nonexistent_partner, .offset = 0};
         caller->utcb->error = ret.raw;
-        return 1;
+        return ipc_phase_error;
     }
 
     if (to_tcb->state == TS_RECV_BLOCKED)
@@ -75,7 +86,7 @@ static unsigned ipc_send(L4_thread_id to, L4_time_t timeout)
             L4_ipc_error_t code = {
                 .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0};
             caller->utcb->error = code.raw;
-            return 1;
+            return ipc_phase_error;
         }
     }
     // TODO: Allow any thread in the address space of the pager to send the
@@ -88,18 +99,22 @@ static unsigned ipc_send(L4_thread_id to, L4_time_t timeout)
         if (tag.flags == 0 && tag.label == 0 && tag.t == 0 && tag.u == 2)
         {
             pager_start_thread(caller, to_tcb);
-            return 0;
+            return ipc_phase_done;
         }
     }
-    else if (!set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+    else if (set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+    {
+        return ipc_phase_done;
+    }
+    else
     {
         L4_ipc_error_t code = {
             .p = 0, .err = L4_ipc_error_aborted, .offset = 0};
         caller->utcb->error = code.raw;
-        return 1;
+        return ipc_phase_error;
     }
 
-    return 0;
+    panic("Invalid case encountered in %s", __FUNCTION__);
 }
 
 static unsigned ipc_recv(L4_thread_id from, L4_time_t timeout)
@@ -110,10 +125,10 @@ static unsigned ipc_recv(L4_thread_id from, L4_time_t timeout)
     if (from_tcb == NULL)
     {
         caller->utcb->error = L4_error_invalid_thread;
-        return 1;
+        return ipc_phase_error;
     }
 
-    return 0;
+    return ipc_phase_done;
 }
 
 static inline void set_ipc_error()
@@ -130,21 +145,33 @@ void syscall_ipc()
     const unsigned timeout = sp[THREAD_CTX_STACK_R2];
     L4_thread_id from = L4_NILTHREAD;
 
-    if (ipc_send(to, L4_send_timeout(timeout)) == 1)
+    switch (ipc_send(to, L4_send_timeout(timeout)))
     {
+    case ipc_phase_done:
+        break;
+    case ipc_phase_error:
         set_ipc_error();
+        set_thread_state(caller, TS_RUNNABLE);
         goto done;
+    case ipc_phase_wait:
+        set_thread_state(caller, TS_SEND_BLOCKED);
+        return;
     }
 
-    if (ipc_recv(from_specifier, L4_recv_timeout(timeout)) == 1)
+    switch (ipc_recv(from_specifier, L4_recv_timeout(timeout)))
     {
+    case ipc_phase_done:
+        break;
+    case ipc_phase_error:
         set_ipc_error();
+        set_thread_state(caller, TS_RUNNABLE);
         goto done;
+    case ipc_phase_wait:
+        set_thread_state(caller, TS_RECV_BLOCKED);
+        return;
     }
 
-    disable_interrupts();
     set_thread_state(caller, TS_RUNNABLE);
-    enable_interrupts();
 
 done:
     sp[THREAD_CTX_STACK_R0] = from;
