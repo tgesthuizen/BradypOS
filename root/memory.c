@@ -2,8 +2,10 @@
 #include "variables.h"
 #include <errno.h>
 #include <l4/bootinfo.h>
+#include <l4/fpage.h>
 #include <l4/ipc.h>
 #include <l4/kip.h>
+#include <l4/space.h>
 #include <linked_list_alloc.h>
 #include <root.h>
 
@@ -88,27 +90,30 @@ static void create_ipc_alloc_error(int errno)
  */
 void handle_ipc_alloc(L4_msg_tag_t msg_tag)
 {
-    if (msg_tag.u != 1 || msg_tag.t != 0)
+    if (msg_tag.u != 2 || msg_tag.t != 0)
     {
         create_ipc_alloc_error(EINVAL);
         return;
     }
-    unsigned num_pages;
-    L4_store_mr(1, &num_pages);
-    void *mem = alloc_pages(num_pages);
+    L4_fpage_t requested_fpage;
+    L4_store_mr(1, &requested_fpage.raw);
+    void *mem = alloc_pages(1 << (requested_fpage.s + 9));
     if (mem == NULL)
     {
         create_ipc_alloc_error(ENOMEM);
         return;
     }
+    L4_fpage_t allocated_fpage =
+        L4_fpage_add_rights(L4_fpage_log2((unsigned)mem, requested_fpage.s + 9),
+                            L4_rights(requested_fpage));
+    struct L4_grant_item grant_item = L4_grant_item(allocated_fpage, 0);
     L4_msg_tag_t answer_tag;
     answer_tag.flags = 0;
     answer_tag.label = ROOT_ALLOC_MEM_RET;
-    answer_tag.u = 2;
-    answer_tag.t = 0;
+    answer_tag.u = 1;
+    answer_tag.t = 2;
     L4_load_mr(0, answer_tag.raw);
-    L4_load_mr(1, (unsigned)mem);
-    L4_load_mr(2, num_pages);
+    L4_load_mrs(1, 2, (unsigned *)&grant_item);
 }
 
 void handle_ipc_free(L4_msg_tag_t msg_tag)
@@ -118,11 +123,12 @@ void handle_ipc_free(L4_msg_tag_t msg_tag)
         create_ipc_alloc_error(EINVAL);
         return;
     }
-    unsigned mem;
-    unsigned num_pages;
-    L4_store_mr(1, &mem);
-    L4_store_mr(2, &num_pages);
-    free_pages((void *)mem, num_pages);
+    L4_fpage_t target_page;
+    L4_store_mr(1, &target_page.raw);
+    L4_load_mr(0, target_page.raw);
+    L4_unmap((L4_unmap_control_t){.f = 1, .k = 0, .reserved = 0}.raw);
+    free_pages((void *)L4_address(target_page),
+               L4_size(target_page) / (1 << 9));
     L4_msg_tag_t answer_tag;
     answer_tag.flags = 0;
     answer_tag.label = ROOT_FREE_MEM_RET;
