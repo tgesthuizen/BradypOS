@@ -54,6 +54,19 @@ inline L4_fpage_t *L4_fpage_remove_right_from(L4_fpage_t *page, unsigned rights)
     return page;
 }
 
+// Non-standard extension
+union L4_unmap_control
+{
+    struct
+    {
+        unsigned k : 6;
+        unsigned f : 1;
+        unsigned reserved : 25;
+    };
+    unsigned raw;
+};
+typedef union L4_unmap_control L4_unmap_control_t;
+
 inline void L4_unmap(unsigned control)
 {
     register unsigned rcontrol asm("r0") = control;
