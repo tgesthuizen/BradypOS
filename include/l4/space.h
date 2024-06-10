@@ -1,9 +1,9 @@
 #ifndef BRADYPOS_L4_SPACE_H
 #define BRADYPOS_L4_SPACE_H
 
+#include <l4/fpage.h>
 #include <l4/syscalls.h>
 #include <l4/thread.h>
-#include <l4/fpage.h>
 #include <stdbool.h>
 
 inline bool L4_is_nil_fpage(L4_fpage_t fpage) { return fpage.raw == 0; }
@@ -21,7 +21,7 @@ inline L4_fpage_t L4_fpage(unsigned base_address, int fpage_size)
 inline L4_fpage_t L4_fpage_log2(unsigned base_address, int fpage_size_log2)
 {
     return (L4_fpage_t){
-        .s = fpage_size_log2, .b = base_address >> 9, .perm = 0};
+        .s = fpage_size_log2 - 9, .b = base_address >> 9, .perm = 0};
 }
 
 inline unsigned L4_address(L4_fpage_t fpage) { return fpage.b << 9; }
