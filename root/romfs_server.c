@@ -91,6 +91,7 @@ struct vfs_file_state
     enum hash_item_status status;
     L4_thread_id owner;
     int fd;
+    struct romfs_file_info file_info;
     size_t file_off;
 };
 
@@ -201,7 +202,7 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
         return;
     }
     int fd;
-    L4_store_mr(1, (unsigned *)&fd);
+    L4_store_mr(VFS_OPENROOT_FD, (unsigned *)&fd);
     struct vfs_file_state *const file_state = insert_vfs_file_state(from, fd);
     if (!file_state)
     {
@@ -209,11 +210,12 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
         return;
     }
     file_state->file_off = romfs_root_directory(&romfs_ops, NULL);
-    if (file_state->file_off)
+    if (file_state->file_off == ROMFS_INVALID_FILE)
     {
         make_ipc_error(EIO);
         return;
     }
+
     L4_msg_tag_t answer_tag;
     answer_tag.label = 0;
     answer_tag.flags = 0;
@@ -234,9 +236,9 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
     int fd;
     int new_fd;
     struct L4_simple_string_item item;
-    L4_store_mr(1, (unsigned *)&fd);
-    L4_store_mr(2, (unsigned *)&new_fd);
-    L4_store_mrs(3, 2, (unsigned *)&item);
+    L4_store_mr(VFS_OPENAT_FD, (unsigned *)&fd);
+    L4_store_mr(VFS_OPENAT_NEWFD, (unsigned *)&new_fd);
+    L4_store_mrs(VFS_OPENAT_STR, 2, (unsigned *)&item);
     if (item.type != L4_data_type_string_item)
     {
         make_ipc_error(EINVAL);
@@ -289,7 +291,7 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
         return;
     }
     int fd;
-    L4_store_mr(1, (unsigned *)&fd);
+    L4_store_mr(VFS_CLOSE_FD, (unsigned *)&fd);
     if (delete_vfs_file_state(from, fd) == false)
     {
         make_ipc_error(ENOENT);
@@ -305,15 +307,63 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
 
 static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
-    (void)from;
-    (void)msg_tag;
-    // TODO: Implement file reading
+    if (msg_tag.u != 3 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    unsigned offset;
+    unsigned size;
+    L4_store_mr(VFS_READ_FD, (unsigned *)&fd);
+    L4_store_mr(VFS_READ_OFFSET, &offset);
+    L4_store_mr(VFS_READ_SIZE, &size);
+    struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
+    if (file_state == NULL)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+
+    const size_t content_offset =
+        romfs_file_content_offset(&romfs_ops, file_state->file_off, NULL);
+    const size_t remaining_file_size = file_state->file_info.size - offset;
+    if (size > remaining_file_size)
+        size = remaining_file_size;
+    L4_msg_tag_t answer_tag;
+    answer_tag.label = VFS_READ_RET;
+    answer_tag.flags = 0;
+    answer_tag.u = 0;
+    answer_tag.t = 2;
+    struct L4_simple_string_item content_string = {
+        .c = 0,
+        .type = L4_data_type_string_item,
+        .compound = 0,
+        .length = size,
+        .ptr = (unsigned)(rootfs_base + content_offset + offset)};
+    L4_load_mr(0, answer_tag.raw);
+    L4_load_mrs(1, 2, (unsigned *)&content_string);
 }
+
 static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
-    (void)from;
-    (void)msg_tag;
-    // TODO: Implement file writing
+    if (msg_tag.u != 3 || msg_tag.t != 2)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    L4_store_mr(VFS_WRITE_FD, (unsigned *)&fd);
+
+    struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
+    if (file_state == NULL)
+    {
+        make_ipc_error(ENOENT);
+        return;
+    }
+
+    // We cannot write to ROMFS, so the result is always the same
+    make_ipc_error(EROFS);
 }
 
 __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
