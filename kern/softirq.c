@@ -1,7 +1,7 @@
-#include "kern/thread.h"
 #include <kern/platform.h>
 #include <kern/softirq.h>
 #include <kern/systhread.h>
+#include <kern/thread.h>
 
 struct softirq_entry_t
 {

@@ -1,4 +1,6 @@
 #include <kern/debug.h>
+#include <kern/kalarm.h>
+#include <kern/memory.h>
 #include <kern/platform.h>
 #include <kern/syscall.h>
 #include <kern/thread.h>
@@ -24,6 +26,93 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
     return L4_ipc_error_none;
 }
 
+enum ipc_partner_search_result
+{
+    ipc_partner_nonexistent,
+    ipc_partner_notready,
+    ipc_partner_found,
+    ipc_partner_pager_msg,
+};
+
+static bool is_viable_ipc_partner(struct tcb_t *ipc_partner)
+{
+    if (ipc_partner->ipc_from == L4_ANYTHREAD)
+        return true;
+    if (ipc_partner->ipc_from == L4_ANYLOCALTHREAD &&
+        ipc_partner->as == caller->as)
+        return true;
+    return ipc_partner->ipc_from == caller->global_id ||
+           ipc_partner->ipc_from == caller->local_id;
+}
+
+static enum ipc_partner_search_result
+find_ipc_partner_any(bool sending, struct tcb_t **tcb_out)
+{
+    const unsigned thread_count = get_thread_count();
+    const enum thread_state_t target_state =
+        sending ? TS_RECV_BLOCKED : TS_SEND_BLOCKED;
+    for (unsigned i = 0; i < thread_count; ++i)
+    {
+        struct tcb_t *const current_tcb = get_thread_by_index(i);
+        if (current_tcb->state == target_state &&
+            is_viable_ipc_partner(current_tcb))
+        {
+            *tcb_out = current_tcb;
+            return ipc_partner_found;
+        }
+    }
+    return ipc_partner_notready;
+}
+
+static enum ipc_partner_search_result
+find_ipc_partner_anylocal(bool sending, struct tcb_t **tcb_out)
+{
+    const enum thread_state_t target_state =
+        sending ? TS_RECV_BLOCKED : TS_SEND_BLOCKED;
+    for (struct tcb_t *current_tcb = caller->as->first_thread; current_tcb;
+         current_tcb = current_tcb->next_sibling)
+    {
+        if (current_tcb->state == target_state &&
+            is_viable_ipc_partner(current_tcb))
+        {
+            *tcb_out = current_tcb;
+            return ipc_partner_found;
+        }
+    }
+    return ipc_partner_notready;
+}
+
+static enum ipc_partner_search_result
+find_ipc_partner(L4_thread_id who, bool sending, struct tcb_t **tcb_out)
+{
+    if (who == L4_ANYTHREAD)
+    {
+        return find_ipc_partner_any(sending, tcb_out);
+    }
+    if (who == L4_ANYLOCALTHREAD)
+    {
+        return find_ipc_partner_anylocal(sending, tcb_out);
+    }
+    struct tcb_t *tcb = find_thread_by_global_id(who);
+    const enum thread_state_t target_state =
+        sending ? TS_RECV_BLOCKED : TS_SEND_BLOCKED;
+    if (tcb == NULL)
+        return ipc_partner_nonexistent;
+    if (tcb->state == target_state && is_viable_ipc_partner(tcb))
+    {
+        *tcb_out = tcb;
+        return ipc_partner_found;
+    }
+    struct tcb_t *const pager_tcb = find_thread_by_global_id(tcb->pager);
+    if (sending && tcb->state == TS_ACTIVE && pager_tcb != NULL &&
+        pager_tcb->as == caller->as)
+    {
+        *tcb_out = tcb;
+        return ipc_partner_pager_msg;
+    }
+    return ipc_partner_notready;
+}
+
 static bool set_thread_timeout(struct tcb_t *thread, L4_time_t timeout,
                                enum thread_state_t target_state)
 {
@@ -36,8 +125,17 @@ static bool set_thread_timeout(struct tcb_t *thread, L4_time_t timeout,
     {
         return false;
     }
+    if (timeout.point)
+    {
+        panic("IPC does not yet support timepoints as timeout: %#04x\n",
+              timeout.raw);
+    }
 
     disable_interrupts();
+    thread->kevent.data = thread->global_id;
+    thread->kevent.type = KALARM_TIMEOUT;
+    thread->kevent.when = get_current_time() + (timeout.m << timeout.e) / 10;
+    register_kalarm_event(&thread->kevent);
     set_thread_state(thread, target_state);
     enable_interrupts();
 
@@ -69,66 +167,113 @@ static enum ipc_phase_result ipc_send(L4_thread_id to, L4_time_t timeout)
 {
     if (L4_is_nil_thread(to))
         return ipc_phase_done;
-    struct tcb_t *to_tcb = find_thread_by_global_id(to);
-    if (to_tcb == NULL)
+    struct tcb_t *to_tcb = NULL;
+    switch (find_ipc_partner(to, true, &to_tcb))
     {
-        L4_ipc_error_t ret = {
-            .p = 0, .err = L4_ipc_error_nonexistent_partner, .offset = 0};
-        caller->utcb->error = ret.raw;
-        return ipc_phase_error;
-    }
-
-    if (to_tcb->state == TS_RECV_BLOCKED)
+    case ipc_partner_found:
     {
-        enum L4_ipc_error_code ret = copy_payload(caller, to_tcb);
+        const enum L4_ipc_error_code ret = copy_payload(caller, to_tcb);
         if (ret != L4_ipc_error_none)
         {
-            L4_ipc_error_t code = {
-                .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0};
-            caller->utcb->error = code.raw;
+            caller->utcb->error =
+                (L4_ipc_error_t){
+                    .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
+                    .raw;
             return ipc_phase_error;
         }
+        return ipc_phase_done;
     }
-    // TODO: Allow any thread in the address space of the pager to send the
-    // starting message.
-    else if (to_tcb->state == TS_ACTIVE &&
-             L4_same_threads(to_tcb->pager, caller->global_id))
-    {
-        // Message from pager to active thread
-        L4_msg_tag_t tag = {.raw = caller->utcb->mr[0]};
+    break;
+    case ipc_partner_pager_msg:
+    { // Message from pager to active thread
+        const L4_msg_tag_t tag = {.raw = caller->utcb->mr[0]};
         if (tag.flags == 0 && tag.label == 0 && tag.t == 0 && tag.u == 2)
         {
             pager_start_thread(caller, to_tcb);
             return ipc_phase_done;
         }
     }
-    else if (set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+    break;
+    case ipc_partner_nonexistent:
     {
-        return ipc_phase_done;
-    }
-    else
-    {
-        L4_ipc_error_t code = {
-            .p = 0, .err = L4_ipc_error_aborted, .offset = 0};
-        caller->utcb->error = code.raw;
+        caller->utcb->error =
+            (L4_ipc_error_t){
+                .p = 0, .err = L4_ipc_error_nonexistent_partner, .offset = 0}
+                .raw;
         return ipc_phase_error;
     }
-
-    panic("Invalid case encountered in %s", __FUNCTION__);
+    break;
+    case ipc_partner_notready:
+        if (set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+        {
+            caller->ipc_from = to;
+            return ipc_phase_wait;
+        }
+        else
+        {
+            caller->utcb->error = (L4_ipc_error_t){.p = 0,
+                                                   .err = L4_ipc_error_aborted,
+                                                   .offset = 0}
+                                      .raw;
+            return ipc_phase_error;
+        }
+        break;
+    }
+    panic("Invalid case encountered in %s\n", __FUNCTION__);
 }
 
-static unsigned ipc_recv(L4_thread_id from, L4_time_t timeout)
+static enum ipc_phase_result ipc_recv(L4_thread_id from, L4_time_t timeout)
 {
     if (L4_is_nil_thread(from))
-        return 0;
-    struct tcb_t *from_tcb = find_thread_by_global_id(from);
-    if (from_tcb == NULL)
+        return ipc_phase_done;
+    struct tcb_t *from_tcb = NULL;
+    switch (find_ipc_partner(from, false, &from_tcb))
     {
-        caller->utcb->error = L4_error_invalid_thread;
+    case ipc_partner_found:
+    {
+        const enum L4_ipc_error_code ret = copy_payload(from_tcb, caller);
+        if (ret != L4_ipc_error_none)
+        {
+            caller->utcb->error =
+                (L4_ipc_error_t){
+                    .p = 1, .err = L4_ipc_error_message_overflow, .offset = 0}
+                    .raw;
+            return ipc_phase_error;
+        }
+        return ipc_phase_done;
+    }
+    break;
+    case ipc_partner_nonexistent:
+    {
+        caller->utcb->error =
+            (L4_ipc_error_t){
+                .p = 1, .err = L4_ipc_error_nonexistent_partner, .offset = 0}
+                .raw;
         return ipc_phase_error;
     }
+    break;
+    case ipc_partner_notready:
+        if (set_thread_timeout(caller, timeout, TS_RECV_BLOCKED))
+        {
+            caller->ipc_from = from;
+            return ipc_phase_wait;
+        }
+        else
+        {
+            caller->utcb->error = (L4_ipc_error_t){.p = 1,
+                                                   .err = L4_ipc_error_aborted,
+                                                   .offset = 0}
+                                      .raw;
+            return ipc_phase_error;
+        }
+        break;
+    case ipc_partner_pager_msg:
+        panic("Encountered pager message in %s from thread %#08x to %#08x",
+              __FUNCTION__, from, caller->global_id);
+        break;
+    }
 
-    return ipc_phase_done;
+    panic("Invalid case encountered in %s\n", __FUNCTION__);
 }
 
 static inline void set_ipc_error()
@@ -177,20 +322,36 @@ done:
     sp[THREAD_CTX_STACK_R0] = from;
 }
 
-void ipc_perform_timeout(unsigned data)
+void do_ipc_timeout(unsigned data)
 {
     const L4_thread_id target = data;
-    struct tcb_t *target_tcb = find_thread_by_global_id(target);
+    struct tcb_t *const target_tcb = find_thread_by_global_id(target);
     if (target_tcb == NULL)
     {
+        dbg_log(
+            DBG_IPC,
+            "Ignoring timeout event for thread %#08x: Thread does not exist\n",
+            target);
+        return;
+    }
+    if (target_tcb->state != TS_RECV_BLOCKED &&
+        target_tcb->state != TS_SEND_BLOCKED)
+    {
         dbg_log(DBG_IPC,
-                "Ignoring timeout event for thread %u: Thread does not exist\n",
+                "Ingoring timeout event for thread %#08x: Thread is "
+                "not in a blocked state\n",
                 target);
         return;
     }
 
     disable_interrupts();
-    unsigned *const sp = (unsigned *)target_tcb->ctx.sp;
-
+    L4_msg_tag_t tag = {.raw = target_tcb->utcb->mr[0]};
+    tag.flags |= 1 << L4_ipc_flag_error_indicator;
+    target_tcb->utcb->mr[0] = tag.raw;
+    target_tcb->utcb->error =
+        (L4_ipc_error_t){.err = L4_ipc_error_timeout,
+                         .p = (target_tcb->state == TS_RECV_BLOCKED)}
+            .raw;
+    set_thread_state(target_tcb, TS_RUNNABLE);
     enable_interrupts();
 }

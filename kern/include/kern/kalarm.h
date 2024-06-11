@@ -5,6 +5,7 @@ enum kalarm_type
 {
     KALARM_RESCHEDULE,
     KALARM_UNPAUSE,
+    KALARM_TIMEOUT,
 };
 
 struct kalarm_event

@@ -78,6 +78,12 @@ static inline struct kalarm_event *pop_kalarm_event()
     return current;
 }
 
+static void request_next_thread(unsigned data)
+{
+    (void)data;
+    request_reschedule(NULL);
+}
+
 static void unpause_thread(unsigned data)
 {
     struct tcb_t *target = find_thread_by_global_id((L4_thread_id)data);
@@ -91,13 +97,11 @@ static void unpause_thread(unsigned data)
     enable_interrupts();
     request_reschedule(NULL);
 }
-static void request_next_thread(unsigned data)
-{
-    (void)data;
-    request_reschedule(NULL);
-}
-static void (*kalarm_event_funcs[])(unsigned data) = {request_next_thread,
-                                                      unpause_thread};
+
+void do_ipc_timeout(unsigned data);
+
+static void (*kalarm_event_funcs[])(unsigned data) = {
+    request_next_thread, unpause_thread, do_ipc_timeout};
 
 static __attribute__((used)) void __isr_systick()
 {
