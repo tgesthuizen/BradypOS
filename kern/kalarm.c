@@ -83,7 +83,8 @@ static void unpause_thread(unsigned data)
     struct tcb_t *target = find_thread_by_global_id((L4_thread_id)data);
     if (!target)
     {
-        panic("Processing unpause event for non-existent thread %u\n", target);
+        panic("Processing unpause event for non-existent thread %#08x\n",
+              (unsigned)target);
     }
     disable_interrupts();
     set_thread_state(target, TS_RUNNABLE);

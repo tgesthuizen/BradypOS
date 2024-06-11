@@ -41,8 +41,8 @@ static __attribute__((used)) void __isr_svcall()
     unsigned *const psp = get_psp();
     struct tcb_t *const current_thread = get_current_thread();
     kassert(current_thread != NULL);
-    dbg_log(DBG_SYSCALL, "Thread %x has issued syscall #%x\n",
-            get_current_thread(), syscall_number);
+    dbg_log(DBG_SYSCALL, "Thread %#08x has issued syscall #%x\n",
+            (unsigned)get_current_thread(), syscall_number);
     switch (syscall_number)
     {
     case SYS_THREAD_SWITCH:
