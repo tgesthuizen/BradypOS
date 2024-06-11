@@ -99,7 +99,7 @@ int main()
     L4_load_mr(2, (unsigned)romfs_sp);
     L4_thread_id real_from;
     const L4_msg_tag_t answer_tag =
-        L4_ipc(romfs_thread_id, my_thread_id, 0, &real_from);
+        L4_ipc(romfs_thread_id, L4_NILTHREAD, 0, &real_from);
     if (L4_ipc_failed(answer_tag))
     {
         kill_root_thread();
