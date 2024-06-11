@@ -71,6 +71,8 @@ struct tcb_t
 
 void init_thread_system();
 struct tcb_t *find_thread_by_global_id(L4_thread_id id);
+struct tcb_t *get_thread_by_index(unsigned idx);
+unsigned get_thread_count();
 unsigned get_tcb_index(struct tcb_t *tcb);
 struct tcb_t *create_thread(L4_thread_id global_id);
 void request_reschedule(struct tcb_t *target);
@@ -79,7 +81,6 @@ void set_thread_priority(struct tcb_t *thread, unsigned priority);
 void pause_thread(struct tcb_t *thread, unsigned long until);
 void delete_thread(struct tcb_t *thread);
 void write_utcb(struct tcb_t *thread);
-struct tcb_t *thread_tcb(L4_thread_id thread);
 struct tcb_t *get_current_thread();
 __attribute__((noreturn)) void start_scheduling();
 

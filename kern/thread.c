@@ -104,6 +104,11 @@ struct tcb_t *find_thread_by_global_id(L4_thread_id global_id)
     return &tcb_store[idx];
 }
 
+struct tcb_t *get_thread_by_index(unsigned index)
+{
+    return &tcb_store[thread_list[index]];
+}
+unsigned get_thread_count() { return thread_count; }
 unsigned get_tcb_index(struct tcb_t *tcb) { return tcb - tcb_store; }
 
 static struct tcb_t *allocate_tcb()
@@ -295,14 +300,6 @@ void write_utcb(struct tcb_t *tcb)
     tcb->utcb->error = 0;
 }
 
-struct tcb_t *thread_tcb(L4_thread_id thread)
-{
-    const int idx = thread_map_find(thread);
-    if (idx == -1)
-        return NULL;
-    return &tcb_store[thread_list[idx]];
-}
-
 struct tcb_t *get_current_thread()
 {
     if (current_thread_idx == THREAD_IDX_INVALID)
@@ -407,8 +404,7 @@ void debug_print_threads()
     for (unsigned i = 0; i < thread_count; ++i)
     {
         struct tcb_t *tcb = &tcb_store[thread_list[i]];
-        dbg_printf("%08x %s\n", tcb->global_id,
-                   thread_state_names[tcb->state]);
+        dbg_printf("%08x %s\n", tcb->global_id, thread_state_names[tcb->state]);
     }
 }
 
