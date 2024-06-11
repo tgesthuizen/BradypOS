@@ -17,6 +17,11 @@ enum vfs_ops
     VFS_WRITE,
 };
 
+enum vfs_openroot_args
+{
+    VFS_OPENROOT_OP,
+};
+
 enum vfs_openat_args
 {
     VFS_OPENAT_OP,
