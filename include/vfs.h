@@ -20,12 +20,14 @@ enum vfs_ops
 enum vfs_openroot_args
 {
     VFS_OPENROOT_OP,
+    VFS_OPENROOT_FD,
 };
 
 enum vfs_openat_args
 {
     VFS_OPENAT_OP,
     VFS_OPENAT_FD,
+    VFS_OPENAT_NEWFD,
     VFS_OPENAT_STR,
 };
 
@@ -41,6 +43,15 @@ enum vfs_read_args
     VFS_READ_FD,
     VFS_READ_OFFSET,
     VFS_READ_SIZE,
+};
+
+enum vfs_write_args
+{
+    VFS_WRITE_OP,
+    VFS_WRITE_FD,
+    VFS_WRITE_OFFSET,
+    VFS_WRITE_SIZE,
+    VFS_WRITE_DATA,
 };
 
 enum vfs_answer_ops
