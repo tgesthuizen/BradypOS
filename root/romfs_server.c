@@ -79,6 +79,29 @@ static void romfs_unmap(void **data, size_t size, void *user)
 static const struct romfs_block_iface romfs_ops = {.map = romfs_map,
                                                    .unmap = romfs_unmap};
 
+enum hash_item_status
+{
+    HASH_ITEM_FREE,
+    HASH_ITEM_USED,
+    HASH_ITEM_TOMBSTONE,
+};
+
+struct vfs_file_state
+{
+    enum hash_item_status status;
+    L4_thread_id owner;
+    int fd;
+    size_t file_off;
+};
+
+enum
+{
+    FILE_STATE_LOG = 5,
+    FILE_STATE_COUNT = 1 << FILE_STATE_LOG,
+};
+
+struct vfs_file_state file_states[FILE_STATE_COUNT];
+
 __attribute__((noreturn, naked)) void romfs_start()
 {
     asm("pop {r0, r1}\n\t"
@@ -87,6 +110,75 @@ __attribute__((noreturn, naked)) void romfs_start()
 }
 
 static char filename_buf[VFS_PATH_MAX + 1];
+
+static unsigned hash_combine(unsigned a, unsigned b)
+{
+    a ^= b + 0x9e3779b9 + (a << 6) + (a >> 2);
+    return a;
+}
+
+static struct vfs_file_state *insert_vfs_file_state(L4_thread_id owner, int fd)
+{
+    const unsigned initial_idx = hash_combine(owner, fd) % FILE_STATE_COUNT;
+    unsigned idx = initial_idx;
+    for (unsigned i = 0; i < FILE_STATE_LOG;
+         ++i, idx = (initial_idx + i * i) % FILE_STATE_COUNT)
+    {
+        if (file_states[idx].status == HASH_ITEM_FREE ||
+            file_states[idx].status == HASH_ITEM_TOMBSTONE)
+        {
+            file_states[idx] = (struct vfs_file_state){.status = HASH_ITEM_USED,
+                                                       .owner = owner,
+                                                       .fd = fd,
+                                                       .file_off = 0};
+            return file_states + idx;
+        }
+    }
+    return NULL;
+}
+
+static bool delete_vfs_file_state(L4_thread_id owner, int fd)
+{
+    const unsigned initial_idx = hash_combine(owner, fd) % FILE_STATE_COUNT;
+    unsigned idx = initial_idx;
+    for (unsigned i = 0; i < FILE_STATE_LOG;
+         ++i, idx = (initial_idx + i * i) % FILE_STATE_COUNT)
+    {
+        if (file_states[idx].status == HASH_ITEM_FREE)
+        {
+            break;
+        }
+        if (file_states[idx].status == HASH_ITEM_TOMBSTONE ||
+            file_states[idx].owner != owner || file_states[idx].fd != fd)
+        {
+            continue;
+        }
+        file_states[idx].status = HASH_ITEM_TOMBSTONE;
+        return true;
+    }
+    return false;
+}
+
+static struct vfs_file_state *find_vfs_file_state(L4_thread_id owner, int fd)
+{
+    const unsigned initial_idx = hash_combine(owner, fd) % FILE_STATE_COUNT;
+    unsigned idx = initial_idx;
+    for (unsigned i = 0; i < FILE_STATE_LOG;
+         ++i, idx = (initial_idx + i * i) % FILE_STATE_COUNT)
+    {
+        if (file_states[idx].status == HASH_ITEM_FREE)
+        {
+            break;
+        }
+        if (file_states[idx].status == HASH_ITEM_TOMBSTONE ||
+            file_states[idx].owner != owner || file_states[idx].fd != fd)
+        {
+            continue;
+        }
+        return file_states + idx;
+    }
+    return NULL;
+}
 
 static void make_ipc_error(int errno)
 {
@@ -99,23 +191,52 @@ static void make_ipc_error(int errno)
     L4_load_mr(1, errno);
 }
 
-static void handle_vfs_openroot(L4_msg_tag_t msg_tag)
+static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
+    (void)from;
     (void)msg_tag;
-    // TODO: Implement openroot
-}
-
-static void handle_vfs_openat(L4_msg_tag_t msg_tag)
-{
-    if (msg_tag.u != 1 || msg_tag.t != 1)
+    if (msg_tag.u != 1 || msg_tag.t != 0)
     {
         make_ipc_error(EINVAL);
         return;
     }
     int fd;
+    L4_store_mr(1, (unsigned *)&fd);
+    struct vfs_file_state *const file_state = insert_vfs_file_state(from, fd);
+    if (!file_state)
+    {
+        make_ipc_error(ENOMEM);
+        return;
+    }
+    file_state->file_off = romfs_root_directory(&romfs_ops, NULL);
+    if (file_state->file_off)
+    {
+        make_ipc_error(EIO);
+        return;
+    }
+    L4_msg_tag_t answer_tag;
+    answer_tag.label = 0;
+    answer_tag.flags = 0;
+    answer_tag.t = 0;
+    answer_tag.u = 1;
+    L4_load_mr(0, answer_tag.raw);
+    L4_load_mr(1, (unsigned)fd);
+}
+
+static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
+{
+    (void)from;
+    if (msg_tag.u != 2 || msg_tag.t != 2)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    int new_fd;
     struct L4_simple_string_item item;
     L4_store_mr(1, (unsigned *)&fd);
-    L4_store_mrs(2, 2, (unsigned *)&item);
+    L4_store_mr(2, (unsigned *)&new_fd);
+    L4_store_mrs(3, 2, (unsigned *)&item);
     if (item.type != L4_data_type_string_item)
     {
         make_ipc_error(EINVAL);
@@ -128,7 +249,28 @@ static void handle_vfs_openat(L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
-    int new_fd = 0;
+    struct vfs_file_state *const dir = find_vfs_file_state(from, fd);
+    if (dir == NULL)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    const size_t file_offset =
+        romfs_openat(&romfs_ops, dir->file_off, (const char *)item.ptr, NULL);
+    if (file_offset == ROMFS_INVALID_FILE)
+    {
+        make_ipc_error(ENOENT);
+        return;
+    }
+    struct vfs_file_state *const new_state =
+        insert_vfs_file_state(from, new_fd);
+    if (new_state == NULL)
+    {
+        make_ipc_error(ENOMEM);
+        return;
+    }
+    new_state->file_off = file_offset;
+
     // TODO: File opening logic
     L4_msg_tag_t answer_tag;
     answer_tag.flags = 0;
@@ -138,18 +280,38 @@ static void handle_vfs_openat(L4_msg_tag_t msg_tag)
     L4_load_mr(0, answer_tag.raw);
     L4_load_mr(1, new_fd);
 }
-static void handle_vfs_close(L4_msg_tag_t msg_tag)
+
+static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
-    (void)msg_tag;
-    // TODO: implement file closing
+    if (msg_tag.u != 1 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    L4_store_mr(1, (unsigned *)&fd);
+    if (delete_vfs_file_state(from, fd) == false)
+    {
+        make_ipc_error(ENOENT);
+        return;
+    }
+    L4_msg_tag_t answer_tag;
+    answer_tag.flags = 0;
+    answer_tag.label = VFS_CLOSE_RET;
+    answer_tag.u = 0;
+    answer_tag.t = 0;
+    L4_load_mr(0, answer_tag.raw);
 }
-static void handle_vfs_read(L4_msg_tag_t msg_tag)
+
+static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
+    (void)from;
     (void)msg_tag;
     // TODO: Implement file reading
 }
-static void handle_vfs_write(L4_msg_tag_t msg_tag)
+static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
+    (void)from;
     (void)msg_tag;
     // TODO: Implement file writing
 }
@@ -162,9 +324,9 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
     const L4_acceptor_t ipc_acceptor = L4_string_items_acceptor;
     ipc_buffers.raw[0] = ipc_acceptor.raw;
     const struct L4_simple_string_item filename_buf_item = {
+        .type = L4_data_type_string_item,
         .length = VFS_PATH_MAX + 1,
         .c = 0,
-        .type = 0,
         .compound = 0,
         .ptr = (unsigned)&filename_buf};
     memcpy(ipc_buffers.raw + 1, &filename_buf_item, sizeof(unsigned) * 2);
@@ -183,19 +345,19 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
         switch (msg_tag.label)
         {
         case VFS_OPENROOT:
-            handle_vfs_openroot(msg_tag);
+            handle_vfs_openroot(from, msg_tag);
             break;
         case VFS_OPENAT:
-            handle_vfs_openat(msg_tag);
+            handle_vfs_openat(from, msg_tag);
             break;
         case VFS_CLOSE:
-            handle_vfs_close(msg_tag);
+            handle_vfs_close(from, msg_tag);
             break;
         case VFS_READ:
-            handle_vfs_read(msg_tag);
+            handle_vfs_read(from, msg_tag);
             break;
         case VFS_WRITE:
-            handle_vfs_write(msg_tag);
+            handle_vfs_write(from, msg_tag);
             break;
         }
 
