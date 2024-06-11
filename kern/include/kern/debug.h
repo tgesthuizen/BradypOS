@@ -2,7 +2,7 @@
 #define BRADYPOS_KERN_DEBUG_H
 
 void dbg_puts(const char *str);
-void dbg_printf(const char *fmt, ...);
+__attribute__((format(printf, 1, 2))) void dbg_printf(const char *fmt, ...);
 
 #ifndef NO_DEBUG_LOG
 
@@ -37,6 +37,7 @@ extern char debug_should_log[];
 #define kassert(cond) ((void)0)
 #endif
 
-__attribute__((noreturn)) void panic(const char *fmt, ...);
+__attribute__((noreturn, format(printf, 1, 2))) void panic(const char *fmt,
+                                                           ...);
 __attribute__((noreturn)) void reset_processor();
 #endif
