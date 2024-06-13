@@ -18,6 +18,7 @@ target_include_directories(
 
 add_executable(
   root
+  config.c
   data.s
   memory.c
   romfs_server.c
