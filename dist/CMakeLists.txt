@@ -27,6 +27,18 @@ function(place_stripped_sbin_in_rootfs target)
   set(romfs_dependencies ${romfs_dependencies} PARENT_SCOPE)
 endfunction()
 
+configure_file(version.in version)
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/version
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${CMAKE_CURRENT_BINARY_DIR}/version
+	  ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/version
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/version
+  COMMENT "Installing /etc/version in rootfs"
+)
+list(APPEND romfs_dependencies
+  ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/version)
+
 place_stripped_sbin_in_rootfs(kern)
 place_stripped_sbin_in_rootfs(root)
 
