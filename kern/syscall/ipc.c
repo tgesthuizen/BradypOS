@@ -156,6 +156,12 @@ static void pager_start_thread(struct tcb_t *pager, struct tcb_t *target)
     enable_interrupts();
 }
 
+static inline void set_ipc_error()
+{
+    ((L4_msg_tag_t *)&caller->utcb->mr[0])->flags |=
+        1 << L4_msg_tag_flag_error_indicator;
+}
+
 enum ipc_phase_result
 {
     ipc_phase_done,
@@ -163,19 +169,28 @@ enum ipc_phase_result
     ipc_phase_wait,
 };
 
-static enum ipc_phase_result ipc_send(L4_thread_id to, L4_time_t timeout)
+static void do_ipc(struct tcb_t *target);
+
+static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
+                                      L4_time_t timeout)
 {
     if (L4_is_nil_thread(to))
+    {
+        dbg_log(DBG_IPC, "Skipping IPC send phase for thread %#08x\n",
+                target->global_id);
         return ipc_phase_done;
+    }
     struct tcb_t *to_tcb = NULL;
     switch (find_ipc_partner(to, true, &to_tcb))
     {
     case ipc_partner_found:
     {
-        const enum L4_ipc_error_code ret = copy_payload(caller, to_tcb);
+        dbg_log(DBG_IPC, "Initiating IPC between thread %#08x and %#08x\n",
+                target->global_id, to_tcb->global_id);
+        const enum L4_ipc_error_code ret = copy_payload(target, to_tcb);
         if (ret != L4_ipc_error_none)
         {
-            caller->utcb->error =
+            target->utcb->error =
                 (L4_ipc_error_t){
                     .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
                     .raw;
@@ -185,33 +200,44 @@ static enum ipc_phase_result ipc_send(L4_thread_id to, L4_time_t timeout)
     }
     break;
     case ipc_partner_pager_msg:
-    { // Message from pager to active thread
-        const L4_msg_tag_t tag = {.raw = caller->utcb->mr[0]};
-        if (tag.flags == 0 && tag.label == 0 && tag.t == 0 && tag.u == 2)
-        {
-            pager_start_thread(caller, to_tcb);
-            return ipc_phase_done;
+        dbg_log(DBG_IPC,
+                "Pager thread %#08x sends start message to thread %#08x\n",
+                target->global_id, to_tcb->global_id);
+        { // Message from pager to active thread
+            const L4_msg_tag_t tag = {.raw = target->utcb->mr[0]};
+            if (tag.flags == 0 && tag.label == 0 && tag.t == 0 && tag.u == 2)
+            {
+                pager_start_thread(target, to_tcb);
+                return ipc_phase_done;
+            }
         }
-    }
-    break;
+        break;
     case ipc_partner_nonexistent:
-    {
-        caller->utcb->error =
-            (L4_ipc_error_t){
-                .p = 0, .err = L4_ipc_error_nonexistent_partner, .offset = 0}
-                .raw;
-        return ipc_phase_error;
-    }
-    break;
-    case ipc_partner_notready:
-        if (set_thread_timeout(caller, timeout, TS_SEND_BLOCKED))
+        dbg_log(DBG_IPC,
+                "Requested IPC partner for %#08x, %#08x, does not exist\n",
+                target->global_id, to);
         {
-            caller->ipc_from = to;
+            target->utcb->error =
+                (L4_ipc_error_t){.p = 0,
+                                 .err = L4_ipc_error_nonexistent_partner,
+                                 .offset = 0}
+                    .raw;
+            return ipc_phase_error;
+        }
+        break;
+    case ipc_partner_notready:
+        dbg_log(DBG_IPC,
+                "Requested IPC send partner for %#08x, %#08x, is not ready, "
+                "blocking\n",
+                target->global_id, to_tcb->global_id);
+        if (set_thread_timeout(target, timeout, TS_SEND_BLOCKED))
+        {
+            target->ipc_from = to;
             return ipc_phase_wait;
         }
         else
         {
-            caller->utcb->error = (L4_ipc_error_t){.p = 0,
+            target->utcb->error = (L4_ipc_error_t){.p = 0,
                                                    .err = L4_ipc_error_aborted,
                                                    .offset = 0}
                                       .raw;
@@ -222,19 +248,26 @@ static enum ipc_phase_result ipc_send(L4_thread_id to, L4_time_t timeout)
     panic("Invalid case encountered in %s\n", __FUNCTION__);
 }
 
-static enum ipc_phase_result ipc_recv(L4_thread_id from, L4_time_t timeout)
+static enum ipc_phase_result ipc_recv(struct tcb_t *target, L4_thread_id from,
+                                      L4_time_t timeout)
 {
     if (L4_is_nil_thread(from))
+    {
+        dbg_log(DBG_IPC, "Skipping receive phase for thread %#08x\n",
+                target->global_id);
         return ipc_phase_done;
+    }
     struct tcb_t *from_tcb = NULL;
     switch (find_ipc_partner(from, false, &from_tcb))
     {
     case ipc_partner_found:
     {
-        const enum L4_ipc_error_code ret = copy_payload(from_tcb, caller);
+        dbg_log(DBG_IPC, "Initiating IPC between %#08x and %#08x\n",
+                target->global_id, from_tcb->global_id);
+        const enum L4_ipc_error_code ret = copy_payload(from_tcb, target);
         if (ret != L4_ipc_error_none)
         {
-            caller->utcb->error =
+            target->utcb->error =
                 (L4_ipc_error_t){
                     .p = 1, .err = L4_ipc_error_message_overflow, .offset = 0}
                     .raw;
@@ -245,7 +278,10 @@ static enum ipc_phase_result ipc_recv(L4_thread_id from, L4_time_t timeout)
     break;
     case ipc_partner_nonexistent:
     {
-        caller->utcb->error =
+        dbg_log(DBG_IPC,
+                "IPC receiving partner for thread %#08x, %#08x, does not exist",
+                target->global_id, from);
+        target->utcb->error =
             (L4_ipc_error_t){
                 .p = 1, .err = L4_ipc_error_nonexistent_partner, .offset = 0}
                 .raw;
@@ -253,14 +289,18 @@ static enum ipc_phase_result ipc_recv(L4_thread_id from, L4_time_t timeout)
     }
     break;
     case ipc_partner_notready:
-        if (set_thread_timeout(caller, timeout, TS_RECV_BLOCKED))
+        dbg_log(
+            DBG_IPC,
+            "IPC receiving partner for thread %#08x is not ready, blocking\n",
+            target->global_id);
+        if (set_thread_timeout(target, timeout, TS_RECV_BLOCKED))
         {
-            caller->ipc_from = from;
+            target->ipc_from = from;
             return ipc_phase_wait;
         }
         else
         {
-            caller->utcb->error = (L4_ipc_error_t){.p = 1,
+            target->utcb->error = (L4_ipc_error_t){.p = 1,
                                                    .err = L4_ipc_error_aborted,
                                                    .offset = 0}
                                       .raw;
@@ -269,58 +309,59 @@ static enum ipc_phase_result ipc_recv(L4_thread_id from, L4_time_t timeout)
         break;
     case ipc_partner_pager_msg:
         panic("Encountered pager message in %s from thread %#08x to %#08x",
-              __FUNCTION__, from, caller->global_id);
+              __FUNCTION__, from, target->global_id);
         break;
     }
 
     panic("Invalid case encountered in %s\n", __FUNCTION__);
 }
 
-static inline void set_ipc_error()
+static void do_ipc(struct tcb_t *target)
 {
-    ((L4_msg_tag_t *)&caller->utcb->mr[0])->flags |=
-        1 << L4_msg_tag_flag_error_indicator;
-}
-
-void syscall_ipc()
-{
-    unsigned *const sp = (unsigned *)caller->ctx.sp;
+    unsigned *const sp = (unsigned *)target->ctx.sp;
     const L4_thread_id to = (L4_thread_id)sp[THREAD_CTX_STACK_R0];
     const L4_thread_id from_specifier = (L4_thread_id)sp[THREAD_CTX_STACK_R1];
     const unsigned timeout = sp[THREAD_CTX_STACK_R2];
     L4_thread_id from = L4_NILTHREAD;
 
-    switch (ipc_send(to, L4_send_timeout(timeout)))
+    // Skip sending if we're receive blocked
+    enum ipc_phase_result send_result = ipc_phase_done;
+    if (target->state != TS_RECV_BLOCKED)
+    {
+        send_result = ipc_send(target, to, L4_send_timeout(timeout));
+    }
+    switch (send_result)
     {
     case ipc_phase_done:
         break;
     case ipc_phase_error:
         set_ipc_error();
-        set_thread_state(caller, TS_RUNNABLE);
+        set_thread_state(target, TS_RUNNABLE);
         goto done;
     case ipc_phase_wait:
-        set_thread_state(caller, TS_SEND_BLOCKED);
+        set_thread_state(target, TS_SEND_BLOCKED);
         return;
     }
 
-    switch (ipc_recv(from_specifier, L4_recv_timeout(timeout)))
+    switch (ipc_recv(target, from_specifier, L4_recv_timeout(timeout)))
     {
     case ipc_phase_done:
+        set_thread_state(target, TS_RUNNABLE);
         break;
     case ipc_phase_error:
         set_ipc_error();
-        set_thread_state(caller, TS_RUNNABLE);
+        set_thread_state(target, TS_RUNNABLE);
         goto done;
     case ipc_phase_wait:
-        set_thread_state(caller, TS_RECV_BLOCKED);
+        set_thread_state(target, TS_RECV_BLOCKED);
         return;
     }
-
-    set_thread_state(caller, TS_RUNNABLE);
 
 done:
     sp[THREAD_CTX_STACK_R0] = from;
 }
+
+void syscall_ipc() { do_ipc(caller); }
 
 void do_ipc_timeout(unsigned data)
 {
