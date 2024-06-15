@@ -20,6 +20,7 @@ union L4_msg_tag
     };
     unsigned raw;
 };
+typedef union L4_msg_tag L4_msg_tag_t;
 
 enum L4_msg_tag_flags
 {
@@ -28,8 +29,6 @@ enum L4_msg_tag_flags
     L4_msg_tag_flag_cross_processor_ipc,
     L4_msg_tag_flag_error_indicator,
 };
-
-typedef union L4_msg_tag L4_msg_tag_t;
 
 #define L4_NILTAG ((L4_msg_tag_t){.raw = 0})
 
