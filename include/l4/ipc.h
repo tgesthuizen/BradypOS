@@ -401,23 +401,23 @@ inline L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
 
 inline bool L4_ipc_succeeded(L4_msg_tag_t tag)
 {
-    return (tag.flags & L4_ipc_flag_error_indicator) == 0;
+    return (tag.flags & (1 << L4_ipc_flag_error_indicator)) == 0;
 }
 inline bool L4_ipc_failed(L4_msg_tag_t tag)
 {
-    return (tag.flags & L4_ipc_flag_error_indicator) != 0;
+    return (tag.flags & (1 << L4_ipc_flag_error_indicator)) != 0;
 }
 inline bool L4_ipc_propagated(L4_msg_tag_t tag)
 {
-    return (tag.flags & L4_ipc_flag_propagated_ipc) != 0;
+    return (tag.flags & (1 << L4_ipc_flag_propagated_ipc)) != 0;
 }
 inline bool L4_ipc_redirected(L4_msg_tag_t tag)
 {
-    return (tag.flags & L4_ipc_flag_redirected_ipc) != 0;
+    return (tag.flags & (1 << L4_ipc_flag_redirected_ipc)) != 0;
 }
 inline bool L4_ipc_xcpu(L4_msg_tag_t tag)
 {
-    return (tag.flags & L4_ipc_flag_cross_processor_ipc) != 0;
+    return (tag.flags & (1 << L4_ipc_flag_cross_processor_ipc)) != 0;
 }
 inline unsigned L4_error_code() { return __utcb.error; }
 inline L4_thread_id L4_intended_receiver() { return __utcb.intended_receiver; }
