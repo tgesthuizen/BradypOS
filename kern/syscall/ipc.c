@@ -16,13 +16,19 @@
 static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
 {
     L4_msg_tag_t msg_tag = {.raw = from->utcb->mr[0]};
-    unsigned payload_size = msg_tag.u + msg_tag.t + 1;
+    unsigned payload_size = msg_tag.u + msg_tag.t;
     if (payload_size > L4_MR_COUNT)
     {
         return L4_ipc_error_message_overflow;
     }
-    memcpy(to->utcb->mr, from->utcb->mr, sizeof(unsigned) * payload_size);
+    memcpy(to->utcb->mr + 1, from->utcb->mr + 1,
+           sizeof(unsigned) * payload_size);
+    // TODO: Properly handle typed items
     to->utcb->sender = from->global_id;
+    to->utcb->mr[0] =
+        (L4_msg_tag_t){
+            .u = msg_tag.u, .t = msg_tag.t, .flags = 0, .label = msg_tag.label}
+            .raw;
     return L4_ipc_error_none;
 }
 
