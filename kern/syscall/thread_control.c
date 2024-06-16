@@ -132,15 +132,12 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
 
     struct tcb_t *tcb = create_thread(dest);
     tcb->global_id = dest;
-    tcb->local_id = (L4_thread_id)&utcb_location;
+    tcb->local_id = (L4_thread_id)utcb_location;
+    tcb->utcb = utcb_location;
     tcb->state = L4_is_nil_thread(pager) ? TS_INACTIVE : TS_ACTIVE;
     tcb->as = space_control_tcb->as;
     tcb->pager = pager;
     tcb->scheduler = scheduler;
-    if ((unsigned)utcb_location != (unsigned)-1)
-    {
-        tcb->utcb = utcb_location;
-    }
 
     sp[THREAD_CTX_STACK_R0] = 1;
 }
