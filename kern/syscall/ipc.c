@@ -29,6 +29,9 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
         (L4_msg_tag_t){
             .u = msg_tag.u, .t = msg_tag.t, .flags = 0, .label = msg_tag.label}
             .raw;
+    unsigned *const to_sp = (unsigned *)to->ctx.sp;
+    to_sp[THREAD_CTX_STACK_R0] =
+        (to->as == from->as) ? from->local_id : from->global_id;
     return L4_ipc_error_none;
 }
 
@@ -40,19 +43,20 @@ enum ipc_partner_search_result
     ipc_partner_pager_msg,
 };
 
-static bool is_viable_ipc_partner(struct tcb_t *ipc_partner)
+static bool is_viable_ipc_partner(struct tcb_t *target,
+                                  struct tcb_t *ipc_partner)
 {
     if (ipc_partner->ipc_from == L4_ANYTHREAD)
         return true;
     if (ipc_partner->ipc_from == L4_ANYLOCALTHREAD &&
-        ipc_partner->as == caller->as)
+        ipc_partner->as == target->as)
         return true;
-    return ipc_partner->ipc_from == caller->global_id ||
-           ipc_partner->ipc_from == caller->local_id;
+    return ipc_partner->ipc_from == target->global_id ||
+           ipc_partner->ipc_from == target->local_id;
 }
 
 static enum ipc_partner_search_result
-find_ipc_partner_any(bool sending, struct tcb_t **tcb_out)
+find_ipc_partner_any(struct tcb_t *target, bool sending, struct tcb_t **tcb_out)
 {
     const unsigned thread_count = get_thread_count();
     const enum thread_state_t target_state =
@@ -61,7 +65,7 @@ find_ipc_partner_any(bool sending, struct tcb_t **tcb_out)
     {
         struct tcb_t *const current_tcb = get_thread_by_index(i);
         if (current_tcb->state == target_state &&
-            is_viable_ipc_partner(current_tcb))
+            is_viable_ipc_partner(target, current_tcb))
         {
             *tcb_out = current_tcb;
             return ipc_partner_found;
@@ -71,15 +75,16 @@ find_ipc_partner_any(bool sending, struct tcb_t **tcb_out)
 }
 
 static enum ipc_partner_search_result
-find_ipc_partner_anylocal(bool sending, struct tcb_t **tcb_out)
+find_ipc_partner_anylocal(struct tcb_t *target, bool sending,
+                          struct tcb_t **tcb_out)
 {
     const enum thread_state_t target_state =
         sending ? TS_RECV_BLOCKED : TS_SEND_BLOCKED;
-    for (struct tcb_t *current_tcb = caller->as->first_thread; current_tcb;
+    for (struct tcb_t *current_tcb = target->as->first_thread; current_tcb;
          current_tcb = current_tcb->next_sibling)
     {
         if (current_tcb->state == target_state &&
-            is_viable_ipc_partner(current_tcb))
+            is_viable_ipc_partner(target, current_tcb))
         {
             *tcb_out = current_tcb;
             return ipc_partner_found;
@@ -89,29 +94,63 @@ find_ipc_partner_anylocal(bool sending, struct tcb_t **tcb_out)
 }
 
 static enum ipc_partner_search_result
-find_ipc_partner(L4_thread_id who, bool sending, struct tcb_t **tcb_out)
+find_ipc_partner_local(struct tcb_t *target, L4_thread_id who, bool sending,
+                       struct tcb_t **tcb_out)
+{
+    struct tcb_t *const first_local_thread = target->as->first_thread;
+    const enum thread_state_t target_state =
+        sending ? TS_RECV_BLOCKED : TS_SEND_BLOCKED;
+    for (struct tcb_t *local_thread = first_local_thread; local_thread;
+         local_thread = local_thread->next_sibling)
+    {
+        if (local_thread->state == target_state &&
+            L4_same_threads(local_thread->local_id, who))
+        {
+            if (is_viable_ipc_partner(target, local_thread))
+            {
+                *tcb_out = local_thread;
+                return ipc_partner_found;
+            }
+            else
+            {
+                return ipc_partner_notready;
+            }
+        }
+        local_thread = local_thread->next_sibling;
+    }
+    return ipc_partner_nonexistent;
+}
+
+static enum ipc_partner_search_result find_ipc_partner(struct tcb_t *target,
+                                                       L4_thread_id who,
+                                                       bool sending,
+                                                       struct tcb_t **tcb_out)
 {
     if (who == L4_ANYTHREAD)
     {
-        return find_ipc_partner_any(sending, tcb_out);
+        return find_ipc_partner_any(target, sending, tcb_out);
     }
     if (who == L4_ANYLOCALTHREAD)
     {
-        return find_ipc_partner_anylocal(sending, tcb_out);
+        return find_ipc_partner_anylocal(target, sending, tcb_out);
+    }
+    if (L4_is_local_id(who))
+    {
+        return find_ipc_partner_local(target, who, sending, tcb_out);
     }
     struct tcb_t *tcb = find_thread_by_global_id(who);
     const enum thread_state_t target_state =
         sending ? TS_RECV_BLOCKED : TS_SEND_BLOCKED;
     if (tcb == NULL)
         return ipc_partner_nonexistent;
-    if (tcb->state == target_state && is_viable_ipc_partner(tcb))
+    if (tcb->state == target_state && is_viable_ipc_partner(target, tcb))
     {
         *tcb_out = tcb;
         return ipc_partner_found;
     }
     struct tcb_t *const pager_tcb = find_thread_by_global_id(tcb->pager);
     if (sending && tcb->state == TS_ACTIVE && pager_tcb != NULL &&
-        pager_tcb->as == caller->as)
+        pager_tcb->as == target->as)
     {
         *tcb_out = tcb;
         return ipc_partner_pager_msg;
@@ -175,7 +214,7 @@ enum ipc_phase_result
     ipc_phase_wait,
 };
 
-static void do_ipc(struct tcb_t *target);
+static void do_ipc(struct tcb_t *target, bool skip_sending);
 
 static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
                                       L4_time_t timeout)
@@ -187,7 +226,7 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
         return ipc_phase_done;
     }
     struct tcb_t *to_tcb = NULL;
-    switch (find_ipc_partner(to, true, &to_tcb))
+    switch (find_ipc_partner(target, to, true, &to_tcb))
     {
     case ipc_partner_found:
     {
@@ -254,17 +293,17 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
     panic("Invalid case encountered in %s\n", __FUNCTION__);
 }
 
-static enum ipc_phase_result ipc_recv(struct tcb_t *target, L4_thread_id from,
-                                      L4_time_t timeout)
+static enum ipc_phase_result
+ipc_recv(struct tcb_t *target, L4_thread_id from_specifier, L4_time_t timeout)
 {
-    if (L4_is_nil_thread(from))
+    if (L4_is_nil_thread(from_specifier))
     {
         dbg_log(DBG_IPC, "Skipping receive phase for thread %#08x\n",
                 target->global_id);
         return ipc_phase_done;
     }
     struct tcb_t *from_tcb = NULL;
-    switch (find_ipc_partner(from, false, &from_tcb))
+    switch (find_ipc_partner(target, from_specifier, false, &from_tcb))
     {
     case ipc_partner_found:
     {
@@ -277,8 +316,18 @@ static enum ipc_phase_result ipc_recv(struct tcb_t *target, L4_thread_id from,
                 (L4_ipc_error_t){
                     .p = 1, .err = L4_ipc_error_message_overflow, .offset = 0}
                     .raw;
+            from_tcb->utcb->error =
+                (L4_ipc_error_t){
+                    .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
+                    .raw;
+            set_ipc_error();
+            disable_interrupts();
+            set_thread_state(from_tcb, TS_RUNNABLE);
+            enable_interrupts();
             return ipc_phase_error;
         }
+        // Execute the receive phase of the sender.
+        do_ipc(from_tcb, true);
         return ipc_phase_done;
     }
     break;
@@ -286,7 +335,7 @@ static enum ipc_phase_result ipc_recv(struct tcb_t *target, L4_thread_id from,
     {
         dbg_log(DBG_IPC,
                 "IPC receiving partner for thread %#08x, %#08x, does not exist",
-                target->global_id, from);
+                target->global_id, from_specifier);
         target->utcb->error =
             (L4_ipc_error_t){
                 .p = 1, .err = L4_ipc_error_nonexistent_partner, .offset = 0}
@@ -301,7 +350,7 @@ static enum ipc_phase_result ipc_recv(struct tcb_t *target, L4_thread_id from,
             target->global_id);
         if (set_thread_timeout(target, timeout, TS_RECV_BLOCKED))
         {
-            target->ipc_from = from;
+            target->ipc_from = from_specifier;
             return ipc_phase_wait;
         }
         else
@@ -315,24 +364,23 @@ static enum ipc_phase_result ipc_recv(struct tcb_t *target, L4_thread_id from,
         break;
     case ipc_partner_pager_msg:
         panic("Encountered pager message in %s from thread %#08x to %#08x",
-              __FUNCTION__, from, target->global_id);
+              __FUNCTION__, from_specifier, target->global_id);
         break;
     }
 
     panic("Invalid case encountered in %s\n", __FUNCTION__);
 }
 
-static void do_ipc(struct tcb_t *target)
+static void do_ipc(struct tcb_t *target, bool skip_sending)
 {
     unsigned *const sp = (unsigned *)target->ctx.sp;
     const L4_thread_id to = (L4_thread_id)sp[THREAD_CTX_STACK_R0];
     const L4_thread_id from_specifier = (L4_thread_id)sp[THREAD_CTX_STACK_R1];
     const unsigned timeout = sp[THREAD_CTX_STACK_R2];
-    L4_thread_id from = L4_NILTHREAD;
 
     // Skip sending if we're receive blocked
     enum ipc_phase_result send_result = ipc_phase_done;
-    if (target->state != TS_RECV_BLOCKED)
+    if (!skip_sending)
     {
         send_result = ipc_send(target, to, L4_send_timeout(timeout));
     }
@@ -343,7 +391,7 @@ static void do_ipc(struct tcb_t *target)
     case ipc_phase_error:
         set_ipc_error();
         set_thread_state(target, TS_RUNNABLE);
-        goto done;
+        return;
     case ipc_phase_wait:
         set_thread_state(target, TS_SEND_BLOCKED);
         return;
@@ -357,17 +405,14 @@ static void do_ipc(struct tcb_t *target)
     case ipc_phase_error:
         set_ipc_error();
         set_thread_state(target, TS_RUNNABLE);
-        goto done;
+        return;
     case ipc_phase_wait:
         set_thread_state(target, TS_RECV_BLOCKED);
         return;
     }
-
-done:
-    sp[THREAD_CTX_STACK_R0] = from;
 }
 
-void syscall_ipc() { do_ipc(caller); }
+void syscall_ipc() { do_ipc(caller, false); }
 
 void do_ipc_timeout(unsigned data)
 {
