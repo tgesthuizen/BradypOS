@@ -99,6 +99,7 @@ void create_sys_threads()
     root_tcb->scheduler = kern_id;
     root_tcb->pager = kern_id;
     root_tcb->utcb = root_utcb;
+    root_tcb->local_id = (L4_thread_id)root_utcb;
     unsigned *root_sp = (unsigned *)root_stack;
     root_sp -= 8;
     root_sp[THREAD_CTX_STACK_R0] = 0;
