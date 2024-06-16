@@ -389,7 +389,7 @@ inline L4_msg_tag_t L4_ipc(L4_thread_id to, L4_thread_id from_specifier,
     register L4_thread_id r0 asm("r0") = to;
     register L4_thread_id r1 asm("r1") = from_specifier;
     register unsigned r2 asm("r2") = timeouts;
-    L4_thread_id result;
+    register L4_thread_id result asm("r0");
     asm volatile("movs r7, %[SYS_IPC]\n\t"
                  "svc #0\n\t"
                  : "=l"(result)
