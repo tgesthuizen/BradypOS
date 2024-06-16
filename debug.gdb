@@ -23,3 +23,15 @@ define reflash
   monitor program build/dist/bradypos.bin 0x10000000 verify
   launch_into_kernel
 end
+
+define thread_cont
+  set $tcb = find_thread_by_global_id($arg0)
+  if $tcb == NULL
+    print "Couldn't find a thread with that id"
+    return
+  end
+  set $thread_pc = (unsigned *)(((unsigned *)$tcb->ctx.sp)[THREAD_CTX_STACK_PC])
+  break *$thread_pc
+  enable once $bpnum
+  continue
+end
