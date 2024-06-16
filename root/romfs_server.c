@@ -194,8 +194,6 @@ static void make_ipc_error(int errno)
 
 static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
-    (void)from;
-    (void)msg_tag;
     if (msg_tag.u != 1 || msg_tag.t != 0)
     {
         make_ipc_error(EINVAL);
