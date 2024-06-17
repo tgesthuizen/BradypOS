@@ -16,14 +16,20 @@ static L4_thread_id kern_id;
 static L4_thread_id idle_id;
 static L4_thread_id root_id;
 
-static unsigned char idle_stack[128];
+enum
+{
+    IDLE_STACK_SIZE = 128,
+    KERN_STACK_SIZE = 512,
+};
+
+static unsigned char idle_stack[IDLE_STACK_SIZE];
 static void idle_task()
 {
     while (1)
         asm volatile("wfi\n\t");
 }
 
-static unsigned char kern_stack[256];
+static unsigned char kern_stack[KERN_STACK_SIZE];
 static void kern_task()
 {
     while (1)
@@ -45,7 +51,7 @@ void create_sys_threads()
     kern_tcb = create_thread(kern_id);
     kern_tcb->scheduler = kern_id;
     kern_tcb->pager = kern_id;
-    unsigned *kern_sp = (unsigned *)(kern_stack + 256);
+    unsigned *kern_sp = (unsigned *)(kern_stack + KERN_STACK_SIZE);
     kern_sp -= 8;
     kern_sp[THREAD_CTX_STACK_R0] = 0;
     kern_sp[THREAD_CTX_STACK_R1] = 0;
@@ -65,7 +71,7 @@ void create_sys_threads()
     idle_tcb = create_thread(idle_id);
     idle_tcb->pager = kern_id;
     idle_tcb->scheduler = kern_id;
-    unsigned *idle_sp = (unsigned *)(idle_stack + 128);
+    unsigned *idle_sp = (unsigned *)(idle_stack + IDLE_STACK_SIZE);
     idle_sp -= 8;
     idle_sp[THREAD_CTX_STACK_R0] = 0;
     idle_sp[THREAD_CTX_STACK_R1] = 0;
