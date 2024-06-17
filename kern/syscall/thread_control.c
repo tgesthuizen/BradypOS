@@ -136,6 +136,9 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     tcb->utcb = utcb_location;
     tcb->state = L4_is_nil_thread(pager) ? TS_INACTIVE : TS_ACTIVE;
     tcb->as = space_control_tcb->as;
+    tcb->next_sibling = space_control_tcb->next_sibling;
+    tcb->prev_sibling = space_control_tcb;
+    space_control_tcb->next_sibling = tcb;
     tcb->pager = pager;
     tcb->scheduler = scheduler;
 

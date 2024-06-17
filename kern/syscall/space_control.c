@@ -38,8 +38,8 @@ void syscall_space_control()
     if (target_thread->as == NULL)
     {
         struct as_t *new_as = create_as(target_thread);
-        target_thread->next_sibling = target_thread;
-        target_thread->prev_sibling = target_thread;
+        target_thread->next_sibling = NULL;
+        target_thread->prev_sibling = NULL;
         new_as->utcb_page = L4_nilpage;
         target_thread->as = new_as;
     }
