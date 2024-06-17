@@ -14,6 +14,13 @@ enum exception_nums
     EXC_EXTERNAL_BASE = 16,
 };
 
+enum exception_return_codes
+{
+    EXCEPTION_RETURN_TO_HANDLER_ON_MAIN_STACK = 0xFFFFFFF1,
+    EXCEPTION_RETURN_TO_THREAD_ON_MAIN_STACK = 0xFFFFFFF9,
+    EXCEPTION_RETURN_TO_THREAD_ON_PROCESS_STACK = 0xFFFFFFFD,
+};
+
 static inline unsigned irq_to_exception_number(unsigned irq_num)
 {
     return EXC_EXTERNAL_BASE + irq_num;

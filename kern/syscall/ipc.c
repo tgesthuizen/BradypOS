@@ -1,4 +1,5 @@
 #include <kern/debug.h>
+#include <kern/interrupts.h>
 #include <kern/kalarm.h>
 #include <kern/memory.h>
 #include <kern/platform.h>
@@ -192,7 +193,7 @@ static void pager_start_thread(struct tcb_t *pager, struct tcb_t *target)
     // Thread start message
     target->ctx.sp =
         pager->utcb->mr[2] - THREAD_CTX_STACK_WORD_COUNT * sizeof(unsigned);
-    target->ctx.ret = 0xFFFFFFFD;
+    target->ctx.ret = EXCEPTION_RETURN_TO_THREAD_ON_PROCESS_STACK;
     unsigned *const sp = (unsigned *)target->ctx.sp;
     sp[THREAD_CTX_STACK_PC] = pager->utcb->mr[1];
     sp[THREAD_CTX_STACK_PSR] = (1 << 24); // Thumb bit set

@@ -1,4 +1,5 @@
 #include <kern/debug.h>
+#include <kern/interrupts.h>
 #include <kern/softirq.h>
 #include <kern/systhread.h>
 #include <kern/thread.h>
@@ -52,7 +53,7 @@ void create_sys_threads()
     kern_tcb->scheduler = kern_id;
     kern_tcb->pager = kern_id;
     unsigned *kern_sp = (unsigned *)(kern_stack + KERN_STACK_SIZE);
-    kern_sp -= 8;
+    kern_sp -= THREAD_CTX_STACK_WORD_COUNT;
     kern_sp[THREAD_CTX_STACK_R0] = 0;
     kern_sp[THREAD_CTX_STACK_R1] = 0;
     kern_sp[THREAD_CTX_STACK_R2] = 0;
@@ -63,7 +64,7 @@ void create_sys_threads()
     kern_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
     kern_tcb->ctx.r[THREAD_CTX_R9] = kern_got;
     kern_tcb->ctx.sp = (unsigned)kern_sp;
-    kern_tcb->ctx.ret = 0xFFFFFFFD;
+    kern_tcb->ctx.ret = EXCEPTION_RETURN_TO_THREAD_ON_PROCESS_STACK;
     kern_tcb->priority = 0;
     set_thread_state(kern_tcb, TS_INACTIVE);
 
@@ -72,7 +73,7 @@ void create_sys_threads()
     idle_tcb->pager = kern_id;
     idle_tcb->scheduler = kern_id;
     unsigned *idle_sp = (unsigned *)(idle_stack + IDLE_STACK_SIZE);
-    idle_sp -= 8;
+    idle_sp -= THREAD_CTX_STACK_WORD_COUNT;
     idle_sp[THREAD_CTX_STACK_R0] = 0;
     idle_sp[THREAD_CTX_STACK_R1] = 0;
     idle_sp[THREAD_CTX_STACK_R2] = 0;
@@ -83,7 +84,7 @@ void create_sys_threads()
     idle_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
     idle_tcb->ctx.r[THREAD_CTX_R9] = kern_got;
     idle_tcb->ctx.sp = (unsigned)idle_sp;
-    idle_tcb->ctx.ret = 0xFFFFFFFD;
+    idle_tcb->ctx.ret = EXCEPTION_RETURN_TO_THREAD_ON_PROCESS_STACK;
     idle_tcb->priority = ~0;
     set_thread_state(idle_tcb, TS_RUNNABLE);
 
@@ -118,7 +119,7 @@ void create_sys_threads()
     root_sp[THREAD_CTX_STACK_PSR] = (1 << 24);
     root_tcb->ctx.r[THREAD_CTX_R9] = (unsigned)root_got;
     root_tcb->ctx.sp = (unsigned)root_sp;
-    root_tcb->ctx.ret = 0xFFFFFFFD;
+    root_tcb->ctx.ret = EXCEPTION_RETURN_TO_THREAD_ON_PROCESS_STACK;
     root_tcb->priority = 42;
     set_thread_state(root_tcb, TS_RUNNABLE);
 }
