@@ -42,12 +42,12 @@ target_link_options(
   root
   PUBLIC
   -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
-  -T ${CMAKE_CURRENT_SOURCE_DIR}/root.ld
+  -T ${BRADYPOS_USER_LINKER_SCRIPT}
   -pie
 )
 set_target_properties(
   root
   PROPERTIES
   OUTPUT_NAME root
-  LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/root.ld
+  LINK_DEPENDS ${BRADYPOS_USER_LINKER_SCRIPT}
 )
