@@ -78,7 +78,7 @@ static bool open_at(L4_thread_id romfs_server, int fd, int new_fd,
     L4_load_mrs(VFS_OPENAT_STR, 2, (unsigned *)&ssi);
     const L4_msg_tag_t answer_tag = L4_ipc(
         romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
-    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_OPENAT ||
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_OPENAT_RET ||
         answer_tag.u != 1 || answer_tag.t != 0)
     {
         return false;
