@@ -24,12 +24,68 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
     }
     memcpy(to->utcb->mr + 1, from->utcb->mr + 1,
            sizeof(unsigned) * payload_size);
+    L4_acceptor_t to_acceptor = {.raw = to->utcb->br[0]};
+    unsigned to_br_offset = 1;
+    unsigned to_mr_offset = msg_tag.u + 1;
     // TODO: Properly handle typed items
+    for (unsigned from_mr_offset = msg_tag.u + (unsigned)1;
+         from_mr_offset < msg_tag.u + msg_tag.t + (unsigned)1;)
+    {
+        switch (((struct L4_map_item *)&from->utcb->mr[from_mr_offset])->type)
+        {
+        case L4_data_type_map_item:
+            // TODO: Implement
+            break;
+        case L4_data_type_grant_item:
+            // TOOD: Implement
+            break;
+        case L4_data_type_string_item:
+            // TODO: Implement
+            {
+                struct L4_simple_string_item *item =
+                    (struct L4_simple_string_item *)&from->utcb
+                        ->mr[from_mr_offset];
+                if (to_acceptor.s == 0)
+                {
+                    return L4_ipc_error_message_overflow;
+                }
+                if (item->compound != 0)
+                {
+                    // TODO: Implement
+                    panic("Compound strings are not yet implemented\n");
+                }
+                struct L4_simple_string_item *to_item =
+                    (struct L4_simple_string_item *)&to->utcb->br[to_br_offset];
+                if (to_item->compound != 0)
+                {
+                    // TODO: Implement
+                    panic("Compound strings are not yet implemented\n");
+                }
+                if (to_item->length < item->length)
+                {
+                    return L4_ipc_error_message_overflow;
+                }
+                memcpy((void *)to_item->ptr, (void *)item->ptr, item->length);
+                struct L4_simple_string_item *res_item =
+                    (struct L4_simple_string_item *)&to->utcb->mr[to_mr_offset];
+                *res_item = *item;
+                res_item->ptr = to_item->ptr;
+                from_mr_offset += 2;
+                to_br_offset += 2;
+                to_mr_offset += 2;
+            }
+            break;
+        case L4_data_type_ctrl_xfer_item:
+            // TODO: Implement
+            break;
+        }
+    }
     to->utcb->sender = from->global_id;
-    to->utcb->mr[0] =
-        (L4_msg_tag_t){
-            .u = msg_tag.u, .t = msg_tag.t, .flags = 0, .label = msg_tag.label}
-            .raw;
+    to->utcb->mr[0] = (L4_msg_tag_t){.u = msg_tag.u,
+                                     .t = to_mr_offset - (msg_tag.u + 1),
+                                     .flags = 0,
+                                     .label = msg_tag.label}
+                          .raw;
     unsigned *const to_sp = (unsigned *)to->ctx.sp;
     to_sp[THREAD_CTX_STACK_R0] =
         (to->as == from->as) ? from->local_id : from->global_id;
