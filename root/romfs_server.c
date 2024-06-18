@@ -246,6 +246,8 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
+    ((char *)item.ptr)[item.length] = '\0';
+
     struct vfs_file_state *const dir = find_vfs_file_state(from, fd);
     if (dir == NULL)
     {
