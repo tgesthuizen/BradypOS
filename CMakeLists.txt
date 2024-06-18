@@ -64,7 +64,7 @@ target_link_options(
 link_libraries(pie_binary)
 
 add_subdirectory(kern)
-add_subdirectory(root)
+add_subdirectory(usr)
 add_subdirectory(lib)
 
 add_subdirectory(dist)
