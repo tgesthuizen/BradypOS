@@ -344,11 +344,12 @@ static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
     make_ipc_error(EROFS);
 }
 
+static L4_msg_buffer_t ipc_buffers;
+
 __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
 {
     (void)utcb;
     locate_romfs_start(the_kip);
-    L4_msg_buffer_t ipc_buffers;
     const L4_acceptor_t ipc_acceptor = L4_string_items_acceptor;
     ipc_buffers.raw[0] = ipc_acceptor.raw;
     const struct L4_simple_string_item filename_buf_item = {
