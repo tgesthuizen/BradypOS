@@ -215,8 +215,8 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
     }
 
     L4_msg_tag_t answer_tag;
-    answer_tag.label = 0;
     answer_tag.flags = 0;
+    answer_tag.label = VFS_OPENROOT_RET;
     answer_tag.t = 0;
     answer_tag.u = 1;
     L4_load_mr(0, answer_tag.raw);
