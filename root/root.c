@@ -17,6 +17,7 @@ L4_kip_t *the_kip;
 static L4_clock_t starting_time;
 L4_thread_id my_thread_id;
 L4_thread_id romfs_thread_id;
+struct L4_utcb_t *romfs_server_utcb;
 
 // This is our method of indicating a failure in the root thread startup.
 // We can't do much, but killing the root thread will make the kernel panic.
@@ -59,6 +60,8 @@ int main()
     }
 
     romfs_thread_id = L4_global_id(L4_USER_THREAD_START + 1, 1);
+    romfs_server_utcb =
+        (struct L4_utcb_t *)((unsigned char *)&__utcb + UTCB_ALIGN);
     if (L4_thread_control(romfs_thread_id, my_thread_id, my_thread_id,
                           my_thread_id,
                           (unsigned char *)&__utcb + UTCB_ALIGN) != 1)
@@ -73,7 +76,7 @@ int main()
     unsigned *romfs_sp =
         (unsigned *)(romfs_server_stack + ROMFS_SERVER_STACK_SIZE);
     *--romfs_sp = (unsigned)__got_location;
-    *--romfs_sp = (unsigned)((unsigned char *)&__utcb + UTCB_ALIGN);
+    *--romfs_sp = (unsigned)romfs_server_utcb;
 
     extern void romfs_start();
     L4_set_msg_tag((L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = 0});

@@ -188,8 +188,8 @@ static void make_ipc_error(int errno)
     msg_tag.label = VFS_ERROR;
     msg_tag.u = 1;
     msg_tag.t = 0;
-    L4_load_mr(0, msg_tag.raw);
-    L4_load_mr(1, errno);
+    romfs_server_utcb->mr[0] = msg_tag.raw;
+    romfs_server_utcb->mr[1] = errno;
 }
 
 static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -199,8 +199,7 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
-    int fd;
-    L4_store_mr(VFS_OPENROOT_FD, (unsigned *)&fd);
+    const int fd = (int)romfs_server_utcb->mr[VFS_OPENROOT_FD];
     struct vfs_file_state *const file_state = insert_vfs_file_state(from, fd);
     if (!file_state)
     {
@@ -219,8 +218,8 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
     answer_tag.label = VFS_OPENROOT_RET;
     answer_tag.t = 0;
     answer_tag.u = 1;
-    L4_load_mr(0, answer_tag.raw);
-    L4_load_mr(1, (unsigned)fd);
+    romfs_server_utcb->mr[0] = answer_tag.raw;
+    romfs_server_utcb->mr[1] = (unsigned)fd;
 }
 
 static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -231,12 +230,10 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
-    int fd;
-    int new_fd;
+    const int fd = (int)romfs_server_utcb->mr[VFS_OPENAT_FD];
+    const int new_fd = (int)romfs_server_utcb->mr[VFS_OPENAT_NEWFD];
     struct L4_simple_string_item item;
-    L4_store_mr(VFS_OPENAT_FD, (unsigned *)&fd);
-    L4_store_mr(VFS_OPENAT_NEWFD, (unsigned *)&new_fd);
-    L4_store_mrs(VFS_OPENAT_STR, 2, (unsigned *)&item);
+    memcpy(&item, &romfs_server_utcb->mr[VFS_OPENAT_STR], sizeof(unsigned) * 2);
     if (item.type != L4_data_type_string_item)
     {
         make_ipc_error(EINVAL);
@@ -271,14 +268,9 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
     }
     new_state->file_off = file_offset;
 
-    // TODO: File opening logic
-    L4_msg_tag_t answer_tag;
-    answer_tag.flags = 0;
-    answer_tag.label = VFS_OPENAT_RET;
-    answer_tag.u = 1;
-    answer_tag.t = 0;
-    L4_load_mr(0, answer_tag.raw);
-    L4_load_mr(1, new_fd);
+    romfs_server_utcb->mr[0] =
+        (L4_msg_tag_t){.flags = 0, .label = VFS_OPENAT_RET, .u = 1, .t = 0}.raw;
+    romfs_server_utcb->mr[1] = new_fd;
 }
 
 static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -288,19 +280,14 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
-    int fd;
-    L4_store_mr(VFS_CLOSE_FD, (unsigned *)&fd);
+    const int fd = (int)romfs_server_utcb->mr[VFS_CLOSE_FD];
     if (delete_vfs_file_state(from, fd) == false)
     {
         make_ipc_error(ENOENT);
         return;
     }
-    L4_msg_tag_t answer_tag;
-    answer_tag.flags = 0;
-    answer_tag.label = VFS_CLOSE_RET;
-    answer_tag.u = 0;
-    answer_tag.t = 0;
-    L4_load_mr(0, answer_tag.raw);
+    romfs_server_utcb->mr[0] =
+        (L4_msg_tag_t){.flags = 0, .label = VFS_CLOSE_RET, .u = 0, .t = 0}.raw;
 }
 
 static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -310,12 +297,9 @@ static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
-    int fd;
-    unsigned offset;
-    unsigned size;
-    L4_store_mr(VFS_READ_FD, (unsigned *)&fd);
-    L4_store_mr(VFS_READ_OFFSET, &offset);
-    L4_store_mr(VFS_READ_SIZE, &size);
+    const int fd = (int)romfs_server_utcb->mr[VFS_READ_FD];
+    const unsigned offset = romfs_server_utcb->mr[VFS_READ_OFFSET];
+    unsigned size = romfs_server_utcb->mr[VFS_READ_SIZE];
     struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
     if (file_state == NULL)
     {
@@ -328,19 +312,16 @@ static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
     const size_t remaining_file_size = file_state->file_info.size - offset;
     if (size > remaining_file_size)
         size = remaining_file_size;
-    L4_msg_tag_t answer_tag;
-    answer_tag.label = VFS_READ_RET;
-    answer_tag.flags = 0;
-    answer_tag.u = 0;
-    answer_tag.t = 2;
-    struct L4_simple_string_item content_string = {
+
+    romfs_server_utcb->mr[0] =
+        (L4_msg_tag_t){.label = VFS_READ_RET, .flags = 0, .u = 0, .t = 2}.raw;
+    const struct L4_simple_string_item content_string = {
         .c = 0,
         .type = L4_data_type_string_item,
         .compound = 0,
         .length = size,
         .ptr = (unsigned)(rootfs_base + content_offset + offset)};
-    L4_load_mr(0, answer_tag.raw);
-    L4_load_mrs(1, 2, (unsigned *)&content_string);
+    memcpy(&romfs_server_utcb->mr[1], &content_string, sizeof(unsigned) * 2);
 }
 
 static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -350,8 +331,7 @@ static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(EINVAL);
         return;
     }
-    int fd;
-    L4_store_mr(VFS_WRITE_FD, (unsigned *)&fd);
+    const int fd = (int)romfs_server_utcb->mr[VFS_WRITE_FD];
 
     struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
     if (file_state == NULL)
@@ -382,9 +362,10 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
     {
         L4_thread_id from;
         L4_msg_tag_t msg_tag;
-        L4_load_brs(0, 3, ipc_buffers.raw);
+        memcpy(romfs_server_utcb->br, &ipc_buffers.raw, sizeof(unsigned) * 3);
 
-        msg_tag = L4_ipc(L4_NILTHREAD, L4_ANYTHREAD, 0, &from);
+        L4_ipc(L4_NILTHREAD, L4_ANYTHREAD, 0, &from);
+        msg_tag.raw = romfs_server_utcb->mr[0];
         if (L4_ipc_failed(msg_tag))
         {
             // TODO: Log error about IPC error
@@ -409,8 +390,9 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
             break;
         }
 
-        const L4_msg_tag_t answer_tag = L4_ipc(
-            from, L4_NILTHREAD, L4_timeouts(L4_zero_time, L4_zero_time), &from);
+        L4_ipc(from, L4_NILTHREAD, L4_timeouts(L4_zero_time, L4_zero_time),
+               &from);
+        const L4_msg_tag_t answer_tag = {.raw = romfs_server_utcb->mr[0]};
         if (L4_ipc_failed(answer_tag))
         {
             // TODO: Log error about IPC error
