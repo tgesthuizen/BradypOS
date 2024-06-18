@@ -20,7 +20,7 @@ L4_thread_id romfs_thread_id;
 
 // This is our method of indicating a failure in the root thread startup.
 // We can't do much, but killing the root thread will make the kernel panic.
-static void kill_root_thread()
+void kill_root_thread()
 {
     while (1)
         L4_thread_control(my_thread_id, L4_NILTHREAD, L4_NILTHREAD,

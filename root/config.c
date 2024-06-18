@@ -28,6 +28,8 @@ static L4_msg_buffer_t romfs_construct_message_buffer()
     return res;
 }
 
+void kill_root_thread();
+
 enum
 {
     ROOT_FD = 3,
@@ -86,10 +88,13 @@ static bool open_at(L4_thread_id romfs_server, int fd, int new_fd,
 
 void parse_init_config(L4_thread_id romfs_server)
 {
-    open_root_fd(romfs_server);
+    if (!open_root_fd(romfs_server))
+        kill_root_thread();
     static const char etc_path[] = "etc";
-    open_at(romfs_server, ROOT_FD, ETC_FD, etc_path, sizeof(etc_path) - 1);
+    if (!open_at(romfs_server, ROOT_FD, ETC_FD, etc_path, sizeof(etc_path) - 1))
+        kill_root_thread();
     static const char inittab_path[] = "inittab";
-    open_at(romfs_server, ETC_FD, INITTAB_FD, inittab_path,
-            sizeof(inittab_path) - 1);
+    if (!open_at(romfs_server, ETC_FD, INITTAB_FD, inittab_path,
+                 sizeof(inittab_path) - 1))
+        kill_root_thread();
 }
