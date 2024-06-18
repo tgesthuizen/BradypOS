@@ -31,7 +31,7 @@ void kill_root_thread()
 enum
 {
     UTCB_ALIGN = 160,
-    ROMFS_SERVER_STACK_SIZE = 256,
+    ROMFS_SERVER_STACK_SIZE = 512,
 };
 static unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
 
