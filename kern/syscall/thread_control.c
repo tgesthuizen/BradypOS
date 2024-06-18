@@ -20,7 +20,7 @@ static void syscall_thread_control_delete(unsigned *sp, struct tcb_t *dest_tcb)
 {
     if (dest_tcb == get_root_tcb())
     {
-        panic("The root thread exited!");
+        panic("The root thread exited!\n");
     }
     delete_thread(dest_tcb);
     sp[THREAD_CTX_STACK_R0] = 1;
