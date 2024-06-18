@@ -202,9 +202,9 @@ static void pager_start_thread(struct tcb_t *pager, struct tcb_t *target)
     enable_interrupts();
 }
 
-static inline void set_ipc_error()
+static inline void set_ipc_error(struct tcb_t *target)
 {
-    ((L4_msg_tag_t *)&caller->utcb->mr[0])->flags |=
+    ((L4_msg_tag_t *)&target->utcb->mr[0])->flags |=
         1 << L4_msg_tag_flag_error_indicator;
 }
 
@@ -234,15 +234,25 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
         dbg_log(DBG_IPC, "Initiating IPC between thread %#08x and %#08x\n",
                 target->global_id, to_tcb->global_id);
         const enum L4_ipc_error_code ret = copy_payload(target, to_tcb);
+        enum ipc_phase_result res = ipc_phase_done;
         if (ret != L4_ipc_error_none)
         {
             target->utcb->error =
                 (L4_ipc_error_t){
                     .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
                     .raw;
-            return ipc_phase_error;
+            to_tcb->utcb->error =
+                (L4_ipc_error_t){
+                    .p = 1, .err = L4_ipc_error_message_overflow, .offset = 0}
+                    .raw;
+            set_ipc_error(target);
+            set_ipc_error(to_tcb);
+            res = ipc_phase_error;
         }
-        return ipc_phase_done;
+        disable_interrupts();
+        set_thread_state(to_tcb, TS_RUNNABLE);
+        enable_interrupts();
+        return res;
     }
     break;
     case ipc_partner_pager_msg:
@@ -321,7 +331,8 @@ ipc_recv(struct tcb_t *target, L4_thread_id from_specifier, L4_time_t timeout)
                 (L4_ipc_error_t){
                     .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
                     .raw;
-            set_ipc_error();
+            set_ipc_error(target);
+            set_ipc_error(from_tcb);
             disable_interrupts();
             set_thread_state(from_tcb, TS_RUNNABLE);
             enable_interrupts();
@@ -390,7 +401,7 @@ static void do_ipc(struct tcb_t *target, bool skip_sending)
     case ipc_phase_done:
         break;
     case ipc_phase_error:
-        set_ipc_error();
+        set_ipc_error(target);
         set_thread_state(target, TS_RUNNABLE);
         return;
     case ipc_phase_wait:
@@ -404,7 +415,7 @@ static void do_ipc(struct tcb_t *target, bool skip_sending)
         set_thread_state(target, TS_RUNNABLE);
         break;
     case ipc_phase_error:
-        set_ipc_error();
+        set_ipc_error(target);
         set_thread_state(target, TS_RUNNABLE);
         return;
     case ipc_phase_wait:
