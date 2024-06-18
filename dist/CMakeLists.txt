@@ -1,4 +1,5 @@
 set(BRADYPOS_SBIN_COMPONENTS kern root)
+set(BRADYPOS_BIN_COMPONENTS semihosting_term)
 set(BRADYPOS_LIB_COMPONENTS libelf libromfs)
 
 find_program(GENROMFS_EXECUTABLE genromfs REQUIRED)
@@ -12,9 +13,9 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/rootfs)
 
 set(romfs_dependencies "")
 
-function(place_stripped_sbin_in_rootfs target)
+function(place_stripped_bin_in_rootfs dir target)
   get_target_property(OUTPUT_NAME ${target} OUTPUT_NAME)
-  set(TARGET_FILE ${CMAKE_CURRENT_BINARY_DIR}/rootfs/sbin/${OUTPUT_NAME})
+  set(TARGET_FILE ${CMAKE_CURRENT_BINARY_DIR}/rootfs/${dir}/${OUTPUT_NAME})
   set(SRC_FILE $<TARGET_FILE:${target}>)
   add_custom_command(
     OUTPUT ${TARGET_FILE}
@@ -39,8 +40,29 @@ add_custom_command(
 list(APPEND romfs_dependencies
   ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/version)
 
-place_stripped_sbin_in_rootfs(kern)
-place_stripped_sbin_in_rootfs(root)
+foreach(bin ${BRADYPOS_SBIN_COMPONENTS})
+  place_stripped_bin_in_rootfs("sbin" ${bin})
+endforeach()
+set(inittab "")
+foreach(bin ${BRADYPOS_BIN_COMPONENTS})
+  place_stripped_bin_in_rootfs("bin" "${bin}")
+  get_target_property(inittype ${bin} INIT_TASK)
+  if(NOT (inittype STREQUAL "inittype-NOTFOUND"))
+    set(inittab "${inittab}${inittype}:/bin/${bin}\n")
+  endif()
+endforeach()
+set(INITTAB_FILE "${CMAKE_CURRENT_BINARY_DIR}/inittab")
+file(WRITE "${INITTAB_FILE}" "${inittab}")
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/inittab
+  COMMAND ${CMAKE_COMMAND} -E copy
+  	  ${INITTAB_FILE}
+	  ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/inittab
+  DEPENDS ${INITTAB_FILE}
+  COMMENT "Installing /etc/inittab in rootfs"
+)
+list(APPEND romfs_dependencies
+  ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/inittab)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
