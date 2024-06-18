@@ -8,7 +8,7 @@
 extern L4_kip_t *the_kip;
 extern L4_thread_id my_thread_id;
 extern L4_thread_id romfs_thread_id;
-extern volatile L4_utcb_t __utcb;
+extern L4_utcb_t __utcb;
 extern L4_utcb_t *romfs_server_utcb;
 
 #endif

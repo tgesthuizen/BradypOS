@@ -56,7 +56,7 @@ inline L4_msg_tag_t *L4_msg_tg_add_label_to(L4_msg_tag_t *tag, unsigned label)
     return tag;
 }
 
-extern volatile L4_utcb_t __utcb;
+extern L4_utcb_t __utcb;
 
 inline L4_msg_tag_t L4_msg_tag()
 {
