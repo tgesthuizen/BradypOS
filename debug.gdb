@@ -10,7 +10,7 @@ define launch_into_kernel
   break gdb_intercept_elf_positions_here
   commands $bpnum
     add-symbol-file-for-pie build/kern/platform/rp2040/kern kern_state
-    add-symbol-file-for-pie build/root/root root_state
+    add-symbol-file-for-pie build/usr/root/root root_state
     cont
   end
   enable once $bpnum
