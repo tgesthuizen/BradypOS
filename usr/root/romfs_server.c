@@ -188,8 +188,8 @@ static void make_ipc_error(int errno)
     msg_tag.label = VFS_ERROR;
     msg_tag.u = 1;
     msg_tag.t = 0;
-    romfs_server_utcb->mr[0] = msg_tag.raw;
-    romfs_server_utcb->mr[1] = errno;
+    romfs_server_utcb->mr[VFS_ERROR_RET_OP] = msg_tag.raw;
+    romfs_server_utcb->mr[VFS_ERROR_RET_ERRNO] = errno;
 }
 
 static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -218,8 +218,8 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
     answer_tag.label = VFS_OPENROOT_RET;
     answer_tag.t = 0;
     answer_tag.u = 1;
-    romfs_server_utcb->mr[0] = answer_tag.raw;
-    romfs_server_utcb->mr[1] = (unsigned)fd;
+    romfs_server_utcb->mr[VFS_OPENROOT_RET_OP] = answer_tag.raw;
+    romfs_server_utcb->mr[VFS_OPENROOT_RET_FD] = (unsigned)fd;
 }
 
 static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -270,9 +270,9 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
     }
     new_state->file_off = file_offset;
 
-    romfs_server_utcb->mr[0] =
+    romfs_server_utcb->mr[VFS_OPENAT_RET_OP] =
         (L4_msg_tag_t){.flags = 0, .label = VFS_OPENAT_RET, .u = 1, .t = 0}.raw;
-    romfs_server_utcb->mr[1] = new_fd;
+    romfs_server_utcb->mr[VFS_OPENAT_RET_FD] = new_fd;
 }
 
 static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -288,7 +288,7 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
         make_ipc_error(ENOENT);
         return;
     }
-    romfs_server_utcb->mr[0] =
+    romfs_server_utcb->mr[VFS_CLOSE_RET_OP] =
         (L4_msg_tag_t){.flags = 0, .label = VFS_CLOSE_RET, .u = 0, .t = 0}.raw;
 }
 
@@ -315,7 +315,7 @@ static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
     if (size > remaining_file_size)
         size = remaining_file_size;
 
-    romfs_server_utcb->mr[0] =
+    romfs_server_utcb->mr[VFS_READ_RET_OP] =
         (L4_msg_tag_t){.label = VFS_READ_RET, .flags = 0, .u = 0, .t = 2}.raw;
     const struct L4_simple_string_item content_string = {
         .c = 0,
@@ -323,7 +323,8 @@ static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
         .compound = 0,
         .length = size,
         .ptr = (unsigned)(rootfs_base + content_offset + offset)};
-    memcpy(&romfs_server_utcb->mr[1], &content_string, sizeof(unsigned) * 2);
+    memcpy(&romfs_server_utcb->mr[VFS_READ_RET_CONTENT], &content_string,
+           sizeof(unsigned) * 2);
 }
 
 static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)

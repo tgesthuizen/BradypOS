@@ -64,4 +64,29 @@ enum vfs_answer_ops
     VFS_WRITE_RET,
 };
 
+enum vfs_error_ret_args {
+  VFS_ERROR_RET_OP,
+  VFS_ERROR_RET_ERRNO,
+};
+
+enum vfs_openroot_ret_args {
+  VFS_OPENROOT_RET_OP,
+  VFS_OPENROOT_RET_FD,
+};
+
+enum vfs_openat_ret_args {
+  VFS_OPENAT_RET_OP,
+  VFS_OPENAT_RET_FD,
+};
+
+enum vfs_close_ret_args
+{
+    VFS_CLOSE_RET_OP,
+};
+
+enum vfs_read_ret_args {
+  VFS_READ_RET_OP,
+  VFS_READ_RET_CONTENT,
+};
+
 #endif
