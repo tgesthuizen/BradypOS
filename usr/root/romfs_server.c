@@ -396,7 +396,7 @@ static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
 
 static void handle_vfs_map(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
-    if (msg_tag.u != 3 || msg_tag.t != 0)
+    if (msg_tag.u != 4 || msg_tag.t != 0)
     {
         make_ipc_error(EINVAL);
         return;
