@@ -293,7 +293,7 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
 
 static void handle_vfs_stat(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
-    if (msg_tag.u != 2 || msg_tag.t != 0)
+    if (msg_tag.u != 1 || msg_tag.t != 0)
     {
         make_ipc_error(EINVAL);
         return;
