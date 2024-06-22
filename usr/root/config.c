@@ -145,10 +145,11 @@ static struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
                                               .addr = NULL};
     L4_load_mr(
         VFS_MAP_OP,
-        (L4_msg_tag_t){.u = 3, .t = 0, .flags = 0, .label = VFS_MAP}.raw);
+        (L4_msg_tag_t){.u = 4, .t = 0, .flags = 0, .label = VFS_MAP}.raw);
     L4_load_mr(VFS_MAP_FD, fd);
     L4_load_mr(VFS_MAP_OFFSET, offset);
     L4_load_mr(VFS_MAP_SIZE, size);
+    L4_load_mr(VFS_MAP_PERM, L4_readable);
     L4_thread_id from;
     const L4_msg_tag_t answer_tag = L4_ipc(
         romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
