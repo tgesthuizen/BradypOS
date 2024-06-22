@@ -132,9 +132,17 @@ static struct vfs_stat_result stat(L4_thread_id romfs_server, int fd)
     return result;
 }
 
-static L4_fpage_t map(L4_thread_id romfs_server, int fd, size_t offset,
-                      size_t size)
+struct map_result
 {
+    L4_fpage_t fpage;
+    void *addr;
+};
+
+static struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
+                             size_t size)
+{
+    const struct map_result invalid_result = {.fpage = L4_nilpage,
+                                              .addr = NULL};
     L4_load_mr(
         VFS_MAP_OP,
         (L4_msg_tag_t){.u = 3, .t = 0, .flags = 0, .label = VFS_MAP}.raw);
@@ -145,12 +153,15 @@ static L4_fpage_t map(L4_thread_id romfs_server, int fd, size_t offset,
     const L4_msg_tag_t answer_tag = L4_ipc(
         romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
     if (L4_ipc_failed(answer_tag))
-        return L4_nilpage;
+        return invalid_result;
     if (answer_tag.u != 0 || answer_tag.t != 2)
-        return L4_nilpage;
+        return invalid_result;
+    struct map_result result = invalid_result;
     struct L4_map_item map_item;
+    L4_store_mr(VFS_MAP_RET_ADDR, result.addr);
     L4_store_mrs(VFS_MAP_RET_MAP_ITEM, 2, (unsigned *)&map_item);
-    return L4_map_item_snd_fpage(&map_item);
+    result.fpage = L4_map_item_snd_fpage(&map_item);
+    return result;
 }
 
 static void swap_fds(int *fda, int *fdb)
@@ -174,8 +185,10 @@ void parse_init_config(L4_thread_id romfs_server)
     const struct vfs_stat_result inittab_stat = stat(romfs_server, INITTAB_FD);
     if (!inittab_stat.success)
         kill_root_thread();
-    const L4_fpage_t config_fpage =
+    const struct map_result inittab_mapping =
         map(romfs_server, INITTAB_FD, 0, inittab_stat.size);
+    if (L4_is_nil_fpage(inittab_mapping.fpage))
+        kill_root_thread();
     enum parser_state
     {
         parse_mode,
@@ -186,7 +199,7 @@ void parse_init_config(L4_thread_id romfs_server)
     } parser_state = parse_mode;
     int dir_fd = OTHER_FD_START;
     int file_fd = OTHER_FD_START + 1;
-    const char *pos = (char *)L4_address(config_fpage);
+    const char *pos = inittab_mapping.addr;
     const char *str_start = pos;
     const char *const end = pos + inittab_stat.size;
     while (parser_state != parse_end && parser_state != parse_error)
@@ -223,11 +236,11 @@ void parse_init_config(L4_thread_id romfs_server)
                 {
                     struct vfs_stat_result file_stat =
                         stat(romfs_server, file_fd);
-                    L4_fpage_t file_page =
+                    struct map_result exe_mapping =
                         map(romfs_server, file_fd, 0, file_stat.size);
-                    if (!L4_is_nil_fpage(file_page))
+                    if (!L4_is_nil_fpage(exe_mapping.fpage))
                     {
-                        load_executable((unsigned char *)L4_address(file_page));
+                        load_executable(exe_mapping.addr);
                     }
                 }
                 parser_state = parse_mode;
