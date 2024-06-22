@@ -119,7 +119,7 @@ static struct vfs_stat_result stat(L4_thread_id romfs_server, int fd)
         .success = false, .type = VFS_FT_OTHER, .size = 0};
     const L4_msg_tag_t answer_tag = L4_ipc(
         romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
-    if (L4_ipc_failed(answer_tag))
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_STAT_RET)
     {
         return result;
     }
