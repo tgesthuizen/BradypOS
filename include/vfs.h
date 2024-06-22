@@ -67,6 +67,7 @@ enum vfs_map_args
     VFS_MAP_FD,
     VFS_MAP_OFFSET,
     VFS_MAP_SIZE,
+    VFS_MAP_PERM,
 };
 
 enum vfs_answer_ops
@@ -78,6 +79,7 @@ enum vfs_answer_ops
     VFS_STAT_RET,
     VFS_READ_RET,
     VFS_WRITE_RET,
+    VFS_MAP_RET,
 };
 
 enum vfs_error_ret_args
@@ -128,6 +130,7 @@ enum vfs_read_ret_args
 enum vfs_map_ret_args
 {
     VFS_MAP_RET_OP,
+    VFS_MAP_RET_ADDR,
     VFS_MAP_RET_MAP_ITEM,
 };
 
