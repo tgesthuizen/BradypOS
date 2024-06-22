@@ -128,6 +128,7 @@ static struct vfs_stat_result stat(L4_thread_id romfs_server, int fd)
     L4_store_mr(VFS_STAT_RET_TYPE, &result_type);
     result.type = result_type;
     L4_store_mr(VFS_STAT_RET_SIZE, &result.size);
+    result.success = true;
     return result;
 }
 
