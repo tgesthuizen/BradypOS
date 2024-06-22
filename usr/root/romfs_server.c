@@ -103,13 +103,6 @@ enum
 
 struct vfs_file_state file_states[FILE_STATE_COUNT];
 
-__attribute__((noreturn, naked)) void romfs_start()
-{
-    asm("pop {r0, r1}\n\t"
-        "movs r9, r1\n\t"
-        "b romfs_main\n\t");
-}
-
 static char filename_buf[VFS_PATH_MAX + 1];
 
 static unsigned hash_combine(unsigned a, unsigned b)
@@ -292,6 +285,54 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
         (L4_msg_tag_t){.flags = 0, .label = VFS_CLOSE_RET, .u = 0, .t = 0}.raw;
 }
 
+static void handle_vfs_stat(L4_thread_id from, L4_msg_tag_t msg_tag)
+{
+    if (msg_tag.u != 2 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    const int fd = (int)romfs_server_utcb->mr[VFS_STAT_FD];
+    struct vfs_file_state *const state = find_vfs_file_state(from, fd);
+    if (state == NULL)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    struct romfs_file_info file_info;
+    if (!romfs_file_info(&romfs_ops, state->file_off, &file_info, NULL))
+    {
+        make_ipc_error(EIO);
+        return;
+    }
+    romfs_server_utcb->mr[VFS_STAT_RET_OP] =
+        (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = VFS_STAT_RET}.raw;
+    romfs_server_utcb->mr[VFS_STAT_RET_SIZE] = file_info.size;
+    enum vfs_file_type vfs_type;
+    switch (file_info.type)
+    {
+    case romfs_ft_regular_file:
+        vfs_type = VFS_FT_REGULAR;
+        break;
+    case romfs_ft_directory:
+        vfs_type = VFS_FT_DIRECTORY;
+        break;
+    case romfs_ft_symbolic_link:
+        vfs_type = VFS_FT_SYMLINK;
+        break;
+    case romfs_ft_hard_link:
+        vfs_type = VFS_FT_HARDLINK;
+        break;
+    case romfs_ft_block_device:
+    case romfs_ft_char_device:
+    case romfs_ft_fifo:
+    case romfs_ft_socket:
+        vfs_type = VFS_FT_OTHER;
+        break;
+    }
+    romfs_server_utcb->mr[VFS_STAT_RET_TYPE] = vfs_type;
+}
+
 static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
     if (msg_tag.u != 3 || msg_tag.t != 0)
@@ -349,6 +390,13 @@ static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
 
 static L4_msg_buffer_t ipc_buffers;
 
+__attribute__((noreturn, naked)) void romfs_start()
+{
+    asm("pop {r0, r1}\n\t"
+        "movs r9, r1\n\t"
+        "b romfs_main\n\t");
+}
+
 __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
 {
     (void)utcb;
@@ -385,6 +433,9 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
             break;
         case VFS_CLOSE:
             handle_vfs_close(from, msg_tag);
+            break;
+        case VFS_STAT:
+            handle_vfs_stat(from, msg_tag);
             break;
         case VFS_READ:
             handle_vfs_read(from, msg_tag);
