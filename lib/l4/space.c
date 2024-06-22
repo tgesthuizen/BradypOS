@@ -1,7 +1,7 @@
 #include <l4/ipc.h>
 #include <l4/space.h>
 
-bool is_nil_fpage(L4_fpage_t fpage);
+bool L4_is_nil_fpage(L4_fpage_t fpage);
 unsigned floorlog2(unsigned value);
 L4_fpage_t L4_fpage(unsigned base_address, int fpage_size);
 L4_fpage_t L4_fpage_log2(unsigned base_address, int fpage_size_log2);
