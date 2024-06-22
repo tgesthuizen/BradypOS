@@ -20,6 +20,7 @@ add_executable(
   root
   config.c
   data.s
+  exec.c
   memory.c
   romfs_server.c
   root.c
@@ -34,6 +35,7 @@ target_link_libraries(
   PUBLIC
   l4
   libbuddy
+  libelf
   libromfs
   libroot
   libstring

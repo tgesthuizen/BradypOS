@@ -10,5 +10,6 @@ extern L4_thread_id my_thread_id;
 extern L4_thread_id romfs_thread_id;
 extern L4_utcb_t __utcb;
 extern L4_utcb_t *romfs_server_utcb;
+extern unsigned next_thread_no;
 
 #endif

@@ -18,6 +18,7 @@ static L4_clock_t starting_time;
 L4_thread_id my_thread_id;
 L4_thread_id romfs_thread_id;
 struct L4_utcb_t *romfs_server_utcb;
+unsigned next_thread_no;
 
 // This is our method of indicating a failure in the root thread startup.
 // We can't do much, but killing the root thread will make the kernel panic.
@@ -89,6 +90,8 @@ int main()
     {
         kill_root_thread();
     }
+
+    next_thread_no = L4_USER_THREAD_START + 2;
 
     parse_init_config(romfs_thread_id);
 
