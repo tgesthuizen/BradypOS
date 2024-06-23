@@ -297,13 +297,9 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
         if (ret != L4_ipc_error_none)
         {
             target->utcb->error =
-                (L4_ipc_error_t){
-                    .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
-                    .raw;
+                (L4_ipc_error_t){.p = 0, .err = ret, .offset = 0}.raw;
             to_tcb->utcb->error =
-                (L4_ipc_error_t){
-                    .p = 1, .err = L4_ipc_error_message_overflow, .offset = 0}
-                    .raw;
+                (L4_ipc_error_t){.p = 1, .err = ret, .offset = 0}.raw;
             set_ipc_error(target);
             set_ipc_error(to_tcb);
             res = ipc_phase_error;
@@ -325,6 +321,18 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
                 pager_start_thread(target, to_tcb);
                 return ipc_phase_done;
             }
+            dbg_log(DBG_IPC, "Initiating IPC between thread %#08x and %#08x\n",
+                    target->global_id, to_tcb->global_id);
+            const enum L4_ipc_error_code ret = copy_payload(target, to_tcb);
+            enum ipc_phase_result res = ipc_phase_done;
+            if (ret != L4_ipc_error_none)
+            {
+                target->utcb->error =
+                    (L4_ipc_error_t){.p = 0, .err = ret, .offset = 0}.raw;
+                set_ipc_error(target);
+                res = ipc_phase_error;
+            }
+            return res;
         }
         break;
     case ipc_partner_nonexistent:
