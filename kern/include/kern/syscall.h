@@ -3,6 +3,8 @@
 
 #include <kern/platform.h>
 #include <kern/thread.h>
+#include <l4/space.h>
+#include <stddef.h>
 
 extern struct tcb_t *caller;
 
@@ -18,5 +20,8 @@ void syscall_space_control();
 void syscall_ipc();
 void syscall_unmap();
 void syscall_schedule();
+
+bool fpage_contains_object(L4_fpage_t page, void *object_base,
+                           size_t object_size);
 
 #endif

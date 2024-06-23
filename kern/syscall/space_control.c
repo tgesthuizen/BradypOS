@@ -1,7 +1,10 @@
 #include <kern/memory.h>
 #include <kern/syscall.h>
+#include <kern/thread.h>
 #include <l4/errors.h>
 #include <l4/kip.h>
+#include <l4/space.h>
+#include <l4/thread.h>
 #include <stddef.h>
 
 extern L4_kip_t the_kip;
@@ -18,8 +21,9 @@ void syscall_space_control()
     utcb_area.raw = sp[THREAD_CTX_STACK_R3];
     L4_thread_id redirector = caller->ctx.r[THREAD_CTX_R4];
 
-    // The returned control is always 0
-    sp[THREAD_CTX_STACK_R1] = 0;
+    (void)control;
+    // TODO: Implement
+    (void)redirector;
 
     struct tcb_t *target_thread = find_thread_by_global_id(space_specifier);
     if (target_thread == NULL)
@@ -54,7 +58,11 @@ void syscall_space_control()
 
     target_thread->as->utcb_page = utcb_area;
 
+    if (!L4_is_nil_fpage(kip_area) && !L4_is_nil_fpage(utcb_area) &&
+        fpage_contains_object(utcb_area, target_thread->utcb, 160) &&
+        !L4_is_nil_thread(target_thread->pager))
+        set_thread_state(target_thread, TS_ACTIVE);
+
     sp[THREAD_CTX_STACK_R0] = 1;
     sp[THREAD_CTX_STACK_R1] = 0;
-    return;
 }
