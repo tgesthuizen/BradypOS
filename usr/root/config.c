@@ -170,7 +170,7 @@ static void swap_fds(int *fda, int *fdb)
 {
     int tmp = *fda;
     *fda = *fdb;
-    *fdb = tmp;
+    *fdb = (tmp == ROOT_FD) ? OTHER_FD_START : tmp;
 }
 
 void parse_init_config(L4_thread_id romfs_server)
@@ -194,6 +194,7 @@ void parse_init_config(L4_thread_id romfs_server)
     enum parser_state
     {
         parse_mode,
+        parse_path_slash,
         parse_path,
         parse_to_newline,
         parse_end,
@@ -218,17 +219,29 @@ void parse_init_config(L4_thread_id romfs_server)
             {
                 static const char spawn_str[] = "spawn";
                 if (pos - str_start != sizeof(spawn_str) - 1 ||
-                    memcmp(spawn_str, str_start, sizeof(spawn_str) - 1))
+                    memcmp(spawn_str, str_start, sizeof(spawn_str) - 1) != 0)
                 {
                     parser_state = parse_error;
                     break;
                 }
-                parser_state = parse_path;
+                parser_state = parse_path_slash;
                 ++pos;
                 str_start = pos;
                 break;
             }
             ++pos;
+            break;
+        case parse_path_slash:
+            parser_state = parse_path;
+            if (pos == end || *pos != '/')
+            {
+                parser_state = parse_to_newline;
+                ++pos;
+                break;
+            }
+            ++pos;
+            str_start = pos;
+            dir_fd = ROOT_FD;
             break;
         case parse_path:
             if (pos == end || *pos == '\n')
@@ -245,6 +258,10 @@ void parse_init_config(L4_thread_id romfs_server)
                         load_executable(exe_mapping.addr);
                     }
                 }
+                if (dir_fd != ROOT_FD)
+                    close(romfs_server, dir_fd);
+                close(romfs_server, file_fd);
+                dir_fd = ROOT_FD;
                 parser_state = parse_mode;
                 ++pos;
                 str_start = pos;
@@ -259,7 +276,8 @@ void parse_init_config(L4_thread_id romfs_server)
                 }
                 else
                 {
-                    close(romfs_server, dir_fd);
+                    if (dir_fd != ROOT_FD)
+                        close(romfs_server, dir_fd);
                     swap_fds(&dir_fd, &file_fd);
                 }
                 ++pos;
@@ -275,6 +293,7 @@ void parse_init_config(L4_thread_id romfs_server)
             }
             if (*pos == '\n')
             {
+                str_start = pos + 1;
                 parser_state = parse_mode;
             }
             ++pos;
