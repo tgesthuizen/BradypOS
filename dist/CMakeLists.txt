@@ -71,7 +71,7 @@ add_custom_command(
           -V bradypos
 	  -d ${CMAKE_CURRENT_BINARY_DIR}/rootfs
 	  -f ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
-	  -A '512,/sbin/*'
+	  -A '512,/sbin/*' -A '512,/bin/*'
   DEPENDS ${romfs_dependencies}
   COMMENT "Generating root.romfs"
 )
