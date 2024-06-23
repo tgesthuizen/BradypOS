@@ -154,7 +154,7 @@ bool load_executable(unsigned char *elf_base)
         return false;
     }
     // Pager start protocol, start the thread
-    __utcb.mr[0] = (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = 1}.raw;
+    __utcb.mr[0] = (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = 0}.raw;
     __utcb.mr[1] = state.entry_point;
     __utcb.mr[2] = sp;
     answer_tag = L4_ipc(program_id, L4_NILTHREAD,
