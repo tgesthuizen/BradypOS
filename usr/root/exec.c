@@ -108,15 +108,21 @@ bool load_executable(unsigned char *elf_base)
     }
     // Get required symbols
     unsigned utcb;
-    unsigned sp;
+    unsigned sp_value;
+    unsigned got;
     if (locate_elf_symbol(&state, "__utcb", &utcb) != 0)
     {
         return false;
     }
-    if (locate_elf_symbol(&state, "__sp", &sp) != 0)
+    if (locate_elf_symbol(&state, "__sp", &sp_value) != 0)
     {
         return false;
     }
+    if (locate_elf_symbol(&state, "__global_offset_table", &got) != 0)
+    {
+        return false;
+    }
+
     // Create thread
     const L4_thread_id program_id = L4_global_id(next_thread_no++, 1);
     if (L4_thread_control(program_id, program_id, my_thread_id, my_thread_id,
@@ -154,9 +160,12 @@ bool load_executable(unsigned char *elf_base)
         return false;
     }
     // Pager start protocol, start the thread
+    unsigned *sp = (unsigned *)sp_value;
+    *sp-- = utcb;
+    *sp-- = got;
     __utcb.mr[0] = (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = 0}.raw;
     __utcb.mr[1] = state.entry_point;
-    __utcb.mr[2] = sp;
+    __utcb.mr[2] = (unsigned)sp;
     answer_tag = L4_ipc(program_id, L4_NILTHREAD,
                         L4_timeouts(L4_zero_time, L4_zero_time), &from);
     if (L4_ipc_failed(answer_tag))
