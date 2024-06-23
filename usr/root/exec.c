@@ -17,8 +17,8 @@ struct root_elf_load_state
 
 static int elf_read_file(size_t offset, size_t size, void *data, void *user)
 {
-    unsigned char *const elf_file_base = user;
-    memcpy(data, elf_file_base + offset, size);
+    struct root_elf_load_state *const state = user;
+    memcpy(data, state->elf_base + offset, size);
     return 0;
 }
 
@@ -90,7 +90,16 @@ static const struct libelf_ops elf_ops = {
 bool load_executable(unsigned char *elf_base)
 {
     // Load ELF file
+    enum
+    {
+        MAX_LOADED_SEGMENTS = 4
+    };
+    static struct libelf_loaded_segment segments[MAX_LOADED_SEGMENTS];
     static struct libelf_state state;
+    state = (struct libelf_state){.max_segments = MAX_LOADED_SEGMENTS,
+                                  .num_segments = 0,
+                                  .segments = segments};
+
     struct root_elf_load_state root_state = {.elf_base = elf_base,
                                              .map_count = 0};
     if (load_elf_file(&elf_ops, &state, &root_state) != 0)
@@ -111,13 +120,13 @@ bool load_executable(unsigned char *elf_base)
     // Create thread
     const L4_thread_id program_id = L4_global_id(next_thread_no++, 1);
     if (L4_thread_control(program_id, program_id, my_thread_id, my_thread_id,
-                          (void *)utcb) != 0)
+                          (void *)utcb) == 0)
     {
         return false;
     }
     unsigned old_ctrl;
     if (L4_space_control(program_id, 0, L4_fpage_log2((unsigned)the_kip, 10),
-                         L4_fpage_log2(utcb, 9), L4_NILTHREAD, &old_ctrl) != 0)
+                         L4_fpage_log2(utcb, 9), L4_NILTHREAD, &old_ctrl) == 0)
     {
         return false;
     }
