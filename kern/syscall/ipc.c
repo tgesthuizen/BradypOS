@@ -17,18 +17,17 @@
 static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
 {
     L4_msg_tag_t msg_tag = {.raw = from->utcb->mr[0]};
-    unsigned payload_size = msg_tag.u + msg_tag.t;
+    const unsigned payload_size = msg_tag.u + msg_tag.t;
     if (payload_size > L4_MR_COUNT)
     {
         return L4_ipc_error_message_overflow;
     }
-    memcpy(to->utcb->mr + 1, from->utcb->mr + 1,
-           sizeof(unsigned) * payload_size);
+    memcpy(to->utcb->mr + 1, from->utcb->mr + 1, sizeof(unsigned) * msg_tag.u);
     L4_acceptor_t to_acceptor = {.raw = to->utcb->br[0]};
     unsigned to_br_offset = 1;
     unsigned to_mr_offset = msg_tag.u + 1;
     // TODO: Properly handle typed items
-    for (unsigned from_mr_offset = msg_tag.u + (unsigned)1;
+    for (unsigned from_mr_offset = msg_tag.u + 1;
          from_mr_offset < msg_tag.u + msg_tag.t + (unsigned)1;)
     {
         switch (((struct L4_map_item *)&from->utcb->mr[from_mr_offset])->type)
