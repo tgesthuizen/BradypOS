@@ -153,14 +153,15 @@ static struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
     L4_thread_id from;
     const L4_msg_tag_t answer_tag = L4_ipc(
         romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
-    if (L4_ipc_failed(answer_tag))
-        return invalid_result;
-    if (answer_tag.u != 0 || answer_tag.t != 2)
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_MAP_RET ||
+        answer_tag.u != 1 || answer_tag.t != 2)
         return invalid_result;
     struct map_result result = invalid_result;
     struct L4_map_item map_item;
-    L4_store_mr(VFS_MAP_RET_ADDR, result.addr);
+    unsigned address;
+    L4_store_mr(VFS_MAP_RET_ADDR, &address);
     L4_store_mrs(VFS_MAP_RET_MAP_ITEM, 2, (unsigned *)&map_item);
+    result.addr = (void *)address;
     result.fpage = L4_map_item_snd_fpage(&map_item);
     return result;
 }
