@@ -125,8 +125,12 @@ bool load_executable(unsigned char *elf_base)
         return false;
     }
     unsigned old_ctrl;
-    if (L4_space_control(program_id, 0, L4_fpage_log2((unsigned)the_kip, 10),
-                         L4_fpage_log2(utcb, 9), L4_NILTHREAD, &old_ctrl) == 0)
+    if (L4_space_control(program_id, 0,
+                         L4_fpage_add_rights(
+                             L4_fpage_log2((unsigned)the_kip, 10), L4_readable),
+                         L4_fpage_add_rights(L4_fpage_log2(utcb, 9),
+                                             L4_readable | L4_writable),
+                         L4_NILTHREAD, &old_ctrl) == 0)
     {
         return false;
     }
