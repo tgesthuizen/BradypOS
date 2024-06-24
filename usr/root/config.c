@@ -300,6 +300,7 @@ void parse_init_config(L4_thread_id romfs_server)
     if (!open_at(romfs_server, ETC_FD, INITTAB_FD, inittab_path,
                  sizeof(inittab_path) - 1))
         kill_root_thread();
+    close(romfs_server, ETC_FD);
     const struct vfs_stat_result inittab_stat = stat(romfs_server, INITTAB_FD);
     if (!inittab_stat.success)
         kill_root_thread();
@@ -309,4 +310,5 @@ void parse_init_config(L4_thread_id romfs_server)
         kill_root_thread();
     parse(romfs_server, inittab_mapping.addr,
           inittab_mapping.addr + inittab_stat.size);
+    close(romfs_server, INITTAB_FD);
 }
