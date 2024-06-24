@@ -1,5 +1,5 @@
 set(BRADYPOS_SBIN_COMPONENTS kern root)
-set(BRADYPOS_BIN_COMPONENTS semihosting_term)
+set(BRADYPOS_BIN_COMPONENTS shterm)
 set(BRADYPOS_LIB_COMPONENTS libelf libromfs)
 
 find_program(GENROMFS_EXECUTABLE genromfs REQUIRED)
