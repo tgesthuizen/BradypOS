@@ -91,7 +91,7 @@ static void register_service()
         (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = SERV_REGISTER}.raw);
     unsigned serv_name;
     L4_thread_id from;
-    memcpy(&serv_name, "serv", sizeof(unsigned));
+    memcpy(&serv_name, "term", sizeof(unsigned));
     L4_load_mr(SERV_REGISTER_NAME, serv_name);
     L4_ipc(L4_global_id(L4_USER_THREAD_START, 1), L4_NILTHREAD,
            L4_timeouts(L4_never, L4_never), &from);
