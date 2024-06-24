@@ -11,8 +11,6 @@
 
 register void *__got_location asm("r9");
 
-__attribute__((naked)) void _start() { __asm__("b main\n\t"); }
-
 L4_kip_t *the_kip;
 static L4_clock_t starting_time;
 L4_thread_id my_thread_id;
@@ -36,7 +34,12 @@ enum
 };
 static unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
 
-int main()
+__attribute__((naked, section(".text.startup"))) void _start()
+{
+    __asm__("b main\n\t");
+}
+
+__attribute__((section(".text.startup"))) int main()
 {
 
     the_kip = L4_kernel_interface(NULL, NULL, NULL);
