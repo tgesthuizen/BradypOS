@@ -31,7 +31,9 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
     for (unsigned from_mr_offset = msg_tag.u + (unsigned)1;
          from_mr_offset < msg_tag.u + msg_tag.t + (unsigned)1;)
     {
-        switch (((struct L4_map_item *)&from->utcb->mr[from_mr_offset])->type)
+        struct L4_map_item map_item;
+        memcpy(&map_item, &from->utcb->mr[from_mr_offset], sizeof(L4_map_item));
+        switch (map_item.type)
         {
         case L4_data_type_map_item:
             // TODO: Implement
