@@ -23,12 +23,13 @@ target_link_options(
   PUBLIC
   -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
   -T ${BRADYPOS_USER_LINKER_SCRIPT}
+  -Wl,--version-script,${BRADYPOS_USER_VERSION_SCRIPT}
   -pie
 )
 set_target_properties(
   semihosting_term
   PROPERTIES
   OUTPUT_NAME shterm
-  LINK_DEPENDS ${BRADYPOS_USER_LINKER_SCRIPT}
+  LINK_DEPENDS "${BRADYPOS_USER_LINKER_SCRIPT};${BRADYPOS_USER_VERSION_SCRIPT}"
   INIT_TASK spawn
 )
