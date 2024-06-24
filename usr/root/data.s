@@ -4,7 +4,7 @@
 	.hidden __stack
 	.type __stack, %object
 __stack:
-	.space 512
+	.space 1024
 __sp:
 	.size __stack,.-__stack
 
