@@ -17,18 +17,17 @@
 static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
 {
     L4_msg_tag_t msg_tag = {.raw = from->utcb->mr[0]};
-    unsigned payload_size = msg_tag.u + msg_tag.t;
+    const unsigned payload_size = msg_tag.u + msg_tag.t;
     if (payload_size > L4_MR_COUNT)
     {
         return L4_ipc_error_message_overflow;
     }
-    memcpy(to->utcb->mr + 1, from->utcb->mr + 1,
-           sizeof(unsigned) * payload_size);
+    memcpy(to->utcb->mr + 1, from->utcb->mr + 1, sizeof(unsigned) * msg_tag.u);
     L4_acceptor_t to_acceptor = {.raw = to->utcb->br[0]};
     unsigned to_br_offset = 1;
     unsigned to_mr_offset = msg_tag.u + 1;
     // TODO: Properly handle typed items
-    for (unsigned from_mr_offset = msg_tag.u + (unsigned)1;
+    for (unsigned from_mr_offset = msg_tag.u + 1;
          from_mr_offset < msg_tag.u + msg_tag.t + (unsigned)1;)
     {
         struct L4_map_item map_item;
@@ -36,7 +35,11 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
         switch (map_item.type)
         {
         case L4_data_type_map_item:
-            // TODO: Implement
+            // TODO: Validate mapping and add to address space
+            memcpy(&to->utcb->mr[to_mr_offset], &from->utcb->mr[from_mr_offset],
+                   sizeof(unsigned) * 2);
+            from_mr_offset += 2;
+            to_mr_offset += 2;
             break;
         case L4_data_type_grant_item:
             // TOOD: Implement
@@ -296,13 +299,9 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
         if (ret != L4_ipc_error_none)
         {
             target->utcb->error =
-                (L4_ipc_error_t){
-                    .p = 0, .err = L4_ipc_error_message_overflow, .offset = 0}
-                    .raw;
+                (L4_ipc_error_t){.p = 0, .err = ret, .offset = 0}.raw;
             to_tcb->utcb->error =
-                (L4_ipc_error_t){
-                    .p = 1, .err = L4_ipc_error_message_overflow, .offset = 0}
-                    .raw;
+                (L4_ipc_error_t){.p = 1, .err = ret, .offset = 0}.raw;
             set_ipc_error(target);
             set_ipc_error(to_tcb);
             res = ipc_phase_error;
@@ -324,6 +323,18 @@ static enum ipc_phase_result ipc_send(struct tcb_t *target, L4_thread_id to,
                 pager_start_thread(target, to_tcb);
                 return ipc_phase_done;
             }
+            dbg_log(DBG_IPC, "Initiating IPC between thread %#08x and %#08x\n",
+                    target->global_id, to_tcb->global_id);
+            const enum L4_ipc_error_code ret = copy_payload(target, to_tcb);
+            enum ipc_phase_result res = ipc_phase_done;
+            if (ret != L4_ipc_error_none)
+            {
+                target->utcb->error =
+                    (L4_ipc_error_t){.p = 0, .err = ret, .offset = 0}.raw;
+                set_ipc_error(target);
+                res = ipc_phase_error;
+            }
+            return res;
         }
         break;
     case ipc_partner_nonexistent:

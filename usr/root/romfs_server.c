@@ -103,13 +103,6 @@ enum
 
 struct vfs_file_state file_states[FILE_STATE_COUNT];
 
-__attribute__((noreturn, naked)) void romfs_start()
-{
-    asm("pop {r0, r1}\n\t"
-        "movs r9, r1\n\t"
-        "b romfs_main\n\t");
-}
-
 static char filename_buf[VFS_PATH_MAX + 1];
 
 static unsigned hash_combine(unsigned a, unsigned b)
@@ -269,6 +262,12 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
         return;
     }
     new_state->file_off = file_offset;
+    if (!romfs_file_info(&romfs_ops, file_offset, &new_state->file_info, NULL))
+    {
+        delete_vfs_file_state(from, fd);
+        make_ipc_error(EIO);
+        return;
+    }
 
     romfs_server_utcb->mr[VFS_OPENAT_RET_OP] =
         (L4_msg_tag_t){.flags = 0, .label = VFS_OPENAT_RET, .u = 1, .t = 0}.raw;
@@ -290,6 +289,54 @@ static void handle_vfs_close(L4_thread_id from, L4_msg_tag_t msg_tag)
     }
     romfs_server_utcb->mr[VFS_CLOSE_RET_OP] =
         (L4_msg_tag_t){.flags = 0, .label = VFS_CLOSE_RET, .u = 0, .t = 0}.raw;
+}
+
+static void handle_vfs_stat(L4_thread_id from, L4_msg_tag_t msg_tag)
+{
+    if (msg_tag.u != 1 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    const int fd = (int)romfs_server_utcb->mr[VFS_STAT_FD];
+    struct vfs_file_state *const state = find_vfs_file_state(from, fd);
+    if (state == NULL)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    struct romfs_file_info file_info;
+    if (!romfs_file_info(&romfs_ops, state->file_off, &file_info, NULL))
+    {
+        make_ipc_error(EIO);
+        return;
+    }
+    romfs_server_utcb->mr[VFS_STAT_RET_OP] =
+        (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = VFS_STAT_RET}.raw;
+    romfs_server_utcb->mr[VFS_STAT_RET_SIZE] = file_info.size;
+    enum vfs_file_type vfs_type;
+    switch (file_info.type)
+    {
+    case romfs_ft_regular_file:
+        vfs_type = VFS_FT_REGULAR;
+        break;
+    case romfs_ft_directory:
+        vfs_type = VFS_FT_DIRECTORY;
+        break;
+    case romfs_ft_symbolic_link:
+        vfs_type = VFS_FT_SYMLINK;
+        break;
+    case romfs_ft_hard_link:
+        vfs_type = VFS_FT_HARDLINK;
+        break;
+    case romfs_ft_block_device:
+    case romfs_ft_char_device:
+    case romfs_ft_fifo:
+    case romfs_ft_socket:
+        vfs_type = VFS_FT_OTHER;
+        break;
+    }
+    romfs_server_utcb->mr[VFS_STAT_RET_TYPE] = vfs_type;
 }
 
 static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
@@ -339,7 +386,7 @@ static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
     struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
     if (file_state == NULL)
     {
-        make_ipc_error(ENOENT);
+        make_ipc_error(EBADF);
         return;
     }
 
@@ -347,7 +394,58 @@ static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
     make_ipc_error(EROFS);
 }
 
+static void handle_vfs_map(L4_thread_id from, L4_msg_tag_t msg_tag)
+{
+    if (msg_tag.u != 4 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    const int fd = (int)romfs_server_utcb->mr[VFS_MAP_FD];
+    const size_t offset = romfs_server_utcb->mr[VFS_MAP_OFFSET];
+    const size_t size = romfs_server_utcb->mr[VFS_MAP_SIZE];
+    const unsigned perm = romfs_server_utcb->mr[VFS_MAP_PERM];
+    struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
+    if (file_state == NULL)
+    {
+        make_ipc_error(EBADF);
+        return;
+    }
+    if (offset + size > file_state->file_info.size)
+    {
+        make_ipc_error(EFAULT);
+        return;
+    }
+    if (perm & L4_writable)
+    {
+        make_ipc_error(EROFS);
+        return;
+    }
+    const size_t file_addr =
+        (unsigned)rootfs_base +
+        romfs_file_content_offset(&romfs_ops, file_state->file_off, NULL);
+    const size_t mapping_addr = file_addr & ~(unsigned)(512 - 1);
+    const size_t mapping_size =
+        (file_state->file_info.size + (file_addr & (512 - 1)) + 512 - 1) &
+        ~(unsigned)(512 - 1);
+    romfs_server_utcb->mr[VFS_MAP_RET_OP] =
+        (L4_msg_tag_t){.u = 1, .t = 2, .flags = 0, .label = VFS_MAP_RET}.raw;
+    romfs_server_utcb->mr[VFS_MAP_RET_ADDR] = file_addr;
+    const struct L4_map_item map_item = L4_map_item(
+        L4_fpage_add_rights(L4_fpage(mapping_addr, mapping_size), perm),
+        mapping_addr);
+    memcpy(&romfs_server_utcb->mr[VFS_MAP_RET_MAP_ITEM], &map_item,
+           sizeof(unsigned) * 2);
+}
+
 static L4_msg_buffer_t ipc_buffers;
+
+__attribute__((noreturn, naked)) void romfs_start()
+{
+    asm("pop {r0, r1}\n\t"
+        "movs r9, r1\n\t"
+        "b romfs_main\n\t");
+}
 
 __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
 {
@@ -386,11 +484,17 @@ __attribute__((noreturn)) void romfs_main(L4_utcb_t *utcb)
         case VFS_CLOSE:
             handle_vfs_close(from, msg_tag);
             break;
+        case VFS_STAT:
+            handle_vfs_stat(from, msg_tag);
+            break;
         case VFS_READ:
             handle_vfs_read(from, msg_tag);
             break;
         case VFS_WRITE:
             handle_vfs_write(from, msg_tag);
+            break;
+        case VFS_MAP:
+            handle_vfs_map(from, msg_tag);
             break;
         }
 

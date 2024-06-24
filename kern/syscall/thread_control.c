@@ -8,8 +8,8 @@
 #include <l4/thread.h>
 #include <stddef.h>
 
-static bool fpage_contains_object(L4_fpage_t page, void *object_base,
-                                  size_t object_size)
+bool fpage_contains_object(L4_fpage_t page, void *object_base,
+                           size_t object_size)
 {
     return L4_address(page) <= (unsigned)object_base &&
            L4_address(page) + L4_size(page) >
@@ -95,17 +95,14 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
                                           L4_thread_id pager,
                                           void *utcb_location)
 {
-    // WARN: There are definitely bugs here. Like creating a thread in a new
-    // address space will not work. Debug this when it's actually used
-    // somewhere.
     struct tcb_t *space_control_tcb = find_thread_by_global_id(space_control);
-    if (space_control_tcb == NULL)
+    if (space_control_tcb == NULL && !L4_same_threads(dest, space_control))
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_invalid_space;
         return;
     }
-    if (space_control_tcb->as == NULL)
+    if (space_control_tcb != NULL && space_control_tcb->as == NULL)
     {
         sp[THREAD_CTX_STACK_R0] = 0;
         caller->utcb->error = L4_error_invalid_space;
@@ -122,7 +119,8 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
             return;
         }
     }
-    if (!fpage_contains_object(space_control_tcb->as->utcb_page, utcb_location,
+    if (space_control_tcb &&
+        !fpage_contains_object(space_control_tcb->as->utcb_page, utcb_location,
                                160))
     {
         sp[THREAD_CTX_STACK_R0] = 0;
@@ -134,11 +132,16 @@ static void syscall_thread_control_create(unsigned *sp, L4_thread_id dest,
     tcb->global_id = dest;
     tcb->local_id = (L4_thread_id)utcb_location;
     tcb->utcb = utcb_location;
-    tcb->state = L4_is_nil_thread(pager) ? TS_INACTIVE : TS_ACTIVE;
-    tcb->as = space_control_tcb->as;
-    tcb->next_sibling = space_control_tcb->next_sibling;
-    tcb->prev_sibling = space_control_tcb;
-    space_control_tcb->next_sibling = tcb;
+    tcb->state = (L4_is_nil_thread(pager) || space_control_tcb == NULL)
+                     ? TS_INACTIVE
+                     : TS_ACTIVE;
+    if (space_control_tcb)
+    {
+        tcb->as = space_control_tcb->as;
+        tcb->next_sibling = space_control_tcb->next_sibling;
+        tcb->prev_sibling = space_control_tcb;
+        space_control_tcb->next_sibling = tcb;
+    }
     tcb->pager = pager;
     tcb->scheduler = scheduler;
 
