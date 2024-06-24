@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.20)
 
 set(KERN_RAM_LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/pico_ram.ld)
 set(KERN_FLASH_LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/pico_flash.ld)
+set(KERN_VERSION_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/version.ld)
 
 add_executable(
   kern
@@ -37,10 +38,11 @@ target_link_options(
   -pie
   -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
   -T ${KERN_FLASH_LINKER_SCRIPT}
+  -Wl,--version-script,${KERN_VERSION_SCRIPT}
 )
 set_target_properties(
   kern
   PROPERTIES
   OUTPUT_NAME kern
-  LINK_DEPENDS ${KERN_FLASH_LINKER_SCRIPT}
+  LINK_DEPENDS "${KERN_FLASH_LINKER_SCRIPT};${KERN_VERSION_SCRIPT}"
 )
