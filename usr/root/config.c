@@ -173,24 +173,9 @@ static void swap_fds(int *fda, int *fdb)
     *fdb = (tmp == ROOT_FD) ? OTHER_FD_START : tmp;
 }
 
-void parse_init_config(L4_thread_id romfs_server)
+static void parse(L4_thread_id romfs_server, const char *str_start,
+                  const char *end)
 {
-    if (!open_root_fd(romfs_server))
-        kill_root_thread();
-    static const char etc_path[] = "etc";
-    if (!open_at(romfs_server, ROOT_FD, ETC_FD, etc_path, sizeof(etc_path) - 1))
-        kill_root_thread();
-    static const char inittab_path[] = "inittab";
-    if (!open_at(romfs_server, ETC_FD, INITTAB_FD, inittab_path,
-                 sizeof(inittab_path) - 1))
-        kill_root_thread();
-    const struct vfs_stat_result inittab_stat = stat(romfs_server, INITTAB_FD);
-    if (!inittab_stat.success)
-        kill_root_thread();
-    const struct map_result inittab_mapping =
-        map(romfs_server, INITTAB_FD, 0, inittab_stat.size);
-    if (L4_is_nil_fpage(inittab_mapping.fpage))
-        kill_root_thread();
     enum parser_state
     {
         parse_mode,
@@ -202,9 +187,7 @@ void parse_init_config(L4_thread_id romfs_server)
     } parser_state = parse_mode;
     int dir_fd = OTHER_FD_START;
     int file_fd = OTHER_FD_START + 1;
-    const char *pos = inittab_mapping.addr;
-    const char *str_start = pos;
-    const char *const end = pos + inittab_stat.size;
+    const char *pos = str_start;
     while (parser_state != parse_end && parser_state != parse_error)
     {
         switch (parser_state)
@@ -304,4 +287,26 @@ void parse_init_config(L4_thread_id romfs_server)
             break;
         }
     }
+}
+
+void parse_init_config(L4_thread_id romfs_server)
+{
+    if (!open_root_fd(romfs_server))
+        kill_root_thread();
+    static const char etc_path[] = "etc";
+    if (!open_at(romfs_server, ROOT_FD, ETC_FD, etc_path, sizeof(etc_path) - 1))
+        kill_root_thread();
+    static const char inittab_path[] = "inittab";
+    if (!open_at(romfs_server, ETC_FD, INITTAB_FD, inittab_path,
+                 sizeof(inittab_path) - 1))
+        kill_root_thread();
+    const struct vfs_stat_result inittab_stat = stat(romfs_server, INITTAB_FD);
+    if (!inittab_stat.success)
+        kill_root_thread();
+    const struct map_result inittab_mapping =
+        map(romfs_server, INITTAB_FD, 0, inittab_stat.size);
+    if (L4_is_nil_fpage(inittab_mapping.fpage))
+        kill_root_thread();
+    parse(romfs_server, inittab_mapping.addr,
+          inittab_mapping.addr + inittab_stat.size);
 }
