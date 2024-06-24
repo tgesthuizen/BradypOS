@@ -11,6 +11,11 @@ bool L4_is_global_id(L4_thread_id tid);
 
 extern L4_utcb_t __utcb;
 
+L4_thread_id L4_global_id_of(L4_thread_id tid)
+{
+    L4_utcb_t *const utcb = (L4_utcb_t *)tid;
+    return utcb->global_id;
+}
 L4_thread_id L4_my_global_id() { return __utcb.global_id; }
 L4_thread_id L4_my_local_id() { return *(unsigned *)&__utcb; }
 
