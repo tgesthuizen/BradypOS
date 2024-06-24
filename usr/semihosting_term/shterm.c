@@ -4,6 +4,8 @@
 #include <l4/thread.h>
 #include <l4/utcb.h>
 #include <semihosting.h>
+#include <service.h>
+#include <string.h>
 #include <term.h>
 
 enum
@@ -82,8 +84,22 @@ static void shterm_handle_write(L4_msg_tag_t tag, L4_thread_id from)
     L4_load_mr(TERM_WRITE_RET_SIZE, len);
 }
 
+static void register_service()
+{
+    L4_load_mr(
+        SERV_REGISTER_OP,
+        (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = SERV_REGISTER}.raw);
+    unsigned serv_name;
+    L4_thread_id from;
+    memcpy(&serv_name, "serv", sizeof(unsigned));
+    L4_load_mr(SERV_REGISTER_NAME, serv_name);
+    L4_ipc(L4_global_id(L4_USER_THREAD_START, 1), L4_NILTHREAD,
+           L4_timeouts(L4_never, L4_never), &from);
+}
+
 int main()
 {
+    register_service();
     const L4_acceptor_t acceptor = L4_string_items_acceptor;
     const struct L4_simple_string_item string_acceptor = {
         .c = 0,
