@@ -3,7 +3,7 @@
 
 enum root_thread_ops
 {
-    ROOT_ALLOC_MEM,
+    ROOT_ALLOC_MEM = 0x40,
     ROOT_FREE_MEM,
 };
 

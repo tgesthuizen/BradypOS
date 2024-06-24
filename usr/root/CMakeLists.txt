@@ -24,6 +24,7 @@ add_executable(
   memory.c
   romfs_server.c
   root.c
+  service.c
 )
 target_compile_options(
   root

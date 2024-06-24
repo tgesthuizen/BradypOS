@@ -1,11 +1,14 @@
 #include "config.h"
 #include "memory.h"
+#include <errno.h>
 #include <l4/ipc.h>
 #include <l4/kip.h>
 #include <l4/schedule.h>
 #include <l4/space.h>
 #include <l4/thread.h>
 #include <root.h>
+#include <root/service.h>
+#include <service.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -49,6 +52,8 @@ __attribute__((section(".text.startup"))) int main()
     starting_time = L4_system_clock();
     init_memory_management();
 
+    register_service_from_name(my_thread_id, "mem\0");
+    register_service_from_name(my_thread_id, "serv");
     // The kernel has cheated a bit when it created us.
     // Add the necessary pages and address space information now in the
     // aftermath.
@@ -93,6 +98,7 @@ __attribute__((section(".text.startup"))) int main()
     {
         kill_root_thread();
     }
+    register_service_from_name(romfs_thread_id, "rom\0");
 
     next_thread_no = L4_USER_THREAD_START + 2;
 
@@ -116,6 +122,15 @@ __attribute__((section(".text.startup"))) int main()
             break;
         case ROOT_FREE_MEM:
             handle_ipc_free(msg_tag);
+            break;
+        case SERV_GET:
+            handle_service_get(msg_tag, from);
+            break;
+        case SERV_REGISTER:
+            handle_service_register(msg_tag, from);
+            break;
+        default:
+            make_service_ipc_error(EINVAL);
             break;
         }
         const L4_msg_tag_t answer_tag = L4_ipc(
