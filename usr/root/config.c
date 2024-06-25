@@ -244,7 +244,8 @@ static void parse(L4_thread_id romfs_server, const char *str_start,
                 if (dir_fd != ROOT_FD)
                     close(romfs_server, dir_fd);
                 close(romfs_server, file_fd);
-                dir_fd = ROOT_FD;
+                dir_fd = OTHER_FD_START;
+                file_fd = OTHER_FD_START + 1;
                 parser_state = parse_mode;
                 ++pos;
                 str_start = pos;
