@@ -56,7 +56,7 @@ static unsigned HEAP_CONCAT(HEAP_PREFIX, _sink)(unsigned idx)
 {
     struct HEAP_CONCAT(HEAP_PREFIX, _type) *v =
         &HEAP_CONCAT(HEAP_PREFIX, _state);
-    if (v->size <= 2)
+    if (v->size < 2)
         return idx;
     unsigned last_parent_idx = (v->size - 2) / 2;
 
