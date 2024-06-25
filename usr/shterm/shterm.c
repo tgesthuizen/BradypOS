@@ -86,15 +86,25 @@ static void shterm_handle_write(L4_msg_tag_t tag, L4_thread_id from)
 
 static void register_service()
 {
-    L4_load_mr(
-        SERV_REGISTER_OP,
-        (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = SERV_REGISTER}.raw);
-    unsigned serv_name;
-    L4_thread_id from;
-    memcpy(&serv_name, "term", sizeof(unsigned));
-    L4_load_mr(SERV_REGISTER_NAME, serv_name);
-    L4_ipc(L4_global_id(L4_USER_THREAD_START, 1), L4_NILTHREAD,
-           L4_timeouts(L4_never, L4_never), &from);
+    while (1)
+    {
+        L4_load_mr(
+            SERV_REGISTER_OP,
+            (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = SERV_REGISTER}
+                .raw);
+        unsigned serv_name;
+        L4_thread_id from;
+        memcpy(&serv_name, "term", sizeof(unsigned));
+        L4_load_mr(SERV_REGISTER_NAME, serv_name);
+        const L4_thread_id root_id = L4_global_id(L4_USER_THREAD_START, 1);
+        L4_msg_tag_t tag =
+            L4_ipc(root_id, root_id, L4_timeouts(L4_never, L4_never), &from);
+        if (!L4_ipc_failed(tag) && tag.u == 0 && tag.t == 0 &&
+            tag.label == SERV_REGISTER_RET)
+        {
+            break;
+        }
+    }
 }
 
 int main()
