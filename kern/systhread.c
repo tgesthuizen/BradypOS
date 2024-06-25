@@ -48,7 +48,7 @@ void create_sys_threads()
 {
     register unsigned kern_got asm("r9");
 
-    kern_id = L4_global_id(46, 1);
+    kern_id = L4_global_id(L4_SYSTEM_THREAD_START, 1);
     kern_tcb = create_thread(kern_id);
     kern_tcb->scheduler = kern_id;
     kern_tcb->pager = kern_id;
@@ -68,7 +68,7 @@ void create_sys_threads()
     kern_tcb->priority = 0;
     set_thread_state(kern_tcb, TS_INACTIVE);
 
-    idle_id = L4_global_id(47, 1);
+    idle_id = L4_global_id(L4_SYSTEM_THREAD_START + 1, 1);
     idle_tcb = create_thread(idle_id);
     idle_tcb->pager = kern_id;
     idle_tcb->scheduler = kern_id;
@@ -101,7 +101,7 @@ void create_sys_threads()
                                                     current_record) +
                                                current_record->offset_next);
     }
-    root_id = L4_global_id(64, 1);
+    root_id = L4_global_id(L4_USER_THREAD_START, 1);
     root_tcb = create_thread(root_id);
     root_tcb->scheduler = kern_id;
     root_tcb->pager = kern_id;
