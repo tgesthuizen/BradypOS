@@ -111,7 +111,8 @@ static unsigned hash_combine(unsigned a, unsigned b)
     return a;
 }
 
-static struct vfs_file_state *insert_vfs_file_state(L4_thread_id owner, int fd)
+static struct vfs_file_state *
+find_vfs_file_state_insertion_point(L4_thread_id owner, int fd)
 {
     const unsigned initial_idx = hash_combine(owner, fd) % FILE_STATE_COUNT;
     unsigned idx = initial_idx;
@@ -121,10 +122,11 @@ static struct vfs_file_state *insert_vfs_file_state(L4_thread_id owner, int fd)
         if (file_states[idx].status == HASH_ITEM_FREE ||
             file_states[idx].status == HASH_ITEM_TOMBSTONE)
         {
-            file_states[idx] = (struct vfs_file_state){.status = HASH_ITEM_USED,
-                                                       .owner = owner,
-                                                       .fd = fd,
-                                                       .file_off = 0};
+            return file_states + idx;
+        }
+        if (file_states[idx].status == HASH_ITEM_USED &&
+            file_states[idx].owner == owner && file_states[idx].fd == fd)
+        {
             return file_states + idx;
         }
     }
@@ -193,18 +195,35 @@ static void handle_vfs_openroot(L4_thread_id from, L4_msg_tag_t msg_tag)
         return;
     }
     const int fd = (int)romfs_server_utcb->mr[VFS_OPENROOT_FD];
-    struct vfs_file_state *const file_state = insert_vfs_file_state(from, fd);
+    struct vfs_file_state *const file_state =
+        find_vfs_file_state_insertion_point(from, fd);
     if (!file_state)
     {
         make_ipc_error(ENOMEM);
         return;
     }
-    file_state->file_off = romfs_root_directory(&romfs_ops, NULL);
-    if (file_state->file_off == ROMFS_INVALID_FILE)
+    if (file_state->status == HASH_ITEM_USED)
+    {
+        make_ipc_error(EBADF);
+        return;
+    }
+    const unsigned file_off = romfs_root_directory(&romfs_ops, NULL);
+    if (file_off == ROMFS_INVALID_FILE)
     {
         make_ipc_error(EIO);
         return;
     }
+    struct romfs_file_info info;
+    if (!romfs_file_info(&romfs_ops, file_off, &info, NULL))
+    {
+        make_ipc_error(EIO);
+        return;
+    }
+    *file_state = (struct vfs_file_state){.status = HASH_ITEM_USED,
+                                          .owner = from,
+                                          .fd = fd,
+                                          .file_off = file_off,
+                                          .file_info = info};
 
     L4_msg_tag_t answer_tag;
     answer_tag.flags = 0;
@@ -255,19 +274,28 @@ static void handle_vfs_openat(L4_thread_id from, L4_msg_tag_t msg_tag)
         return;
     }
     struct vfs_file_state *const new_state =
-        insert_vfs_file_state(from, new_fd);
+        find_vfs_file_state_insertion_point(from, new_fd);
     if (new_state == NULL)
     {
         make_ipc_error(ENOMEM);
         return;
     }
-    new_state->file_off = file_offset;
-    if (!romfs_file_info(&romfs_ops, file_offset, &new_state->file_info, NULL))
+    if (new_state->status == HASH_ITEM_USED)
     {
-        delete_vfs_file_state(from, fd);
+        make_ipc_error(EBADF);
+        return;
+    }
+    struct romfs_file_info info;
+    if (!romfs_file_info(&romfs_ops, file_offset, &info, NULL))
+    {
         make_ipc_error(EIO);
         return;
     }
+    *new_state = (struct vfs_file_state){.status = HASH_ITEM_USED,
+                                         .owner = from,
+                                         .fd = new_fd,
+                                         .file_off = file_offset,
+                                         .file_info = info};
 
     romfs_server_utcb->mr[VFS_OPENAT_RET_OP] =
         (L4_msg_tag_t){.flags = 0, .label = VFS_OPENAT_RET, .u = 1, .t = 0}.raw;
