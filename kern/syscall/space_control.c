@@ -61,7 +61,10 @@ void syscall_space_control()
     if (!L4_is_nil_fpage(kip_area) && !L4_is_nil_fpage(utcb_area) &&
         fpage_contains_object(utcb_area, target_thread->utcb, 160) &&
         !L4_is_nil_thread(target_thread->pager))
+    {
+        write_utcb(target_thread);
         set_thread_state(target_thread, TS_ACTIVE);
+    }
 
     sp[THREAD_CTX_STACK_R0] = 1;
     sp[THREAD_CTX_STACK_R1] = 0;
