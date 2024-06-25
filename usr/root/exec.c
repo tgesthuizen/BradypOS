@@ -49,7 +49,9 @@ static int elf_alloc_rw(void **location, size_t size, size_t align,
     (void)align_offset;
     (void)perm;
     struct root_elf_load_state *state = user;
-    void *const addr = alloc_pages(size / 512 + ((size & (512 - 1)) != 0));
+    const size_t actual_size = size + align_offset;
+    void *const addr =
+        alloc_pages(actual_size / 512 + ((actual_size & (512 - 1)) != 0));
     if (addr == NULL)
         return 1;
     const struct L4_map_item map_item =
@@ -58,8 +60,7 @@ static int elf_alloc_rw(void **location, size_t size, size_t align,
                     (unsigned)addr);
     if (add_mapping(state, map_item) != 0)
         return 1;
-    // TODO: Compensate for possible align_offset
-    *location = addr;
+    *location = (unsigned char *)addr + align_offset;
     return 0;
 }
 
