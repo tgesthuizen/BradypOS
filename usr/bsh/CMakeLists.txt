@@ -16,6 +16,7 @@ target_link_libraries(
   bsh
   PUBLIC
   l4
+  libstring
 )
 target_link_options(
   bsh
