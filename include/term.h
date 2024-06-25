@@ -23,7 +23,6 @@ enum term_write_args
 {
     TERM_WRITE_OP,
     TERM_WRITE_FLAGS,
-    TERM_WRITE_SIZE,
     TERM_WRITE_BUF,
 };
 

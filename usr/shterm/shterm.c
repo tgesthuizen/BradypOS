@@ -68,7 +68,7 @@ static void shterm_handle_read(L4_msg_tag_t tag, L4_thread_id from)
 static void shterm_handle_write(L4_msg_tag_t tag, L4_thread_id from)
 {
     (void)from;
-    if (tag.u != 2 || tag.t != 2)
+    if (tag.u != 1 || tag.t != 2)
     {
         make_ipc_error(EINVAL);
         return;
