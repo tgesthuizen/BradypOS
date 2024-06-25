@@ -11,25 +11,6 @@ enum
     IPC_BUFFER_SIZE = 128,
 };
 
-static unsigned char romfs_ipc_buffer[IPC_BUFFER_SIZE];
-static L4_msg_buffer_t romfs_msg_buffer;
-
-static L4_msg_buffer_t romfs_construct_message_buffer()
-{
-    L4_msg_buffer_t res;
-    res.raw[0] = L4_string_items_acceptor.raw;
-    struct L4_simple_string_item ipc_buffer;
-    ipc_buffer.c = 0;
-    ipc_buffer.compound = 0;
-    ipc_buffer.length = IPC_BUFFER_SIZE;
-    ipc_buffer.type = L4_data_type_string_item;
-    ipc_buffer.ptr = (unsigned)romfs_ipc_buffer;
-
-    memcpy(res.raw + 1, &ipc_buffer, sizeof(ipc_buffer));
-    // TODO Simple string item
-    return res;
-}
-
 void kill_root_thread();
 
 enum
