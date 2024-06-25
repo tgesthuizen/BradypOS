@@ -43,7 +43,8 @@ static L4_thread_id fetch_service(const char *svc)
     L4_thread_id from;
     L4_msg_tag_t tag = L4_ipc(root_thread, root_thread,
                               L4_timeouts(L4_never, L4_never), &from);
-    if (L4_ipc_failed(tag) || tag.u != 1 || tag.t != 0)
+    if (L4_ipc_failed(tag) || tag.label != SERV_GET_RET || tag.u != 1 ||
+        tag.t != 0)
     {
         return L4_NILTHREAD;
     }
@@ -55,11 +56,11 @@ static L4_thread_id fetch_service(const char *svc)
 static L4_thread_id wait_for_service(const char *svc)
 {
     L4_thread_id tid = L4_NILTHREAD;
+    tid = fetch_service(svc);
     while (L4_is_nil_thread(tid))
     {
+        L4_yield();
         tid = fetch_service(svc);
-        if (!L4_is_nil_thread(tid))
-            L4_yield();
     }
     return tid;
 }
