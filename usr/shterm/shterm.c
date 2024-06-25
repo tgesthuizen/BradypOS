@@ -53,11 +53,13 @@ static void shterm_handle_read(L4_msg_tag_t tag, L4_thread_id from)
     }
     unsigned len;
     L4_store_mr(TERM_READ_SIZE, &len);
-    len = sh_read(STDIN, &ipc_buffer, len);
+    const unsigned ret = sh_read(STDIN, &ipc_buffer, len);
+    const unsigned ret_len = len - ret;
+
     const struct L4_simple_string_item item = {.c = 0,
                                                .type = L4_data_type_string_item,
                                                .compound = 0,
-                                               .length = len,
+                                               .length = ret_len,
                                                .ptr = (unsigned)&ipc_buffer};
     L4_load_mr(
         TERM_READ_RET_OP,
