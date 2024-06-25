@@ -64,6 +64,18 @@ add_custom_command(
 list(APPEND romfs_dependencies
   ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/inittab)
 
+set(MOTD_FILE "${CMAKE_CURRENT_SOURCE_DIR}/motd.txt")
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/motd.txt
+  COMMAND ${CMAKE_COMMAND} -E copy
+          ${MOTD_FILE}
+	  ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/motd.txt
+  DEPENDS ${MOTD_FILE}
+  COMMENT "Installing /etc/motd in rootfs"
+)
+list(APPEND romfs_dependencies
+  ${CMAKE_CURRENT_BINARY_DIR}/rootfs/etc/motd.txt)
+
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/root.romfs
   COMMAND ${GENROMFS_EXECUTABLE}
