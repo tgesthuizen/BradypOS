@@ -23,6 +23,7 @@ SECTIONS
       *(.rodata.*)
     } :rox
 
+    . = ALIGN(CONSTANT(COMMONPAGESIZE));
     .dynamic : {
       *(.dynamic)
     } :rw :dynamic
