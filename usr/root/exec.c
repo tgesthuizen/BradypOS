@@ -49,7 +49,7 @@ static int elf_alloc_rw(void **location, size_t size, size_t align,
     (void)align_offset;
     (void)perm;
     struct root_elf_load_state *state = user;
-    void *const addr = alloc_pages(size / 512);
+    void *const addr = alloc_pages(size / 512 + ((size & (512 - 1)) != 0));
     if (addr == NULL)
         return 1;
     const struct L4_map_item map_item =
