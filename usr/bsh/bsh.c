@@ -317,7 +317,7 @@ int main()
             term_service, term_service, L4_timeouts(L4_never, L4_never), &from);
         if (L4_ipc_failed(answer_tag) || answer_tag.label != TERM_READ_RET)
             break;
-        L4_load_mrs(TERM_READ_RET_STR, 2, (unsigned *)&item);
+        L4_store_mrs(TERM_READ_RET_STR, 2, (unsigned *)&item);
         term_write(term_service, (const unsigned char *)item.ptr, item.length);
     }
 
