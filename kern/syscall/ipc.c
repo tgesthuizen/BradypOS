@@ -45,7 +45,6 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
             // TOOD: Implement
             break;
         case L4_data_type_string_item:
-            // TODO: Implement
             {
                 struct L4_simple_string_item *item =
                     (struct L4_simple_string_item *)&from->utcb
