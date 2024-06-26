@@ -342,7 +342,7 @@ static void handle_vfs_stat(L4_thread_id from, L4_msg_tag_t msg_tag)
     romfs_server_utcb->mr[VFS_STAT_RET_OP] =
         (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = VFS_STAT_RET}.raw;
     romfs_server_utcb->mr[VFS_STAT_RET_SIZE] = file_info.size;
-    enum vfs_file_type vfs_type;
+    enum vfs_file_type vfs_type = VFS_FT_OTHER;
     switch (file_info.type)
     {
     case romfs_ft_regular_file:
