@@ -38,7 +38,7 @@ inline unsigned trap_sh(enum semihosting_syscall nr, uintptr_t ptr)
 {
     register unsigned r0 asm("r0") = nr;
     register uintptr_t r1 asm("r1") = ptr;
-    __asm__ volatile("bkpt 0xab\n" : "=r"(r0) : "0"(r0), "r"(r1));
+    __asm__ volatile("bkpt 0xab\n" : "=r"(r0) : "0"(r0), "r"(r1) : "memory");
     return r0;
 }
 
