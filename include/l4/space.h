@@ -102,7 +102,7 @@ inline unsigned L4_space_control(L4_thread_id space_specifier, unsigned control,
                                  L4_fpage_t kip_area, L4_fpage_t utcb_area,
                                  L4_thread_id redirector, unsigned *old_control)
 {
-    unsigned result;
+    register unsigned result asm("r0");
     register unsigned rspace_specifier asm("r0") = space_specifier;
     register unsigned rcontrol asm("r1") = control;
     register unsigned rkip_area asm("r2") = kip_area.raw;
