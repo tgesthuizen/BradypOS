@@ -15,7 +15,7 @@ SECTIONS
 {
     . = SIZEOF_HEADERS;
     .interp : { *(.interp) } :rox
-    .note.gnu.build-id : { *(.note. gnu.build-id) } :rox
+    .note.gnu.build-id : { *(.note.gnu.build-id) } :rox
     .hash : { *(.hash) } :rox
     .gnu.hash : { *(.gnu.hash) } :rox
     .dynsym : { *(.dynsym) } :rox
