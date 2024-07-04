@@ -26,6 +26,11 @@ extern char debug_should_log[];
         }                                                                      \
     } while (0)
 
+#else
+#define dbg_log(category, ...)                                                 \
+    do                                                                         \
+    {                                                                          \
+    } while (0)
 #endif
 
 #ifndef NDEBUG
