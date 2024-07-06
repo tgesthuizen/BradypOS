@@ -1,2 +1,2 @@
 #!/bin/sh
-~tibbe/tools/bin/openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000"
+~/tools/bin/openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000"
