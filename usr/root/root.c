@@ -37,11 +37,6 @@ enum
 };
 static unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
 
-__attribute__((naked, section(".text.startup"))) void _start()
-{
-    __asm__("b main\n\t");
-}
-
 __attribute__((section(".text.startup"))) int main()
 {
 
@@ -141,4 +136,9 @@ __attribute__((section(".text.startup"))) int main()
             continue;
         }
     }
+}
+
+__attribute__((naked, section(".text.startup"))) void _start()
+{
+    __asm__("b %c[main]\n\t" ::[main] ""(main));
 }
