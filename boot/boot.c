@@ -58,14 +58,15 @@ __attribute__((naked)) void _start()
                  "ldr  r0, =__bss_start\n\t"
                  "movs r1, #0\n\t"
                  "ldr  r2, =__bss_len\n\t"
-                 "bl   memset\n\t"
+                 "bl   %c[memset]\n\t"
                  "ldr  r0, =__data_start\n\t"
                  "ldr  r1, =__data_lma\n\t"
                  "ldr  r2, =__data_len\n\t"
-                 "bl   memcpy\n\t"
-                 "bl   main\n\t"
-                 "b    ." ::
-                     : "r0", "r1", "r2", "lr");
+                 "bl   %c[memcpy]\n\t"
+                 "bl   %c[main]\n\t"
+                 "b    ." ::[memset] "i"(memset),
+                 [memcpy] "i"(memcpy), [main] "i"(main)
+                 : "r0", "r1", "r2", "lr");
 }
 
 extern unsigned char __romfs_start[];
