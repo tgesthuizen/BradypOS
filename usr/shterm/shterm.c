@@ -23,15 +23,6 @@ enum fd_numbers
 
 register unsigned char *got_location asm("r9");
 
-__attribute__((naked)) void _start()
-{
-    asm("pop {r0, r1}\n\t"
-        "movs r9, r1\n\t"
-        "movs r2, #0\n\t"
-        "movs lr, r2\n\t"
-        "bl main\n\t");
-}
-
 extern L4_utcb_t __utcb;
 
 static unsigned char *ipc_buffer[IPC_BUFFER_SIZE];
@@ -150,4 +141,13 @@ int main()
             continue;
         }
     }
+}
+
+__attribute__((naked)) void _start()
+{
+    asm("pop {r0, r1}\n\t"
+        "movs r9, r1\n\t"
+        "movs r2, #0\n\t"
+        "movs lr, r2\n\t"
+        "bl %c[main]\n\t" ::[main] ""(main));
 }
