@@ -468,7 +468,20 @@ static void handle_vfs_map(L4_thread_id from, L4_msg_tag_t msg_tag)
 
 static L4_msg_buffer_t ipc_buffers;
 
-__attribute__((noreturn)) static void romfs_main(L4_utcb_t *utcb)
+__attribute__((noreturn)) static void romfs_main(L4_utcb_t *utcb);
+
+__attribute__((noreturn, naked, section(".text.startup"))) void romfs_start()
+{
+    asm volatile("pop {r0, r1}\n\t"
+                 "movs r9, r1\n\t"
+                 "b %c[romfs_main]\n\t"
+                 :
+                 : [romfs_main] ""(romfs_main)
+                 : "r0", "r1");
+}
+
+__attribute__((noreturn, section(".text.startup"))) static void
+romfs_main(L4_utcb_t *utcb)
 {
     (void)utcb;
     locate_romfs_start(the_kip);
@@ -530,14 +543,4 @@ __attribute__((noreturn)) static void romfs_main(L4_utcb_t *utcb)
     }
     // In case we reach the end of this program, delete us
     delete_romfs_thread();
-}
-
-__attribute__((noreturn, naked)) void romfs_start()
-{
-    asm volatile("pop {r0, r1}\n\t"
-                 "movs r9, r1\n\t"
-                 "b %c[romfs_main]\n\t"
-                 :
-                 : [romfs_main]""(romfs_main)
-                 : "r0", "r1");
 }
