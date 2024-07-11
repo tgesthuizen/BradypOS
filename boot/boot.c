@@ -1,11 +1,11 @@
 #include "bootinfo.h"
-#include "string.h"
 
 #include <libelf.h>
 #include <romfs.h>
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 extern unsigned char __stack_top[];
 int main();
@@ -89,16 +89,6 @@ static void romfs_rom_unmap(void **data, size_t size, void *user)
 static const struct romfs_block_iface romfs_rom_mapping = {
     .map = romfs_rom_map, .unmap = romfs_rom_unmap};
 
-static bool memcmp(const char *lhs, const char *rhs, size_t len)
-{
-    while (len--)
-    {
-        if (*lhs++ != *rhs++)
-            return false;
-    }
-    return true;
-}
-
 struct elf_file_state
 {
     unsigned char *elf_file_base;
@@ -174,7 +164,7 @@ int main()
                              NULL))
             continue;
         // This is safe: The buffer for the filename is at least 16 bytes long
-        if (memcmp(file_info.name, sbin_dir_name, sizeof(sbin_dir_name)))
+        if (memcmp(file_info.name, sbin_dir_name, sizeof(sbin_dir_name)) == 0)
         {
             sbin_dir = current_file;
             break;
