@@ -71,7 +71,7 @@ SECTIONS
       *(.dynamic)
     } :rw :dynamic
     .got : {
-      PROVIDE(__global_offset_table = .);
+      __global_offset_table = .;
       *(.got)
       *(.got.*)
     } :rw
