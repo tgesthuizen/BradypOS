@@ -102,14 +102,15 @@ size_t romfs_next_file(const struct romfs_block_iface *iface, size_t file,
     return next_field & ~0b1111;
 }
 
-static bool romfs_strequal(const char *lhs, const char *rhs)
+__attribute__((weak)) int strcmp(const char *lhs, const char *rhs)
 {
     while (*lhs && *rhs)
     {
-        if (*lhs++ != *rhs++)
-            return false;
+        int diff = *lhs++ - *rhs++;
+        if (diff)
+            return diff;
     }
-    return *lhs == *rhs;
+    return *lhs - *rhs;
 }
 
 size_t romfs_openat(const struct romfs_block_iface *iface, size_t file,
@@ -132,7 +133,7 @@ size_t romfs_openat(const struct romfs_block_iface *iface, size_t file,
         {
             continue;
         }
-        if (romfs_strequal(file_info.name, name))
+        if (strcmp(file_info.name, name) == 0)
             return current_file;
     }
     return ROMFS_INVALID_FILE;
