@@ -320,9 +320,9 @@ int main()
 
 __attribute__((naked)) void _start()
 {
-    asm volatile ("pop {r0, r1}\n\t"
-        "movs r9, r1\n\t"
-        "movs r2, #0\n\t"
-        "movs lr, r2\n\t"
-		  "bl %c[main]\n\t" :: [main]""(main));
+    asm volatile("pop {r0, r1}\n\t"
+                 "movs r9, r1\n\t"
+                 "movs r2, #0\n\t"
+                 "movs lr, r2\n\t"
+                 "bl %c[main]\n\t" ::[main] ""(main));
 }
