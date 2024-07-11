@@ -15,10 +15,10 @@ SECTIONS
 {
     # The executable is required to start with these sections!
     .boot2 : {
-        *(.boot2)
+        KEEP(*(.boot2))
     } >FLASH
     .vector : {
-        *(.vector)
+        KEEP(*(.vector))
     } >FLASH
 
     # Normal linking starts here
