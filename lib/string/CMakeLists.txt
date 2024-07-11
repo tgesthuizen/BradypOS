@@ -18,6 +18,7 @@ target_compile_options(
   libstring${LIBSTRING_TARGET_POSTFIX}
   PRIVATE
   -ffreestanding
+  -ffunction-sections
   # Forbid LTO
   # This prohibits a bug in GCCs optimizer, recognizing the structure
   # of memset and generating a call to it - when inlining memset.
