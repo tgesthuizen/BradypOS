@@ -109,10 +109,7 @@ static int elf_read_file(size_t offset, size_t size, void *data, void *user)
 {
     struct elf_file_state *const state = user;
     unsigned char *ucdata = data;
-    for (size_t i = 0; i < size; ++i)
-    {
-        ucdata[i] = state->elf_file_base[offset + i];
-    }
+    memcpy(ucdata, state->elf_file_base + offset, size);
     return 0;
 }
 
