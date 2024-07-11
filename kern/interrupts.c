@@ -32,8 +32,8 @@ void interrupts_init()
 {
     // BUG: Setting NVIC priorities makes the system hardfault when interrupts
     // are enabled.
-    // for (int i = 0; i < 32; ++i)
-    //     nvic_set_priority(i, DEFAULT_IRQ_PRIORITY << 30);
+    for (int i = 0; i < 32; ++i)
+        nvic_set_priority(i, DEFAULT_IRQ_PRIORITY << 30);
     // Disable all IRQs
     *(volatile unsigned *)NVIC_ICER = ~0;
     *(volatile unsigned *)(PPB_BASE + SHPR2_OFFSET) = (SVCALL_PRIORITY << 30);
