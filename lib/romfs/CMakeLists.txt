@@ -11,7 +11,12 @@ add_library(
   romfs.c
 )
 target_include_directories(libromfs${LIBROMFS_TARGET_POSTFIX} PUBLIC include)
-target_compile_options(libromfs${LIBROMFS_TARGET_POSTFIX} PRIVATE -ffreestanding)
+target_compile_options(
+  libromfs${LIBROMFS_TARGET_POSTFIX}
+  PRIVATE
+  -ffreestanding
+  -ffunction-sections
+)
 set_target_properties(
   libromfs${LIBROMFS_TARGET_POSTFIX}
   PROPERTIES
