@@ -40,6 +40,7 @@ target_link_libraries(
   libromfs
   libroot
   libstring
+  libvfs
 )
 target_link_options(
   root

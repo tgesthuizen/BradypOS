@@ -17,6 +17,7 @@ target_link_libraries(
   PUBLIC
   l4
   libstring
+  libvfs
 )
 target_link_options(
   bsh
