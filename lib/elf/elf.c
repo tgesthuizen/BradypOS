@@ -209,7 +209,7 @@ static unsigned elf_hash(const unsigned char *name)
     return h;
 }
 
-int elf_strcmp(const char *lhs, const char *rhs)
+__attribute__((weak)) int strcmp(const char *lhs, const char *rhs)
 {
     while (*lhs != '\0' && *lhs == *rhs)
     {
@@ -263,7 +263,7 @@ int locate_elf_symbol(struct libelf_state *state, const char *symbol,
         if (symidx == STN_UNDEF)
             break;
         sym = &syms[symidx];
-        if (elf_strcmp(&strtab[sym->st_name], symbol) == 0)
+        if (strcmp(&strtab[sym->st_name], symbol) == 0)
         {
             found = true;
             break;
