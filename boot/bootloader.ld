@@ -34,24 +34,24 @@ SECTIONS
 	*(.data.*)
 	__data_end = .;
     } >RAM AT>FLASH
-    __data_len = __data_end - __data_start;
-    __data_lma = .;
+    PROVIDE(__data_len = __data_end - __data_start);
+    PROVIDE(__data_lma = .);
 
     .bss (NOLOAD) : {
-    	__bss_start = .;
+    	PROVIDE(__bss_start = .);
         *(.bss)
 	*(.bss.*)
-	__bss_end = .;
+	PROVIDE(__bss_end = .);
     } >RAM
-    __bss_len = __bss_end - __bss_start;
+    PROVIDE(__bss_len = __bss_end - __bss_start);
 
     .stack (NOLOAD) : {
-      __stack = ALIGN(0x10);
+      PROVIDE(__stack = ALIGN(0x10));
       . = . + 0x200;
-      __stack_top = .;
+      PROVIDE(__stack_top = .);
     } >SCRATCH_X
 
     .romfs : {
-      __romfs_start = ALIGN(1024);
+      PROVIDE(__romfs_start = ALIGN(1024));
     } >FLASH
 }
