@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2023 Free Software Foundation, Inc. */
+/* Copyright (C) 2014-2023 Free Software Foundation, Inc.
    Copyright (C) 2024 Tim Gesthuizen <tim@gesthuizen.net>
    Copying and distribution of this script, with or without modification,
    are permitted in any medium without royalty provided the copyright

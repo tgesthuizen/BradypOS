@@ -11,6 +11,7 @@ add_compile_options(
 )
 
 set(BRADYPOS_TARGET_PLATFORM "rp2040" CACHE STRING "Platform to target")
+set(BRADYPOS_ROM_APP_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/rom_app.ld")
 
 include(GNUInstallDirs)
 

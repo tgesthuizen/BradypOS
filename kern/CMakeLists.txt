@@ -12,14 +12,11 @@ target_include_directories(
   include
 )
 
-add_library(
-  libkern
-  INTERFACE
-)
+set(KERN_LINKER_SCRIPT "${BRADYPOS_ROM_APP_LINKER_SCRIPT}")
+set(KERN_VERSION_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/version.ld")
 
-target_sources(
-  libkern
-  INTERFACE
+add_executable(
+  kern
   debug.c
   interrupts.c
   kalarm.c
@@ -28,6 +25,7 @@ target_sources(
   memory.c
   platform.c
   softirq.c
+  start.s
   syscall.c
   syscall/ipc.c
   syscall/schedule.c
@@ -39,9 +37,10 @@ target_sources(
   thread.c
   vector.c
 )
+
 target_link_libraries(
-  libkern
-  INTERFACE
+  kern
+  PUBLIC
   heap
   kernel_headers
   l4
@@ -50,10 +49,31 @@ target_link_libraries(
   tinyprintf
 )
 target_compile_options(
-  libkern
-  INTERFACE
+  kern
+  PRIVATE
   -fvisibility=hidden
 )
+target_compile_options(
+  kern
+  PUBLIC
+  -fPIE
+  -msingle-pic-base
+  -mno-pic-data-is-text-relative
+)
+target_link_options(
+  kern
+  PUBLIC
+  -pie
+  -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
+  -T ${KERN_LINKER_SCRIPT}
+  -Wl,--version-script,${KERN_VERSION_SCRIPT}
+)
+set_target_properties(
+  kern
+  PROPERTIES
+  OUTPUT_NAME kern
+  LINK_DEPENDS "${KERN_LINKER_SCRIPT};${KERN_VERSION_SCRIPT}"
+)
 
-add_subdirectory(platform/${BRADYPOS_TARGET_PLATFORM})
+
 add_subdirectory(ssp)
