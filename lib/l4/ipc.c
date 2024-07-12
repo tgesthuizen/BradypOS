@@ -12,10 +12,21 @@ void L4_set_msg_tag(L4_msg_tag_t tag);
 
 void L4_put(L4_msg_t *msg, unsigned l, int u, unsigned *ut, unsigned t,
             unsigned *items)
-{ // TODO
+{
+    (void)msg;
+    (void)l;
+    (void)u;
+    (void)ut;
+    (void)t;
+    (void)items;
+    // TODO
 }
 void L4_get(L4_msg_t *msg, unsigned *ut, unsigned *items)
-{ // TODO
+{
+    (void)msg;
+    (void)ut;
+    (void)items;
+    // TODO
 }
 
 L4_msg_tag_t L4_msg_msg_tag(L4_msg_t *msg);
@@ -66,21 +77,28 @@ L4_fpage_t L4_recv_window(L4_acceptor_t acceptor);
 void L4_accept(L4_acceptor_t acceptor);
 void L4_accept_strings(L4_acceptor_t acceptor, struct L4_msg_buffer *strings)
 {
+    (void)acceptor;
+    (void)strings;
     // TODO
 }
 L4_acceptor_t L4_accepted();
 void L4_msg_buffer_clear(L4_msg_buffer_t *buffer)
 {
+    (void)buffer;
     // TODO
 }
 void L4_msg_buffer_append_simple_rcv_string(L4_msg_buffer_t *buffer,
                                             unsigned string_item)
 {
+    (void)buffer;
+    (void)string_item;
     // TODO
 }
-void L4_msg_buffer_append_rcv_string(L4_msg_buffer_t *bufer,
+void L4_msg_buffer_append_rcv_string(L4_msg_buffer_t *buffer,
                                      unsigned *string_items)
 {
+    (void)buffer;
+    (void)string_items;
     // TODO
 }
 void L4_store_br(int i, unsigned *word);
