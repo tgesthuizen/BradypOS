@@ -88,8 +88,12 @@ static int relocate_elf_file(struct libelf_state *state)
         }
     }
 
+    (void)rel_sz;
+    (void)total_rel_sz;
+    (void)relcount;
     // TODO: Respect total_rel_sz, relcount and rel_sz instead of implicit
     // assumptions made below
+
     for (; current_reloc->r_info != R_ARM_NONE; ++current_reloc)
     {
         switch (current_reloc->r_info)
