@@ -16,6 +16,7 @@ target_link_libraries(
   PUBLIC
   l4
   semihosting
+  libstring
 )
 
 target_link_options(
