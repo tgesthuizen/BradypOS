@@ -71,15 +71,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 struct param
 {
+    unsigned int width;    /**<  field width */
+    unsigned int base;     /**<  number base (e.g.: 8, 10, 16) */
+    char *bf;              /**<  Buffer to output */
+    char sign;             /**<  The sign to display (if any) */
     unsigned char lz : 1;  /**<  Leading zeros */
     unsigned char alt : 1; /**<  alternate form */
     unsigned char uc : 1;  /**<  Upper case (for base16 only) */
     unsigned char
         align_left : 1; /**<  0 == align right (default), 1 == align left */
-    unsigned int width; /**<  field width */
-    char sign;          /**<  The sign to display (if any) */
-    unsigned int base;  /**<  number base (e.g.: 8, 10, 16) */
-    char *bf;           /**<  Buffer to output */
 };
 
 #ifdef PRINTF_LONG_LONG_SUPPORT
