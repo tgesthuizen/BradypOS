@@ -12,6 +12,9 @@ jobs:
         build-flags:
           - name: "Release"
             build-type: "Release"
+          - name: "Release-LTO"
+            build-type: "Release"
+            extra-flags: "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON"
           - name: "Debug"
             build-type: "Debug"
           - name: "MinSizeRel"
