@@ -49,7 +49,8 @@ void nvic_set_pending(unsigned interrupt, bool pends);
             "bl " #func "\n\t"                                                 \
             "pop {r0}\n\t"                                                     \
             "movs r9, r0\n\t"                                                  \
-            "pop {pc}\n\t");                                                   \
+            "pop {pc}\n\t"                                                     \
+            ".pool\n\t");                                                      \
     }
 #else
 #define DECLARE_ISR(isr, func)                                                 \
@@ -63,7 +64,8 @@ void nvic_set_pending(unsigned interrupt, bool pends);
             "bl " #func "\n\t"                                                 \
             "pop {r0}\n\t"                                                     \
             "movs r9, r0\n\t"                                                  \
-            "pop {pc}\n\t");                                                   \
+            "pop {pc}\n\t"                                                     \
+            ".pool\n\t");                                                      \
     }
 
 #endif
