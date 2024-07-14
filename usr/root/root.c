@@ -37,7 +37,7 @@ enum
 };
 static unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
 
-__attribute__((section(".text.startup"))) int main()
+int main()
 {
 
     the_kip = L4_kernel_interface(NULL, NULL, NULL);
@@ -138,7 +138,16 @@ __attribute__((section(".text.startup"))) int main()
     }
 }
 
-__attribute__((naked, section(".text.startup"))) void _start()
+__attribute__((naked)) void _start()
 {
-    __asm__("b %c[main]\n\t" ::[main] ""(main));
+    __asm__("movs r0, #0\n\t"
+            "movs lr, r0\n\t"
+            "ldr  r0, .Lmain_got\n\t"
+            "movs r1, r9\n\t"
+            "ldr  r0, [r0, r1]\n\t"
+            "bx   r0\n\t"
+            ".align 2\n"
+            ".Lmain_got:\n\t"
+            ".word %c[main](GOT)\n\t" ::[main] ""(main)
+            : "r0", "r1");
 }
