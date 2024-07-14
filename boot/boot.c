@@ -64,7 +64,8 @@ __attribute__((naked)) void _start()
                  "ldr  r2, =__data_len\n\t"
                  "bl   %c[memcpy]\n\t"
                  "bl   %c[main]\n\t"
-                 "b    ." ::[memset] "i"(memset),
+                 "b    .\n\t"
+                 ".pool\n\t" ::[memset] "i"(memset),
                  [memcpy] "i"(memcpy), [main] "i"(main)
                  : "r0", "r1", "r2", "lr");
 }
