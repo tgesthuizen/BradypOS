@@ -27,12 +27,12 @@ SECTIONS
 	*(.text.*)
     } >FLASH
     .data : {
-    	__sram_start = .;
+    	PROVIDE(__sram_start = .);
     	. += 0x8000; # Give some headroom for kernel and root segments in SRAM
-        __data_start = .;
+        PROVIDE(__data_start = .);
         *(.data)
 	*(.data.*)
-	__data_end = .;
+	PROVIDE(__data_end = .);
     } >RAM AT>FLASH
     PROVIDE(__data_len = __data_end - __data_start);
     PROVIDE(__data_lma = .);
