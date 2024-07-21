@@ -59,10 +59,3 @@ __L4_boot_info:
 
 	# Fill the rest of the page
 	.fill (the_kip + 1024) - .
-
-	/* HACK: This is required to reliably link with libl4 at the
-	 * moment, but should be solved properly instead
-	 */
-.section ".rodata", "da"
-	.global __utcb
-	.set __utcb, 0
