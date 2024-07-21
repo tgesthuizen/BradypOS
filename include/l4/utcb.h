@@ -32,4 +32,7 @@ typedef struct L4_utcb L4_utcb_t;
 
 #define L4_UTCB_SIZE (sizeof(struct L4_utcb_t))
 
+// Non-standard extension
+__attribute__((const)) L4_utcb_t *L4_my_utcb();
+
 #endif

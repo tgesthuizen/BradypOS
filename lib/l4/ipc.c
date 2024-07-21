@@ -39,14 +39,14 @@ void L4_msg_load(L4_msg_t *msg)
     const L4_msg_tag_t tag = {.raw = msg->raw[0]};
     const unsigned total_words = tag.u + tag.t + 1;
     for (unsigned i = 0; i < total_words; ++i)
-        __utcb.mr[i] = msg->raw[i];
+        L4_my_utcb()->mr[i] = msg->raw[i];
 }
 
 void L4_msg_store(L4_msg_tag_t tag, L4_msg_t *msg)
 {
     const unsigned total_words = tag.u + tag.t + 1;
     for (unsigned i = 0; i < total_words; ++i)
-        msg->raw[i] = __utcb.mr[i];
+        msg->raw[i] = L4_my_utcb()->mr[i];
 }
 
 void L4_msg_clear(L4_msg_t *msg);

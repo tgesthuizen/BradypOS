@@ -57,7 +57,7 @@ int main()
             my_thread_id, 0,
             L4_fpage_add_rights(L4_fpage_log2((unsigned)the_kip, 10),
                                 L4_readable),
-            L4_fpage_add_rights(L4_fpage_log2((unsigned)&__utcb, 9),
+            L4_fpage_add_rights(L4_fpage_log2((unsigned)L4_my_utcb(), 9),
                                 L4_readable | L4_writable),
             L4_NILTHREAD, &old_ctrl) != 1)
     {
@@ -66,10 +66,10 @@ int main()
 
     romfs_thread_id = L4_global_id(L4_USER_THREAD_START + 1, 1);
     romfs_server_utcb =
-        (struct L4_utcb_t *)((unsigned char *)&__utcb + UTCB_ALIGN);
+        (struct L4_utcb_t *)((unsigned char *)L4_my_utcb() + UTCB_ALIGN);
     if (L4_thread_control(romfs_thread_id, my_thread_id, my_thread_id,
                           my_thread_id,
-                          (unsigned char *)&__utcb + UTCB_ALIGN) != 1)
+                          (unsigned char *)L4_my_utcb() + UTCB_ALIGN) != 1)
     {
         kill_root_thread();
     }

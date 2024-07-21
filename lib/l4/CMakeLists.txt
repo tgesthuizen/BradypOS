@@ -6,6 +6,7 @@ add_library(
   schedule.c
   space.c
   thread.c
+  utcb.c
 )
 target_link_libraries(
   l4

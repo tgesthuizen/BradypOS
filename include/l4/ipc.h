@@ -56,17 +56,15 @@ inline L4_msg_tag_t *L4_msg_tg_add_label_to(L4_msg_tag_t *tag, unsigned label)
     return tag;
 }
 
-extern L4_utcb_t __utcb;
-
 inline L4_msg_tag_t L4_msg_tag()
 {
     L4_msg_tag_t res;
-    res.raw = __utcb.mr[0];
+    res.raw = L4_my_utcb()->mr[0];
     return res;
 }
 inline void L4_set_msg_tag(L4_msg_tag_t tag)
 {
-    __utcb.mr[0] = (unsigned)tag.raw;
+    L4_my_utcb()->mr[0] = (unsigned)tag.raw;
 }
 
 struct L4_msg
@@ -116,17 +114,17 @@ inline void L4_msg_clear(L4_msg_t *msg)
 
 // Low-Level MR Access
 
-inline void L4_store_mr(int i, unsigned *word) { *word = __utcb.mr[i]; }
-inline void L4_load_mr(int i, unsigned word) { __utcb.mr[i] = word; }
+inline void L4_store_mr(int i, unsigned *word) { *word = L4_my_utcb()->mr[i]; }
+inline void L4_load_mr(int i, unsigned word) { L4_my_utcb()->mr[i] = word; }
 inline void L4_store_mrs(int offset, int count, unsigned *words)
 {
     for (int i = 0; i < count; ++i)
-        words[i] = __utcb.mr[i + offset];
+        words[i] = L4_my_utcb()->mr[i + offset];
 }
 inline void L4_load_mrs(int offset, int count, const unsigned *words)
 {
     for (int i = 0; i < count; ++i)
-        __utcb.mr[i + offset] = words[i];
+        L4_my_utcb()->mr[i + offset] = words[i];
 }
 
 enum L4_typed_item_kind
@@ -316,11 +314,14 @@ inline L4_fpage_t L4_recv_window(L4_acceptor_t acceptor)
 
 struct L4_msg_buffer;
 
-inline void L4_accept(L4_acceptor_t acceptor) { __utcb.br[0] = acceptor.raw; }
+inline void L4_accept(L4_acceptor_t acceptor)
+{
+    L4_my_utcb()->br[0] = acceptor.raw;
+}
 void L4_accept_strings(L4_acceptor_t acceptor, struct L4_msg_buffer *strings);
 inline L4_acceptor_t L4_accepted()
 {
-    return (L4_acceptor_t){.raw = __utcb.br[0]};
+    return (L4_acceptor_t){.raw = L4_my_utcb()->br[0]};
 }
 
 struct L4_msg_buffer
@@ -335,17 +336,17 @@ void L4_msg_buffer_append_simple_rcv_string(L4_msg_buffer_t *buffer,
 void L4_msg_buffer_append_rcv_string(L4_msg_buffer_t *bufer,
                                      unsigned *string_items);
 
-inline void L4_store_br(int i, unsigned *word) { *word = __utcb.br[i]; }
-inline void L4_load_br(int i, unsigned word) { __utcb.br[i] = word; }
+inline void L4_store_br(int i, unsigned *word) { *word = L4_my_utcb()->br[i]; }
+inline void L4_load_br(int i, unsigned word) { L4_my_utcb()->br[i] = word; }
 inline void L4_store_brs(int i, int k, unsigned *words)
 {
     for (int j = 0; j < k; ++j)
-        words[j] = __utcb.br[i + j];
+        words[j] = L4_my_utcb()->br[i + j];
 }
 inline void L4_load_brs(int i, int k, unsigned *words)
 {
     for (int j = 0; j < k; ++j)
-        __utcb.br[i + j] = words[j];
+        L4_my_utcb()->br[i + j] = words[j];
 }
 
 // Non-standard extension
@@ -419,14 +420,20 @@ inline bool L4_ipc_xcpu(L4_msg_tag_t tag)
 {
     return (tag.flags & (1 << L4_ipc_flag_cross_processor_ipc)) != 0;
 }
-inline unsigned L4_error_code() { return __utcb.error; }
-inline L4_thread_id L4_intended_receiver() { return __utcb.intended_receiver; }
-inline L4_thread_id L4_actual_sender() { return __utcb.sender; }
+inline unsigned L4_error_code() { return L4_my_utcb()->error; }
+inline L4_thread_id L4_intended_receiver()
+{
+    return L4_my_utcb()->intended_receiver;
+}
+inline L4_thread_id L4_actual_sender() { return L4_my_utcb()->sender; }
 inline void L4_set_propagation(L4_msg_tag_t *tag)
 {
     tag->flags |= L4_ipc_flag_propagated_ipc;
 }
-inline void L4_virtual_sender(L4_thread_id sender) { __utcb.sender = sender; }
+inline void L4_virtual_sender(L4_thread_id sender)
+{
+    L4_my_utcb()->sender = sender;
+}
 inline unsigned L4_timeouts(L4_time_t snd_timeout, L4_time_t recv_timeout)
 {
     return ((unsigned)snd_timeout.raw << 16) | recv_timeout.raw;
