@@ -35,8 +35,19 @@ enum
     UTCB_ALIGN = 160,
     ROMFS_SERVER_STACK_SIZE = 512,
 };
-static __attribute__((
-    aligned(16))) unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
+static unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE]
+    __attribute__((aligned(16)));
+
+L4_utcb_t *L4_my_utcb()
+{
+    register unsigned char *const sp asm("sp");
+    // Identify root / romfs thread via the stack pointer
+    const bool is_romfs_thread =
+        (sp > &*romfs_server_stack) &&
+        (sp <= (&*romfs_server_stack + ROMFS_SERVER_STACK_SIZE));
+    extern unsigned char __utcb;
+    return (L4_utcb_t *)(&__utcb + is_romfs_thread * UTCB_ALIGN);
+}
 
 int main()
 {
