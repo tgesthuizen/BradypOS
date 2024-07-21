@@ -35,7 +35,8 @@ enum
     UTCB_ALIGN = 160,
     ROMFS_SERVER_STACK_SIZE = 512,
 };
-static unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
+static __attribute__((
+    aligned(16))) unsigned char romfs_server_stack[ROMFS_SERVER_STACK_SIZE];
 
 int main()
 {
