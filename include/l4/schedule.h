@@ -96,8 +96,8 @@ inline unsigned L4_schedule(L4_thread_id dest, unsigned time_control,
     register unsigned pc asm("r2") = processor_control;
     register unsigned rprio asm("r3") = prio;
     register unsigned rprec asm("r4") = preemption_control;
-    unsigned result;
-    unsigned rold_time_control;
+    register unsigned result asm("r0");
+    register unsigned rold_time_control asm("r1");
     asm volatile("movs r7, %[SYS_SCHEDULE]\n\t"
                  "svc #0\n\t"
                  : "=l"(result), "=l"(rold_time_control)

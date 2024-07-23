@@ -52,7 +52,7 @@ inline unsigned L4_thread_control(L4_thread_id dest,
     register L4_thread_id rs asm("r2") = scheduler;
     register L4_thread_id rp asm("r3") = pager;
     register void *rul asm("r4") = utcb_location;
-    unsigned ret;
+    register unsigned ret asm("r0");
     asm volatile("movs r7, %[SYS_THREAD_CONTROL]\n\t"
                  "svc #0\n\t"
                  : "=r"(ret)
