@@ -1,5 +1,6 @@
 #include "config.h"
 #include "memory.h"
+#include "variables.h"
 #include <errno.h>
 #include <l4/ipc.h>
 #include <l4/kip.h>
@@ -45,8 +46,8 @@ L4_utcb_t *L4_my_utcb()
     const bool is_romfs_thread =
         (sp > &*romfs_server_stack) &&
         (sp <= (&*romfs_server_stack + ROMFS_SERVER_STACK_SIZE));
-    extern unsigned char __utcb;
-    return (L4_utcb_t *)(&__utcb + is_romfs_thread * UTCB_ALIGN);
+    return (L4_utcb_t *)((unsigned char *)&__utcb +
+                         is_romfs_thread * UTCB_ALIGN);
 }
 
 int main()
