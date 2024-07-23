@@ -9,7 +9,7 @@ define launch_into_kernel
   file build/boot/boot.elf
   break gdb_intercept_elf_positions_here
   commands $bpnum
-    add-symbol-file-for-pie build/kern/platform/rp2040/kern kern_state
+    add-symbol-file-for-pie build/kern/kern kern_state
     add-symbol-file-for-pie build/usr/root/root root_state
     cont
   end
