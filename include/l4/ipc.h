@@ -58,9 +58,7 @@ inline L4_msg_tag_t *L4_msg_tg_add_label_to(L4_msg_tag_t *tag, unsigned label)
 
 inline L4_msg_tag_t L4_msg_tag()
 {
-    L4_msg_tag_t res;
-    res.raw = L4_my_utcb()->mr[0];
-    return res;
+    return (L4_msg_tag_t){.raw = L4_my_utcb()->mr[0]};
 }
 inline void L4_set_msg_tag(L4_msg_tag_t tag)
 {
