@@ -25,7 +25,7 @@ register unsigned char *got_location asm("r9");
 
 extern L4_utcb_t __utcb;
 
-static unsigned char *ipc_buffer[IPC_BUFFER_SIZE];
+static unsigned char ipc_buffer[IPC_BUFFER_SIZE];
 
 static void make_ipc_error(int errno)
 {
