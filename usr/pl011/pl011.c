@@ -10,6 +10,36 @@ enum
     IPC_BUFFER_SIZE = 128,
 };
 
+enum pl011_offsets
+{
+    PL011_UARTDR = 0x000,
+    PL011_UARTRSR = 0x004,
+    PL011_UARTFR = 0x018,
+    PL011_UARTILPR = 0x020,
+    PL011_UARTIBRD = 0x024,
+    PL011_UARTFBRD = 0x028,
+    PL011_UARTLCR_H = 0x02C,
+    PL011_UARTCR = 0x030,
+    PL011_UARTIFLS = 0x034,
+    PL011_UARTIMSC = 0x038,
+    PL011_UARTRIS = 0x03C,
+    PL011_UARTMIS = 0x040,
+    PL011_UARTICR = 0x044,
+    PL011_UARTDMACR = 0x048,
+    PL011_UARTPeriphID0 = 0xFE0,
+    PL011_UARTPeriphID1 = 0xFE4,
+    PL011_UARTPeriphID2 = 0xFE8,
+    PL011_UARTPeriphID3 = 0xFEC,
+    PL011_UARTPCellID0 = 0xFF0,
+    PL011_UARTPCellID1 = 0xFF4,
+    PL011_UARTPCellID2 = 0xFF8,
+    PL011_UARTPCellID3 = 0xFFC,
+};
+
+static unsigned char *uart_start;
+
+#define UART_REGISTER(reg, type) (*((volatile type *)uart_start + reg))
+
 extern L4_utcb_t __utcb;
 static unsigned char ipc_buffer[IPC_BUFFER_SIZE];
 
@@ -104,6 +134,13 @@ static void register_service()
 
 int main()
 {
+    // Detect UART
+
+    // Write UARTLCR_H
+
+    // Write UARTIBRD
+    // Write UARTFBRD
+
     register_service();
     const L4_acceptor_t acceptor = L4_string_items_acceptor;
     const struct L4_simple_string_item string_acceptor = {
