@@ -28,6 +28,8 @@ static void swap_fds(int *fda, int *fdb)
     *fdb = (tmp == ROOT_FD) ? OTHER_FD_START : tmp;
 }
 
+static char filename_buf[VFS_PATH_MAX];
+
 static void parse(L4_thread_id romfs_server, const char *str_start,
                   const char *end)
 {
@@ -88,7 +90,7 @@ static void parse(L4_thread_id romfs_server, const char *str_start,
                             pos - str_start))
                 {
                     struct vfs_stat_result file_stat =
-                        stat(romfs_server, file_fd);
+                        stat(romfs_server, file_fd, filename_buf);
                     struct map_result exe_mapping =
                         map(romfs_server, file_fd, 0, file_stat.size);
                     if (!L4_is_nil_fpage(exe_mapping.fpage))
@@ -157,7 +159,8 @@ void parse_init_config(L4_thread_id romfs_server)
                  sizeof(inittab_path) - 1))
         kill_root_thread();
     close(romfs_server, ETC_FD);
-    const struct vfs_stat_result inittab_stat = stat(romfs_server, INITTAB_FD);
+    const struct vfs_stat_result inittab_stat =
+        stat(romfs_server, INITTAB_FD, filename_buf);
     if (!inittab_stat.success)
         kill_root_thread();
     const struct map_result inittab_mapping =

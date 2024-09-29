@@ -367,6 +367,14 @@ static void handle_vfs_stat(L4_thread_id from, L4_msg_tag_t msg_tag)
         break;
     }
     L4_load_mr(VFS_STAT_RET_TYPE, (unsigned)vfs_type);
+    const size_t name_len = strlen(file_info.name);
+    const struct L4_simple_string_item name_item = {
+        .type = L4_data_type_string_item,
+        .compound = 0,
+        .length = name_len,
+        .ptr = (unsigned)&file_info.name,
+    };
+    L4_load_mrs(VFS_STAT_RET_NAME, 2, (const unsigned *)&name_item);
 }
 
 static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)

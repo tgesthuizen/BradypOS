@@ -1,4 +1,5 @@
 #include <l4/ipc.h>
+#include <vfs.h>
 #include <vfs/client.h>
 
 bool open_root_fd(L4_thread_id romfs_server, int fd)
@@ -62,27 +63,37 @@ bool close(L4_thread_id romfs_server, int fd)
     return !L4_ipc_failed(answer_tag) && answer_tag.label == VFS_CLOSE_RET;
 }
 
-struct vfs_stat_result stat(L4_thread_id romfs_server, int fd)
+struct vfs_stat_result stat(L4_thread_id romfs_server, int fd,
+                            char *filename_buf)
 {
     L4_load_mr(
         VFS_STAT_OP,
         (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = VFS_STAT}.raw);
     L4_load_mr(VFS_STAT_FD, fd);
     L4_thread_id from;
-    struct vfs_stat_result result = {
-        .success = false, .type = VFS_FT_OTHER, .size = 0};
+    const struct L4_simple_string_item buffer = {.type =
+                                                     L4_data_type_string_item,
+                                                 .c = 0,
+                                                 .compound = 0,
+                                                 .length = VFS_PATH_MAX,
+                                                 .ptr = (unsigned)filename_buf};
+    L4_accept(L4_string_items_acceptor);
+    L4_load_brs(1, 2, (unsigned *)&buffer);
+    struct vfs_stat_result result = {.success = false,
+                                     .type = VFS_FT_OTHER,
+                                     .size = 0,
+                                     .file_name = filename_buf};
     const L4_msg_tag_t answer_tag = L4_ipc(
         romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
     if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_STAT_RET)
-    {
         return result;
-    }
 
     unsigned result_type;
     L4_store_mr(VFS_STAT_RET_TYPE, &result_type);
     result.type = result_type;
     L4_store_mr(VFS_STAT_RET_SIZE, &result.size);
     result.success = true;
+
     return result;
 }
 

@@ -17,9 +17,20 @@ struct vfs_stat_result
     bool success;
     enum vfs_file_type type;
     size_t size;
+    char *file_name;
 };
 
-struct vfs_stat_result stat(L4_thread_id romfs_server, int fd);
+/**
+ * @brief Returns the stats for @p fd in @p romfs_server
+ * @param romfs_server Thread ID of the target server
+ * @param fd File descriptor to get stats for
+ * @param result Struct to store results in
+ *
+ * @p result needs to have file_name point to a buffer of at least VFS_PATH_MAX
+ * bytes.
+ */
+struct vfs_stat_result stat(L4_thread_id romfs_server, int fd,
+                            char *filename_buf);
 
 struct map_result
 {

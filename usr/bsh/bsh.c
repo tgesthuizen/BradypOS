@@ -5,6 +5,7 @@
 #include <service.h>
 #include <string.h>
 #include <term.h>
+#include <vfs.h>
 #include <vfs/client.h>
 
 enum
@@ -16,6 +17,7 @@ register unsigned char *got_location asm("r9");
 
 extern L4_utcb_t __utcb;
 static unsigned char ipc_buffer[IPC_BUFFER_SIZE];
+static char filename_buf[VFS_PATH_MAX];
 static L4_thread_id term_service;
 static L4_thread_id romfs_service;
 
@@ -114,7 +116,8 @@ static void startup()
         {
             return;
         }
-        struct vfs_stat_result motd_stat = stat(romfs_service, MOTD_FD);
+        struct vfs_stat_result motd_stat =
+            stat(romfs_service, MOTD_FD, filename_buf);
         if (!motd_stat.success)
         {
             return;
@@ -134,7 +137,8 @@ static void startup()
         {
             return;
         }
-        struct vfs_stat_result version_stat = stat(romfs_service, VERSION_FD);
+        struct vfs_stat_result version_stat =
+            stat(romfs_service, VERSION_FD, filename_buf);
         if (!version_stat.success)
         {
             return;

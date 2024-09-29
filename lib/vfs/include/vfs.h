@@ -119,6 +119,7 @@ enum vfs_stat_ret_args
     VFS_STAT_RET_OP,
     VFS_STAT_RET_TYPE,
     VFS_STAT_RET_SIZE,
+    VFS_STAT_RET_NAME,
 };
 
 enum vfs_read_ret_args
