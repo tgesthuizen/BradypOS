@@ -124,3 +124,35 @@ struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
     result.fpage = L4_map_item_snd_fpage(&map_item);
     return result;
 }
+
+struct dirent_t readdir(L4_thread_id romfs_server, int fd, size_t offset,
+                        char *filename_buf)
+{
+    struct dirent_t result = {.success = false};
+    L4_load_mr(
+        VFS_READDIR_OP,
+        (L4_msg_tag_t){.u = 3, .t = 2, .flags = 0, .label = VFS_READDIR}.raw);
+    L4_load_mr(VFS_READDIR_FD, fd);
+    L4_load_mr(VFS_READDIR_OFFSET, offset);
+    L4_accept(L4_string_items_acceptor);
+    L4_load_brs(1, 2,
+                (unsigned *)&((struct L4_simple_string_item){
+                    .c = 0,
+                    .compound = 0,
+                    .type = L4_data_type_string_item,
+                    .length = VFS_PATH_MAX,
+                    .ptr = (unsigned)filename_buf}));
+    L4_thread_id from;
+    const L4_msg_tag_t answer_tag = L4_ipc(
+        romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_READDIR_RET ||
+        answer_tag.u != 3 || answer_tag.t != 2)
+        return result;
+    result.file_name = filename_buf;
+    unsigned type_raw;
+    L4_store_mr(VFS_READDIR_RET_TYPE, &type_raw);
+    result.type = type_raw;
+    L4_store_mr(VFS_READDIR_RET_SIZE, &result.size);
+    L4_store_mr(VFS_READDIR_RET_OFF_NEXT, &result.next_offset);
+    return result;
+}

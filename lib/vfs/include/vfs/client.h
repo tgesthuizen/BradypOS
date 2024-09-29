@@ -41,4 +41,23 @@ struct map_result
 struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
                       size_t size);
 
+struct dirent_t
+{
+    enum vfs_file_type type;
+    size_t size;
+    size_t next_offset;
+    char *file_name;
+    bool success;
+};
+
+/**
+ * @brief Reads a directory entry from @p fd in @p romfs_server
+ * @param romfs_server Thread ID of the server to contact.
+ * @param fd File descriptor of the directory in question
+ * @param offset Offset of the target file in the directory
+ * @param filename_buf Buffer of at least @c VFS_PATH_MAX bytes
+ */
+struct dirent_t readdir(L4_thread_id romfs_server, int fd, size_t offset,
+                        char *filename_buf);
+
 #endif

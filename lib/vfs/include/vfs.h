@@ -14,6 +14,7 @@ enum vfs_ops
     VFS_CLOSE,
     VFS_STAT,
     VFS_READ,
+    VFS_READDIR,
     VFS_WRITE,
     VFS_MAP,
 };
@@ -52,6 +53,13 @@ enum vfs_read_args
     VFS_READ_SIZE,
 };
 
+enum vfs_readdir_args
+{
+    VFS_READDIR_OP,
+    VFS_READDIR_FD,
+    VFS_READDIR_OFFSET,
+};
+
 enum vfs_write_args
 {
     VFS_WRITE_OP,
@@ -78,6 +86,7 @@ enum vfs_answer_ops
     VFS_CLOSE_RET,
     VFS_STAT_RET,
     VFS_READ_RET,
+    VFS_READDIR_RET,
     VFS_WRITE_RET,
     VFS_MAP_RET,
 };
@@ -126,6 +135,15 @@ enum vfs_read_ret_args
 {
     VFS_READ_RET_OP,
     VFS_READ_RET_CONTENT,
+};
+
+enum vfs_readdir_ret_args
+{
+    VFS_READIR_RET_OP,
+    VFS_READDIR_RET_TYPE,
+    VFS_READDIR_RET_SIZE,
+    VFS_READDIR_RET_OFF_NEXT,
+    VFS_READDIR_RET_NAME,
 };
 
 enum vfs_map_ret_args
