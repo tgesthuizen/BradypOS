@@ -415,6 +415,57 @@ static void handle_vfs_read(L4_thread_id from, L4_msg_tag_t msg_tag)
     L4_load_mrs(VFS_READ_RET_CONTENT, 2, (unsigned *)&content_string);
 }
 
+static void handle_vfs_readdir(L4_thread_id from, L4_msg_tag_t msg_tag)
+{
+    if (msg_tag.u != 2 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    size_t offset;
+    L4_store_mr(VFS_READDIR_FD, (unsigned *)&fd);
+    L4_store_mr(VFS_READDIR_OFFSET, &offset);
+    struct vfs_file_state *const file_state = find_vfs_file_state(from, fd);
+    if (file_state == NULL)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    if (offset == 0)
+    {
+        // If the user put offset zero, they want the first entry. Fetch it for
+        // them.
+        struct romfs_file_info info;
+        if (!romfs_file_info(&romfs_ops, file_state->file_off, &info, NULL))
+        {
+            make_ipc_error(EINVAL);
+            return;
+        }
+        offset = info.info;
+    }
+    struct romfs_file_info target_info;
+    if (!romfs_file_info(&romfs_ops, offset, &target_info, NULL))
+    {
+        make_ipc_error(ENOENT);
+        return;
+    }
+    L4_load_mr(
+        VFS_READDIR_RET_OP,
+        (L4_msg_tag_t){.u = 3, .t = 2, .flags = 0, .label = VFS_READ_RET}.raw);
+    L4_load_mr(VFS_READDIR_RET_TYPE, target_info.type);
+    L4_load_mr(VFS_READDIR_RET_SIZE, target_info.size);
+    L4_load_mr(VFS_READDIR_RET_OFF_NEXT,
+               romfs_next_file(&romfs_ops, offset, NULL));
+    L4_load_mrs(VFS_READDIR_RET_NAME, 2,
+                (unsigned *)&(struct L4_simple_string_item){
+                    .c = 0,
+                    .type = L4_data_type_string_item,
+                    .compound = 0,
+                    .length = strlen(target_info.name),
+                    .ptr = (unsigned)target_info.name});
+}
+
 static void handle_vfs_write(L4_thread_id from, L4_msg_tag_t msg_tag)
 {
     if (msg_tag.u != 3 || msg_tag.t != 2)
@@ -544,6 +595,9 @@ __attribute__((noreturn)) static void romfs_main(L4_utcb_t *utcb)
             break;
         case VFS_READ:
             handle_vfs_read(from, msg_tag);
+            break;
+        case VFS_READDIR:
+            handle_vfs_readdir(from, msg_tag);
             break;
         case VFS_WRITE:
             handle_vfs_write(from, msg_tag);
