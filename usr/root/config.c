@@ -6,11 +6,6 @@
 #include <string.h>
 #include <vfs/client.h>
 
-enum
-{
-    IPC_BUFFER_SIZE = 128,
-};
-
 void kill_root_thread();
 
 enum
