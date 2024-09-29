@@ -139,7 +139,7 @@ enum vfs_read_ret_args
 
 enum vfs_readdir_ret_args
 {
-    VFS_READIR_RET_OP,
+    VFS_READDIR_RET_OP,
     VFS_READDIR_RET_TYPE,
     VFS_READDIR_RET_SIZE,
     VFS_READDIR_RET_OFF_NEXT,
