@@ -11,6 +11,7 @@ add_executable(
 
   bsh.c
   data.s
+  parser.c
 )
 target_link_libraries(
   bsh
