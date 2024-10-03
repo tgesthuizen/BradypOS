@@ -1,0 +1,5 @@
+  /home/tibbe/src/BradypOS/usr/bsh/tests/parser_tests:
+  drwxrwxr-x 2 tibbe tibbe 4.0K Oct  4 01:06 .
+  drwxrwxr-x 3 tibbe tibbe 4.0K Oct  4 01:05 ..
+  -rw-rw-r-- 1 tibbe tibbe   33 Oct  4 01:06 basic_command.txt
+  -rw-rw-r-- 1 tibbe tibbe   15 Oct  4 01:06 incomplete_escape_sequence.txt
