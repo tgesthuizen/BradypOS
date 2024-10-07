@@ -10,6 +10,17 @@ size_t strlen(const char *str)
     return len;
 }
 
+int strcmp(const char *lhs, const char *rhs)
+{
+    while (*lhs && *rhs)
+    {
+        const int diff = *lhs - *rhs;
+        if (diff)
+            return diff;
+    }
+    return (lhs ? *lhs : 0) - (rhs ? *rhs : 0);
+}
+
 void *memset(void *dest, int ch, size_t size)
 {
     char *dest_c = dest;
