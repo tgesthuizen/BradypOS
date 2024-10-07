@@ -10,6 +10,7 @@ add_executable(
   bsh
 
   bsh.c
+  builtins.c
   data.s
   parser.c
 )

@@ -1,3 +1,5 @@
+#include "builtins.h"
+#include "parser.h"
 #include <l4/ipc.h>
 #include <l4/schedule.h>
 #include <l4/thread.h>
@@ -102,7 +104,6 @@ static void write_buffer(unsigned char *buf, size_t size)
 
 static void startup()
 {
-
     static const char etc_path[] = "etc";
     if (!open_at(romfs_service, ROOT_FD, ETC_FD, etc_path,
                  sizeof(etc_path) - 1))
@@ -155,6 +156,69 @@ static void startup()
     close(romfs_service, ETC_FD);
 }
 
+size_t ipc_buffer_size;
+size_t ipc_buffer_pos;
+
+static int read_next_chars()
+{
+    L4_load_br(0, L4_string_items_acceptor.raw);
+    struct L4_simple_string_item item = {.c = 0,
+                                         .type = L4_data_type_string_item,
+                                         .compound = 0,
+                                         .length = IPC_BUFFER_SIZE,
+                                         .ptr = (unsigned)&ipc_buffer};
+    L4_load_brs(1, 2, (unsigned *)&item);
+    L4_load_mr(
+        TERM_READ_OP,
+        (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = TERM_READ}.raw);
+    L4_load_mr(TERM_READ_FLAGS, 0);
+    L4_load_mr(TERM_READ_SIZE, IPC_BUFFER_SIZE);
+    L4_thread_id from;
+    L4_msg_tag_t answer_tag = L4_ipc(term_service, term_service,
+                                     L4_timeouts(L4_never, L4_never), &from);
+    const bool ipc_succeeded =
+        !L4_ipc_failed(answer_tag) && answer_tag.label == TERM_READ_RET;
+    if (!ipc_succeeded)
+        return -1;
+    L4_store_mrs(TERM_READ_RET_STR, 2, (unsigned int *)&item);
+    ipc_buffer_size = item.length;
+    ipc_buffer_pos = 0;
+    return 0;
+}
+
+int getch()
+{
+    if (ipc_buffer_pos == ipc_buffer_size)
+    {
+        const int ret = read_next_chars();
+        if (ret != 0)
+            return EOF;
+    }
+    return ipc_buffer[ipc_buffer_pos++];
+}
+
+void ungetch(int ch)
+{
+    // We accept @p c for compatibility with the standard C library. With our
+    // implementation, we do not rely on its value.
+    (void)ch;
+    --ipc_buffer_pos;
+}
+
+void exec_command(char **args)
+{
+    for (const struct bsh_builtin **builtin = builtins; *builtin; ++builtin)
+    {
+        if (strcmp(args[0], (*builtin)->cmd) == 0)
+        {
+            (*builtin)->handler(args);
+            return;
+        }
+    }
+    static const unsigned char invalid_msg[] = "Invalid command";
+    term_write(term_service, invalid_msg, sizeof invalid_msg);
+}
+
 int main()
 {
     term_service = wait_for_service("term");
@@ -169,25 +233,7 @@ int main()
     while (1)
     {
         term_write(term_service, (const unsigned char *)"> ", 2);
-        L4_load_br(0, L4_string_items_acceptor.raw);
-        struct L4_simple_string_item item = {.c = 0,
-                                             .type = L4_data_type_string_item,
-                                             .compound = 0,
-                                             .length = IPC_BUFFER_SIZE,
-                                             .ptr = (unsigned)&ipc_buffer};
-        L4_load_brs(1, 2, (unsigned *)&item);
-        L4_load_mr(
-            TERM_READ_OP,
-            (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = TERM_READ}.raw);
-        L4_load_mr(TERM_READ_FLAGS, 0);
-        L4_load_mr(TERM_READ_SIZE, IPC_BUFFER_SIZE);
-        L4_thread_id from;
-        L4_msg_tag_t answer_tag = L4_ipc(
-            term_service, term_service, L4_timeouts(L4_never, L4_never), &from);
-        if (L4_ipc_failed(answer_tag) || answer_tag.label != TERM_READ_RET)
-            break;
-        L4_store_mrs(TERM_READ_RET_STR, 2, (unsigned *)&item);
-        term_write(term_service, (const unsigned char *)item.ptr, item.length);
+        parse();
     }
 
     while (1)
