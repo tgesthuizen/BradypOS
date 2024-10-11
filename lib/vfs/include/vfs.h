@@ -17,6 +17,7 @@ enum vfs_ops
     VFS_READDIR,
     VFS_WRITE,
     VFS_MAP,
+    VFS_MOVE,
 };
 
 enum vfs_openroot_args
@@ -78,6 +79,13 @@ enum vfs_map_args
     VFS_MAP_PERM,
 };
 
+enum vfs_move_args
+{
+    VFS_MOVE_OP,
+    VFS_MOVE_FROM,
+    VFS_MOVE_TO,
+};
+
 enum vfs_answer_ops
 {
     VFS_ERROR,
@@ -89,6 +97,7 @@ enum vfs_answer_ops
     VFS_READDIR_RET,
     VFS_WRITE_RET,
     VFS_MAP_RET,
+    VFS_MOVE_RET,
 };
 
 enum vfs_error_ret_args
@@ -151,6 +160,12 @@ enum vfs_map_ret_args
     VFS_MAP_RET_OP,
     VFS_MAP_RET_ADDR,
     VFS_MAP_RET_MAP_ITEM,
+};
+
+enum vfs_move_ret_args
+{
+    VFS_MOVE_RET_OP,
+    VFS_MOVE_RET_FD,
 };
 
 #endif

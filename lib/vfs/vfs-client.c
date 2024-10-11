@@ -97,34 +97,6 @@ struct vfs_stat_result stat(L4_thread_id romfs_server, int fd,
     return result;
 }
 
-struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
-                      size_t size)
-{
-    const struct map_result invalid_result = {.fpage = L4_nilpage,
-                                              .addr = NULL};
-    L4_load_mr(
-        VFS_MAP_OP,
-        (L4_msg_tag_t){.u = 4, .t = 0, .flags = 0, .label = VFS_MAP}.raw);
-    L4_load_mr(VFS_MAP_FD, fd);
-    L4_load_mr(VFS_MAP_OFFSET, offset);
-    L4_load_mr(VFS_MAP_SIZE, size);
-    L4_load_mr(VFS_MAP_PERM, L4_readable);
-    L4_thread_id from;
-    const L4_msg_tag_t answer_tag = L4_ipc(
-        romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
-    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_MAP_RET ||
-        answer_tag.u != 1 || answer_tag.t != 2)
-        return invalid_result;
-    struct map_result result = invalid_result;
-    struct L4_map_item map_item;
-    unsigned address;
-    L4_store_mr(VFS_MAP_RET_ADDR, &address);
-    L4_store_mrs(VFS_MAP_RET_MAP_ITEM, 2, (unsigned *)&map_item);
-    result.addr = (void *)address;
-    result.fpage = L4_map_item_snd_fpage(&map_item);
-    return result;
-}
-
 struct dirent_t readdir(L4_thread_id romfs_server, int fd, size_t offset,
                         char *filename_buf)
 {
@@ -155,4 +127,52 @@ struct dirent_t readdir(L4_thread_id romfs_server, int fd, size_t offset,
     L4_store_mr(VFS_READDIR_RET_SIZE, &result.size);
     L4_store_mr(VFS_READDIR_RET_OFF_NEXT, &result.next_offset);
     return result;
+}
+
+struct map_result map(L4_thread_id romfs_server, int fd, size_t offset,
+                      size_t size)
+{
+    const struct map_result invalid_result = {.fpage = L4_nilpage,
+                                              .addr = NULL};
+    L4_load_mr(
+        VFS_MAP_OP,
+        (L4_msg_tag_t){.u = 4, .t = 0, .flags = 0, .label = VFS_MAP}.raw);
+    L4_load_mr(VFS_MAP_FD, fd);
+    L4_load_mr(VFS_MAP_OFFSET, offset);
+    L4_load_mr(VFS_MAP_SIZE, size);
+    L4_load_mr(VFS_MAP_PERM, L4_readable);
+    L4_thread_id from;
+    const L4_msg_tag_t answer_tag = L4_ipc(
+        romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_MAP_RET ||
+        answer_tag.u != 1 || answer_tag.t != 2)
+        return invalid_result;
+    struct map_result result = invalid_result;
+    struct L4_map_item map_item;
+    unsigned address;
+    L4_store_mr(VFS_MAP_RET_ADDR, &address);
+    L4_store_mrs(VFS_MAP_RET_MAP_ITEM, 2, (unsigned *)&map_item);
+    result.addr = (void *)address;
+    result.fpage = L4_map_item_snd_fpage(&map_item);
+    return result;
+}
+
+bool move_fd(L4_thread_id romfs_server, int fd, int new_fd)
+{
+    L4_load_mr(
+        VFS_MOVE_OP,
+        (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = VFS_MOVE}.raw);
+    L4_load_mr(VFS_MOVE_FROM, fd);
+    L4_load_mr(VFS_MOVE_TO, new_fd);
+    L4_thread_id from;
+    const L4_msg_tag_t answer_tag = L4_ipc(
+        romfs_server, romfs_server, L4_timeouts(L4_never, L4_never), &from);
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != VFS_MOVE_RET ||
+        answer_tag.u != 1 || answer_tag.t != 0)
+        return false;
+    int ret_fd;
+    L4_store_mr(VFS_MOVE_RET_FD, (unsigned *)&ret_fd);
+    if (ret_fd != new_fd)
+        return false;
+    return true;
 }

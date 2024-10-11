@@ -536,6 +536,41 @@ static void handle_vfs_map(L4_thread_id from, L4_msg_tag_t msg_tag)
     L4_load_mrs(VFS_MAP_RET_MAP_ITEM, 2, (unsigned *)&map_item);
 }
 
+static void handle_vfs_move(L4_thread_id from, L4_msg_tag_t msg_tag)
+{
+
+    if (msg_tag.u != 2 || msg_tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    int fd;
+    int new_fd;
+    L4_store_mr(VFS_MOVE_FROM, (unsigned *)&fd);
+    L4_store_mr(VFS_MOVE_TO, (unsigned *)&new_fd);
+    struct vfs_file_state *const old_file_state = find_vfs_file_state(from, fd);
+    if (old_file_state == NULL)
+    {
+        make_ipc_error(EBADF);
+        return;
+    }
+
+    struct vfs_file_state *const new_file_state =
+        find_vfs_file_state_insertion_point(from, new_fd);
+    if (new_file_state == NULL || new_file_state->status != HASH_ITEM_FREE)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    memcpy(new_file_state, old_file_state, sizeof *new_file_state);
+    old_file_state->status = HASH_ITEM_TOMBSTONE;
+
+    L4_load_mr(
+        VFS_MOVE_RET_OP,
+        (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = VFS_MAP_RET}.raw);
+    L4_load_mr(VFS_MOVE_RET_FD, new_fd);
+}
+
 static L4_msg_buffer_t ipc_buffers;
 
 static void romfs_main(L4_utcb_t *utcb);
@@ -604,6 +639,9 @@ __attribute__((noreturn)) static void romfs_main(L4_utcb_t *utcb)
             break;
         case VFS_MAP:
             handle_vfs_map(from, msg_tag);
+            break;
+        case VFS_MOVE:
+            handle_vfs_move(from, msg_tag);
             break;
         }
 

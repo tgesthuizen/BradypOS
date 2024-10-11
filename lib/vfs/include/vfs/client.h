@@ -32,6 +32,16 @@ struct vfs_stat_result
 struct vfs_stat_result stat(L4_thread_id romfs_server, int fd,
                             char *filename_buf);
 
+/**
+ * @brief Reads a directory entry from @p fd in @p romfs_server
+ * @param romfs_server Thread ID of the server to contact.
+ * @param fd File descriptor of the directory in question
+ * @param offset Offset of the target file in the directory
+ * @param filename_buf Buffer of at least @c VFS_PATH_MAX bytes
+ */
+struct dirent_t readdir(L4_thread_id romfs_server, int fd, size_t offset,
+                        char *filename_buf);
+
 struct map_result
 {
     L4_fpage_t fpage;
@@ -51,13 +61,13 @@ struct dirent_t
 };
 
 /**
- * @brief Reads a directory entry from @p fd in @p romfs_server
- * @param romfs_server Thread ID of the server to contact.
- * @param fd File descriptor of the directory in question
- * @param offset Offset of the target file in the directory
- * @param filename_buf Buffer of at least @c VFS_PATH_MAX bytes
+ * @brief Move an open file to a different descriptor
+ * @param romfs_server Server to talk to
+ * @param fd File descriptor for the file to move
+ * @param new_fd File descriptor to keep the file opened under.
+ *
+ * After this function successfully returns, @p fd is closed and can be reused.
  */
-struct dirent_t readdir(L4_thread_id romfs_server, int fd, size_t offset,
-                        char *filename_buf);
+bool move_fd(L4_thread_id romfs_server, int fd, int new_fd);
 
 #endif
