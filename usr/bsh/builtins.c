@@ -1,8 +1,11 @@
 #include "builtins.h"
 #include "fileio.h"
 #include "variables.h"
+#include "vfs.h"
 #include <stddef.h>
 #include <vfs/client.h>
+
+int last_exit_code;
 
 static int open_recursive(int root_fd, const char *absolute_path)
 {
@@ -48,16 +51,70 @@ static void handle_cd_builtin(char **cmd)
                             : open_recursive(WD_FD, dir);
     if (ret == -1)
     {
+        last_exit_code = -1;
         return;
     }
     close(romfs_service, WD_FD);
     move_fd(romfs_service, ret, WD_FD);
+    last_exit_code = 0;
 }
 
 static const struct bsh_builtin cd_builtin = {"cd", handle_cd_builtin};
 
-extern struct bsh_builtin pwd_builtin;
-extern struct bsh_builtin ls_builtin;
+static void handle_pwd_builtin(char **cmd)
+{
+    if (cmd[1] != NULL)
+    {
+        // TODO: Print usage.
+        last_exit_code = -1;
+        return;
+    }
+    // TODO: Actually print parent directories
+    struct vfs_stat_result stat_res =
+        stat(romfs_service, WD_FD, (char *)ipc_buffer);
+    if (!stat_res.success)
+    {
+        last_exit_code = -2;
+        return;
+    }
+    term_write(term_service, (unsigned char *)stat_res.file_name,
+               stat_res.size);
+}
+
+static const struct bsh_builtin pwd_builtin = {"pwd", handle_pwd_builtin};
+
+static void handle_ls_builtin(char **cmd)
+{
+    // TODO: Handle cmd
+    // For now we just print the current directory
+    struct vfs_stat_result stat_res =
+        stat(romfs_service, WD_FD, (char *)ipc_buffer);
+    if (!stat_res.success)
+    {
+        last_exit_code = -1;
+        return;
+    }
+    // Consistency check: PWD is a directory
+    if (stat_res.type != VFS_FT_DIRECTORY)
+    {
+        last_exit_code = -1;
+        return;
+    }
+    for (struct dirent_t dirent =
+             readdir(romfs_service, WD_FD, 0, (char *)ipc_buffer);
+         dirent.success;
+         dirent = readdir(romfs_service, WD_FD, dirent.next_offset,
+                          (char *)ipc_buffer))
+    {
+        dirent.file_name[dirent.size] = '\n';
+        dirent.file_name[++dirent.size] = '\0';
+        term_write(term_service, (unsigned char *)dirent.file_name,
+                   dirent.size);
+    }
+    last_exit_code = 0;
+}
+
+static const struct bsh_builtin ls_builtin = {"ls", handle_ls_builtin};
 
 const struct bsh_builtin *builtins[] = {&cd_builtin, &pwd_builtin, &ls_builtin,
                                         NULL};

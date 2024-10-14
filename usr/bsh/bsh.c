@@ -18,7 +18,7 @@ enum
 register unsigned char *got_location asm("r9");
 
 extern L4_utcb_t __utcb;
-static unsigned char ipc_buffer[IPC_BUFFER_SIZE];
+unsigned char ipc_buffer[IPC_BUFFER_SIZE];
 static char filename_buf[VFS_PATH_MAX];
 L4_thread_id term_service;
 L4_thread_id romfs_service;
@@ -69,8 +69,8 @@ enum
     VERSION_FD = 6,
 };
 
-static bool term_write(L4_thread_id term_service, const unsigned char *buf,
-                       size_t size)
+bool term_write(L4_thread_id term_service, const unsigned char *buf,
+                size_t size)
 {
     L4_load_mr(
         TERM_WRITE_OP,

@@ -9,5 +9,6 @@ enum
 extern unsigned char ipc_buffer[IPC_BUFFER_SIZE];
 extern L4_thread_id term_service;
 extern L4_thread_id romfs_service;
+extern int last_exit_code;
 
 #endif
