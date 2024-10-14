@@ -20,8 +20,8 @@ register unsigned char *got_location asm("r9");
 extern L4_utcb_t __utcb;
 static unsigned char ipc_buffer[IPC_BUFFER_SIZE];
 static char filename_buf[VFS_PATH_MAX];
-static L4_thread_id term_service;
-static L4_thread_id romfs_service;
+L4_thread_id term_service;
+L4_thread_id romfs_service;
 
 static L4_thread_id fetch_service(const char *svc)
 {
