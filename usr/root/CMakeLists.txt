@@ -23,6 +23,7 @@ add_executable(
   data.s
   exec.c
   memory.c
+  resets.c
   romfs_server.c
   root.c
   service.c
