@@ -1,3 +1,4 @@
+#include "resets.h"
 
 #define XOSC_BASE 0x40024000
 
@@ -43,4 +44,97 @@ static void init_xosc()
         ;
 }
 
-void setup_clocks() { init_xosc(); }
+#define PLL_SYS_BASE 0x40028000
+#define PLL_USB_BASE 0x4002c000
+
+enum pll_register_offsets
+{
+    pll_cs = 0x0,
+    pll_pwr = 0x4,
+    pll_fbdiv_int = 0x8,
+    pll_prim = 0xc,
+};
+
+enum pll_cs_bits
+{
+    pll_cs_refdiv_low = 0,
+    pll_cs_refdiv_high = 5,
+    pll_cs_bypass = 8,
+    pll_cs_lock = 31,
+};
+
+enum pll_pwr_bits
+{
+    pll_pwr_pd = 0,
+    pll_pwr_dsmpd = 2,
+    pll_pwr_postdivp = 3,
+    pll_pwr_vcopd = 5,
+};
+
+enum pll_prim_bits
+{
+    pll_prim_postdiv2_low = 12,
+    pll_prim_postdiv2_high = 14,
+    pll_prim_postdiv1_low = 16,
+    pll_prim_postdiv1_high = 18,
+};
+
+static void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
+                      unsigned postdiv2)
+{
+    // The procedure below is explained in the reference manual of the RP2040.
+    // It pays close attention to giving precise instructions, so we better do
+    // not deviate from them.
+
+    // Reset PLL and wait for it to become available
+    enum reset_components component = (base == (unsigned char *)PLL_USB_BASE)
+                                          ? reset_component_pll_usb
+                                          : reset_component_pll_sys;
+    reset_component(component);
+    while (!component_ready(component))
+        ;
+
+    // Set VCO values
+    *(volatile unsigned *)(base + pll_cs) = (1 << pll_cs_refdiv_low);
+    *(volatile unsigned *)(base + pll_fbdiv_int) = fbdiv;
+
+    // Turn on VCO power
+    *(volatile unsigned *)(base + pll_pwr) &=
+        ~((1 << pll_pwr_pd) | (1 << pll_pwr_vcopd));
+    // Wait for the PLL to lock
+    while ((*(volatile unsigned *)(base + pll_cs) & pll_cs_lock) != 0)
+        ;
+
+    // Setup post dividers
+    *(volatile unsigned *)(base + pll_prim) =
+        (postdiv1 << pll_prim_postdiv1_low) |
+        (postdiv2 << pll_prim_postdiv2_low);
+
+    // Turn on post dividing
+    *(volatile unsigned *)(base + pll_pwr) &= ~(1 << pll_pwr_postdivp);
+}
+
+// These constants are shamelessly stolen from the rpi-pico SDK.
+enum default_pll_values
+{
+    PLL_SYS_DEFAULT_FBDIV = 125,
+    PLL_SYS_DEFAULT_POSTDIV1 = 6,
+    PLL_SYS_DEFAULT_POSTDIV2 = 2,
+    PLL_USB_DEFAULT_FBDIV = 100,
+    PLL_USB_DEFAULT_POSTDIV1 = 5,
+    PLL_USB_DEFAULT_POSTDIV2 = 5,
+};
+
+static void setup_plls()
+{
+    setup_pll((unsigned char *)PLL_SYS_BASE, PLL_SYS_DEFAULT_FBDIV,
+              PLL_SYS_DEFAULT_POSTDIV1, PLL_SYS_DEFAULT_POSTDIV2);
+    setup_pll((unsigned char *)PLL_USB_BASE, PLL_USB_DEFAULT_FBDIV,
+              PLL_USB_DEFAULT_POSTDIV1, PLL_USB_DEFAULT_POSTDIV2);
+}
+
+void setup_clocks()
+{
+    init_xosc();
+    setup_plls();
+}
