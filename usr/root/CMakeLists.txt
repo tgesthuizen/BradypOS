@@ -18,6 +18,7 @@ target_include_directories(
 
 add_executable(
   root
+  clocks.c
   config.c
   data.s
   exec.c
