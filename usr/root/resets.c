@@ -14,7 +14,7 @@ void disable_component(enum reset_components component)
     volatile unsigned *reg_reset =
         (volatile unsigned *)(RESETS_BASE + reset_reset);
     unsigned mask = *reg_reset;
-    mask &= ~(unsigned)component;
+    mask |= (unsigned)(1 << component);
     *reg_reset = mask;
 }
 
@@ -23,7 +23,7 @@ void enable_component(enum reset_components component)
     volatile unsigned *reg_reset =
         (volatile unsigned *)(RESETS_BASE + reset_reset);
     unsigned mask = *reg_reset;
-    mask |= (unsigned)component;
+    mask &= ~(unsigned)(1 << component);
     *reg_reset = mask;
 }
 
@@ -36,5 +36,5 @@ void reset_component(enum reset_components component)
 bool component_ready(enum reset_components component)
 {
     return ((*(volatile unsigned *)(RESETS_BASE + reset_done)) &
-            (unsigned)component) != 0;
+            (unsigned)(1 << component)) != 0;
 }
