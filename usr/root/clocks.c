@@ -79,7 +79,7 @@ enum pll_prim_bits
     pll_prim_postdiv1_high = 18,
 };
 
-static void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
+void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
                       unsigned postdiv2)
 {
     // The procedure below is explained in the reference manual of the RP2040.
