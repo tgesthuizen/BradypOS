@@ -41,7 +41,7 @@ static void init_xosc()
     volatile unsigned *reg_xosc_status =
         (volatile unsigned *)(XOSC_BASE + xosc_status);
     // Wait for XOSC to become stable
-    while ((*reg_xosc_status & xosc_status_stable) != 1)
+    while ((*reg_xosc_status >> xosc_status_stable) != 1)
         ;
 }
 
@@ -103,7 +103,7 @@ void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
     *(volatile unsigned *)(base + pll_pwr) &=
         ~((1 << pll_pwr_pd) | (1 << pll_pwr_vcopd));
     // Wait for the PLL to lock
-    while ((*(volatile unsigned *)(base + pll_cs) & (1 << pll_cs_lock)) != 0)
+    while ((*(volatile unsigned *)(base + pll_cs) & (1 << pll_cs_lock)) == 0)
         ;
 
     // Setup post dividers
