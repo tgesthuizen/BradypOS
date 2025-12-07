@@ -19,6 +19,7 @@
 
 #include <errno.h>
 #include <l4/ipc.h>
+#include <l4/schedule.h>
 #include <l4/utcb.h>
 #include <service.h>
 #include <stddef.h>
@@ -57,7 +58,7 @@ enum pl011_offsets
     PL011_UARTPCellID3 = 0xFFC,
 };
 
-static unsigned char *uart_start = (unsigned char *)0x40034000u;
+static unsigned char *const uart_start = (unsigned char *)0x40034000;
 
 static inline volatile uint32_t *uart_reg(unsigned off)
 {
@@ -263,6 +264,27 @@ static void uart_gpio_init(void)
     mmio_write(GPIO1_CTRL, 2); // GPIO1 → UART0_RX
 }
 
+/* ----- Hardware Block Reset ----- */
+
+#define RESETS_BASE 0x4000C000
+#define RESETS_RESET (*(volatile uint32_t *)(RESETS_BASE + 0x00))
+#define RESETS_RESET_DONE (*(volatile uint32_t *)(RESETS_BASE + 0x08))
+
+#define UART0_RESET_BIT (1u << 12)
+
+static void uart0_hw_reset(void)
+{
+    // 1. Assert UART0 reset
+    RESETS_RESET |= UART0_RESET_BIT;
+    while ((RESETS_RESET_DONE & UART0_RESET_BIT) != 0)
+        L4_yield();
+
+    // 2. De-assert UART0 reset
+    RESETS_RESET &= ~UART0_RESET_BIT;
+    while ((RESETS_RESET_DONE & UART0_RESET_BIT) == 0)
+        L4_yield();
+}
+
 /* ----- IPC-facing implementations (fill TODOs) ----- */
 
 /* Return value semantics for pl011_handle_read_impl:
@@ -415,6 +437,7 @@ static void register_service()
 /* ----- main loop: process HW drain then IPC ----- */
 int main()
 {
+    uart0_hw_reset();
     uart_gpio_init();
     /* Initialize UART with a common baud (change if you configured clocks
      * differently) */

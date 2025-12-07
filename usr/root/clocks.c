@@ -1,6 +1,9 @@
 #include "clocks.h"
 #include "resets.h"
 
+#include <l4/schedule.h>
+#include <stdint.h>
+
 #define XOSC_BASE 0x40024000
 
 enum xosc_register_offsets
@@ -42,7 +45,7 @@ static void init_xosc()
         (volatile unsigned *)(XOSC_BASE + xosc_status);
     // Wait for XOSC to become stable
     while ((*reg_xosc_status >> xosc_status_stable) != 1)
-        ;
+        L4_yield();
 }
 
 #define PLL_SYS_BASE 0x40028000
@@ -93,7 +96,7 @@ void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
                                           : reset_component_pll_sys;
     reset_component(component);
     while (!component_ready(component))
-        ;
+        L4_yield();
 
     // Set VCO values
     *(volatile unsigned *)(base + pll_cs) = (1 << pll_cs_refdiv_low);
@@ -104,7 +107,7 @@ void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
         ~((1 << pll_pwr_pd) | (1 << pll_pwr_vcopd));
     // Wait for the PLL to lock
     while ((*(volatile unsigned *)(base + pll_cs) & (1 << pll_cs_lock)) == 0)
-        ;
+        L4_yield();
 
     // Setup post dividers
     *(volatile unsigned *)(base + pll_prim) =
@@ -126,14 +129,6 @@ enum default_pll_values
     PLL_USB_DEFAULT_POSTDIV2 = 5,
 };
 
-static void setup_plls()
-{
-    setup_pll((unsigned char *)PLL_SYS_BASE, PLL_SYS_DEFAULT_FBDIV,
-              PLL_SYS_DEFAULT_POSTDIV1, PLL_SYS_DEFAULT_POSTDIV2);
-    setup_pll((unsigned char *)PLL_USB_BASE, PLL_USB_DEFAULT_FBDIV,
-              PLL_USB_DEFAULT_POSTDIV1, PLL_USB_DEFAULT_POSTDIV2);
-}
-
 #define CLOCKS_BASE 0x40008000
 
 struct rp2040_clock_t
@@ -147,22 +142,72 @@ struct rp2040_clock_t
 
 bool has_glitchless_mux(enum clock_index clk);
 
-bool clock_configure(enum clock_index idx, unsigned src, unsigned auxsrc,
-                     unsigned div)
+/* Helper mmio */
+static inline void mmio_write32(uintptr_t addr, uint32_t val)
 {
-    volatile struct rp2040_clock_t *const clock = CLOCKS + idx;
-
-    // When we step up the divisor, do so right away.
-    // This is done so that we do not output a high-frequency clock signal when
-    // switching to a larger divider and a faster clock.
-    if (div > clock->div)
-        clock->div = div;
+    *(volatile uint32_t *)addr = val;
+}
+static inline uint32_t mmio_read32(uintptr_t addr)
+{
+    return *(volatile uint32_t *)addr;
 }
 
-void setup_clocks()
+/* CLOCKS register offsets (from RP2040) */
+#define CLK_REF_CTRL_OFFSET 0x30u
+#define CLK_SYS_CTRL_OFFSET 0x3Cu
+#define CLK_PERI_CTRL_OFFSET 0x48u
+#define CLK_USB_CTRL_OFFSET 0x54u
+
+#define CLK_CTRL_AUXSRC_SHIFT 5u
+#define CLK_CTRL_ENABLE_BIT (1u << 11u)
+
+#define CLK_PERI_CTRL_ADDR (CLOCKS_BASE + CLK_PERI_CTRL_OFFSET)
+#define CLK_REF_CTRL_ADDR (CLOCKS_BASE + CLK_REF_CTRL_OFFSET)
+
+/* AUXSRC values we need (from Pico SDK)
+ *   PLL_USB = 0x2
+ *   XOSC    = 0x4  (if you ever want to pick XOSC)
+ */
+#define CLK_AUXSRC_PLL_USB (0x2u)
+#define CLK_AUXSRC_XOSC (0x4u)
+
+/* Minimal function that routes clk_peri to PLL_USB and enables it */
+static void route_peri_to_pll_usb(void)
 {
-    // TODO: Assign XOSC to PLLs before setting them up.
-    // Configure clocks afterwards, check out manual 2.15 Clocks.
+    /* Compose control value: AUXSRC = PLL_USB (shifted) | ENABLE */
+    unsigned ctrl =
+        (CLK_AUXSRC_PLL_USB << CLK_CTRL_AUXSRC_SHIFT) | CLK_CTRL_ENABLE_BIT;
+    mmio_write32(CLK_PERI_CTRL_ADDR, ctrl);
+}
+
+/* If you want to be explicit about clk_ref being XOSC (optional but clean) */
+static void route_ref_to_xosc(void)
+{
+    unsigned ctrl =
+        (CLK_AUXSRC_XOSC << CLK_CTRL_AUXSRC_SHIFT) | CLK_CTRL_ENABLE_BIT;
+    mmio_write32(CLK_REF_CTRL_ADDR, ctrl);
+
+    L4_yield();
+}
+
+/* ----- top-level setup_clocks (minimal) ----- */
+void setup_clocks(void)
+{
+    /* 1) bring up XOSC */
     init_xosc();
-    setup_plls();
+
+    /* Optionally route clk_ref to XOSC so PLLs clearly see correct ref */
+    route_ref_to_xosc();
+
+    /* 2) program PLLs (SYS and USB) using your defaults */
+    setup_pll((unsigned char *)PLL_SYS_BASE, PLL_SYS_DEFAULT_FBDIV,
+              PLL_SYS_DEFAULT_POSTDIV1, PLL_SYS_DEFAULT_POSTDIV2);
+
+    setup_pll((unsigned char *)PLL_USB_BASE, PLL_USB_DEFAULT_FBDIV,
+              PLL_USB_DEFAULT_POSTDIV1, PLL_USB_DEFAULT_POSTDIV2);
+
+    /* 3) route clk_peri to PLL_USB so peripherals (UART) run at 48 MHz */
+    route_peri_to_pll_usb();
+
+    /* done - minimal and focused on UART stability */
 }
