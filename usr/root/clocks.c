@@ -1,3 +1,4 @@
+#include "clocks.h"
 #include "resets.h"
 
 #define XOSC_BASE 0x40024000
@@ -80,7 +81,7 @@ enum pll_prim_bits
 };
 
 void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
-                      unsigned postdiv2)
+               unsigned postdiv2)
 {
     // The procedure below is explained in the reference manual of the RP2040.
     // It pays close attention to giving precise instructions, so we better do
@@ -133,8 +134,35 @@ static void setup_plls()
               PLL_USB_DEFAULT_POSTDIV1, PLL_USB_DEFAULT_POSTDIV2);
 }
 
+#define CLOCKS_BASE 0x40008000
+
+struct rp2040_clock_t
+{
+    unsigned ctrl;
+    unsigned div;
+    unsigned selected;
+};
+
+#define CLOCKS ((volatile struct rp2040_clock_t *)CLOCKS_BASE)
+
+bool has_glitchless_mux(enum clock_index clk);
+
+bool clock_configure(enum clock_index idx, unsigned src, unsigned auxsrc,
+                     unsigned div)
+{
+    volatile struct rp2040_clock_t *const clock = CLOCKS + idx;
+
+    // When we step up the divisor, do so right away.
+    // This is done so that we do not output a high-frequency clock signal when
+    // switching to a larger divider and a faster clock.
+    if (div > clock->div)
+        clock->div = div;
+}
+
 void setup_clocks()
 {
+    // TODO: Assign XOSC to PLLs before setting them up.
+    // Configure clocks afterwards, check out manual 2.15 Clocks.
     init_xosc();
     setup_plls();
 }
