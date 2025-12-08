@@ -1,4 +1,3 @@
-#include "kern/systhread.h"
 #include <kern/debug.h>
 #include <kern/interrupts.h>
 #include <kern/kalarm.h>
