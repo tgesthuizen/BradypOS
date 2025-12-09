@@ -2,8 +2,9 @@
 #define BRADYPOS_ROOT_CLOCKS_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
-void setup_pll(unsigned char *base, unsigned fbdiv, unsigned postdiv1,
+void setup_pll(uintptr_t base, unsigned fbdiv, unsigned postdiv1,
                unsigned postdiv2);
 
 enum clock_index
