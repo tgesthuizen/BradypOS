@@ -138,20 +138,22 @@ static void make_ipc_error(int err_no)
 
 /* ----- UART hardware helpers ----- */
 
-/* Compute integer + fractional baud divisors and program them */
-static void uart_set_baud(uint32_t baud)
+static void uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
 {
-    /* BaudDiv = UARTCLK / (16 * baud)
-       IBRD = floor(BaudDiv)
-       FBRD = round((BaudDiv - IBRD) * 64)
-       Use floating arithmetic for clarity (compiler must support it). */
-    double uartclk = (double)UART_REF_CLK_HZ;
-    double raw = uartclk / (16.0 * (double)baud);
-    uint32_t ibrd = (uint32_t)raw;
-    uint32_t fbrd = (uint32_t)((raw - (double)ibrd) * 64.0 + 0.5);
+    volatile uint32_t *ibrd = uart_reg(PL011_UARTIBRD);
+    volatile uint32_t *fbrd = uart_reg(PL011_UARTFBRD);
+    volatile uint32_t *lcrh = uart_reg(PL011_UARTLCR_H);
 
-    *uart_reg(PL011_UARTIBRD) = ibrd;
-    *uart_reg(PL011_UARTFBRD) = fbrd;
+    uint64_t scaled = (uint64_t)uart_clk_hz * 4u;
+    uint32_t divider = (uint32_t)((scaled + baud / 2u) / baud);
+
+    uint32_t int_part = divider >> 6;
+    uint32_t frac_part = divider & 0x3Fu;
+
+    *ibrd = int_part;
+    *fbrd = frac_part;
+
+    *lcrh = (3u << 5) | (1u << 4);
 }
 
 /* Minimal uart init (disable -> set baud -> 8N1 FIFO -> enable).
@@ -162,7 +164,7 @@ static void uart_init(uint32_t baud)
     *uart_reg(PL011_UARTCR) = 0;
 
     /* Program baud */
-    uart_set_baud(baud);
+    uart_set_baud(UART_REF_CLK_HZ, baud);
 
     /* 8 bits, no parity, 1 stop, enable FIFOs */
     *uart_reg(PL011_UARTLCR_H) = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
