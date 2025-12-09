@@ -61,10 +61,7 @@ inline L4_msg_tag_t L4_msg_tag()
 {
     return (L4_msg_tag_t){.raw = L4_my_utcb()->mr[0]};
 }
-inline void L4_set_msg_tag(L4_msg_tag_t tag)
-{
-    L4_my_utcb()->mr[0] = (unsigned)tag.raw;
-}
+inline void L4_set_msg_tag(L4_msg_tag_t tag) { L4_my_utcb()->mr[0] = tag.raw; }
 
 struct L4_msg
 {
