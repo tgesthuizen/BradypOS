@@ -147,6 +147,10 @@ static void thread_list_insert(unsigned tcb_idx, L4_thread_id global_id)
 static void thread_list_delete(L4_thread_id global_id)
 {
     unsigned idx = thread_list_find(global_id);
+    if (thread_count <= 0)
+    {
+        panic("Illegal value for thread count in %s", __FUNCTION__);
+    }
     --thread_count;
     for (unsigned i = idx; i < thread_count; ++i)
         thread_list[i] = thread_list[i] + 1;
