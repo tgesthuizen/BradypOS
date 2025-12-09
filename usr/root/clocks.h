@@ -22,7 +22,7 @@ enum clock_index
     CLK_COUNT,
 };
 
-inline bool has_glitchless_mux(enum clock_index clk)
+static inline bool has_glitchless_mux(enum clock_index clk)
 {
     return clk == clk_sys || clk == clk_ref;
 }

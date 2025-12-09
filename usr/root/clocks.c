@@ -13,9 +13,22 @@ static inline void mmio_set32(uintptr_t addr, uint32_t val)
 {
     *(volatile uint32_t *)(addr + REG_ALIAS_SET_OFFSET) = val;
 }
+static inline void mmio_clear32(uintptr_t addr, uint32_t val)
+{
+    *(volatile uint32_t *)(addr + REG_ALIAS_CLR_OFFSET) = val;
+}
+static inline void mmio_xor32(uintptr_t addr, uint32_t val)
+{
+    *(volatile uint32_t *)(addr + REG_ALIAS_XOR_OFFSET) = val;
+}
 static inline uint32_t mmio_read32(uintptr_t addr)
 {
     return *(volatile uint32_t *)addr;
+}
+static inline void mmio_write_masked32(uintptr_t addr, uint32_t val,
+                                       uint32_t mask)
+{
+    mmio_xor32(addr, (mmio_read32(addr) ^ val) & mask);
 }
 static inline volatile uint32_t *mmio_addr32(uintptr_t addr)
 {
@@ -109,7 +122,6 @@ enum pll_prim_bits
 void setup_pll(uintptr_t base, unsigned fbdiv, unsigned postdiv1,
                unsigned postdiv2)
 {
-    // 1. Reset PLL
     enum reset_components component =
         (base == PLL_USB_BASE ? reset_component_pll_usb
                               : reset_component_pll_sys);
@@ -117,33 +129,20 @@ void setup_pll(uintptr_t base, unsigned fbdiv, unsigned postdiv1,
     while (!component_ready(component))
         L4_yield();
 
-    // 2. Power down PLL
-    mmio_write32(base + pll_pwr, (1 << pll_pwr_pd) | (1 << pll_pwr_vcopd) |
-                                     (1 << pll_pwr_postdivp));
-
-    // 3. Configure refdiv (keep other bits unchanged)
-    mmio_write32(base + pll_cs, (1 << pll_cs_refdiv_low));
-
-    // 4. Configure fbdiv
+    mmio_write32(base + pll_cs, 1); // Set refdiv
     mmio_write32(base + pll_fbdiv_int, fbdiv);
 
-    // 5. Power up VCO
-    uint32_t pwr = mmio_read32(base + pll_pwr);
-    pwr &= ~((1 << pll_pwr_pd) | (1 << pll_pwr_vcopd));
-    mmio_write32(base + pll_pwr, pwr);
+    // TODO: Shift proper values here
+    uint32_t power = (1 << pll_pwr_pd) | (1 << pll_pwr_vcopd);
 
-    // 6. Wait for lock
+    mmio_clear32(base + pll_pwr, power);
     while (!(mmio_read32(base + pll_cs) & (1 << pll_cs_lock)))
         L4_yield();
 
-    // 7. Configure postdivs
-    mmio_write32(base + pll_prim, (postdiv1 << pll_prim_postdiv1_low) |
-                                      (postdiv2 << pll_prim_postdiv2_low));
-
-    // 8. Enable postdiv stage **only this bit is touched**
-    pwr = mmio_read32(base + pll_pwr);
-    pwr &= ~(1 << pll_pwr_postdivp);
-    mmio_write32(base + pll_pwr, pwr);
+    uint32_t pdiv = (postdiv1 << pll_prim_postdiv1_low) |
+                    (postdiv2 << pll_prim_postdiv2_low);
+    mmio_write32(base + pll_prim, pdiv);
+    mmio_clear32(base + pll_pwr, 1 << pll_pwr_postdivp);
 }
 
 // These constants are shamelessly stolen from the rpi-pico SDK.
@@ -195,6 +194,88 @@ enum clk_peri_auxsrc
     CLOCK_PERI_AUXSRC_GPIN1,
 };
 
+enum clk_ref_ctrl_bits
+{
+    clk_ref_ctrl_src_low = 0,
+    clk_ref_ctrl_src_high = 1,
+    clk_ref_ctrl_auxsrc_low = 5,
+    clk_ref_ctrl_auxsrc_high = 6,
+};
+
+enum clk_sys_ctrl_bits
+{
+    clk_sys_ctrl_src = 0,
+    clk_sys_ctrl_auxsrc_low = 5,
+    clk_sys_ctrl_auxsrc_high = 7,
+};
+
+enum clk_gpout0_ctrl_bits
+{
+    clk_gpout0_ctrl_auxsrc_low = 5,
+    clk_gpout0_ctrl_auxsrc_high = 8,
+    clk_gpout0_ctrl_kill = 10,
+    clk_gpout0_ctrl_enable = 11,
+    clk_gpout0_ctrl_dc50 = 12,
+    clk_gpout0_ctrl_phase_low = 16,
+    clk_gpout0_ctrl_phase_high = 17,
+    clk_gpout0_ctrl_nudge = 20,
+};
+
+enum clk_gpout0_div_bits
+{
+    clk_gpout0_div_frac_low = 0,
+    clk_gpout0_div_frac_high = 7,
+    clk_gpout0_div_int_low = 8,
+    clk_gpout0_div_int_high = 31,
+};
+
+static bool configure_clock(enum clock_index idx, uint32_t src, uint32_t auxsrc,
+                            uint32_t src_freq, uint32_t freq)
+{
+    uint32_t div;
+
+    // assert(src_freq >= freq);
+
+    if (freq > src_freq)
+        return false;
+    div = (uint32_t)(((uint64_t)src_freq << clk_gpout0_div_int_low) / freq);
+    volatile struct rp2040_clock_t *clock = &CLOCKS[idx];
+    if (div > clock->div)
+    {
+        clock->div = div;
+    }
+    if (has_glitchless_mux(idx) && src == CLOCK_SYS_SRC_CLK_SYS_AUX)
+    {
+        mmio_clear32((uintptr_t)&clock->ctrl, 0b11 << clk_ref_ctrl_src_low);
+        while (!(clock->selected & 1u))
+            L4_yield();
+    }
+    else
+    {
+        mmio_clear32((uintptr_t)&clock->ctrl, (1 << clk_gpout0_ctrl_enable));
+        // TODO: Proper busy wait.
+        L4_yield();
+        L4_yield();
+    }
+    mmio_write_masked32((uintptr_t)&clock->ctrl,
+                        auxsrc << clk_sys_ctrl_auxsrc_low,
+                        0b111 << clk_sys_ctrl_auxsrc_low);
+    if (has_glitchless_mux(idx))
+    {
+        mmio_write_masked32((uintptr_t)&clock->ctrl,
+                            src << clk_ref_ctrl_src_low,
+                            0b11 << clk_ref_ctrl_src_low);
+        while (!(clock->selected & (1u << src)))
+            L4_yield();
+    }
+
+    mmio_set32((uintptr_t)&clock->ctrl, (1 << clk_gpout0_ctrl_enable));
+    clock->div = div;
+    // configured_freq[clk_index] = (uint32_t)(((uint64_t) src_freq << 8) /
+    // div);
+    return true;
+}
+
 void setup_clocks()
 {
     init_xosc();
@@ -209,16 +290,8 @@ void setup_clocks()
               PLL_USB_DEFAULT_POSTDIV2);
 
     // Switch clk_sys to PLL_SYS
-    uint32_t clk_sys_ctrl =
-        (CLOCKS[clk_sys].ctrl & ~0x7E0) | (CLOCK_SYS_AUXSRC_PLL_SYS << 5);
-    CLOCKS[clk_sys].ctrl = clk_sys_ctrl;
-    clk_sys_ctrl &= ~0x3;
-    clk_sys_ctrl |= 1;
-    CLOCKS[clk_sys].ctrl = clk_sys_ctrl;
-    while (!(CLOCKS[clk_sys].selected & 2))
-        L4_yield();
-
-    // Switch clk_peri to PLL_SYS
-    CLOCKS[clk_peri].ctrl = 0;
-    CLOCKS[clk_peri].ctrl = (CLOCK_PERI_AUXSRC_PLL_SYS << 5) | (1 << 11);
+    configure_clock(clk_sys, CLOCK_SYS_SRC_CLK_SYS_AUX,
+                    CLOCK_SYS_AUXSRC_PLL_SYS, 125000000, 125000000);
+    configure_clock(clk_peri, 0, CLOCK_PERI_AUXSRC_PLL_SYS, 125000000,
+                    125000000);
 }
