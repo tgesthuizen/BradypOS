@@ -1,4 +1,5 @@
 #include "clocks.h"
+#include "bus_fabric.h"
 #include "resets.h"
 
 #include <l4/schedule.h>
@@ -7,6 +8,10 @@
 static inline void mmio_write32(uintptr_t addr, uint32_t val)
 {
     *(volatile uint32_t *)addr = val;
+}
+static inline void mmio_set32(uintptr_t addr, uint32_t val)
+{
+    *(volatile uint32_t *)(addr + REG_ALIAS_SET_OFFSET) = val;
 }
 static inline uint32_t mmio_read32(uintptr_t addr)
 {
@@ -49,11 +54,20 @@ enum xosc_status_bits
     xosc_status_stable = 31,
 };
 
-static void init_xosc()
+enum
 {
-    mmio_write32(XOSC_BASE + xosc_control,
-                 xosc_freq_1_15MHZ | (xosc_enable_magic << 12));
-    while ((mmio_read32(XOSC_BASE + xosc_status) >> xosc_status_stable) != 1)
+    xosc_12MHz_wait_count = 47,
+};
+
+void init_xosc()
+{
+    mmio_write32(XOSC_BASE + xosc_control, xosc_freq_1_15MHZ);
+    // The RP2040 documentation says this is an adequate wait interval for 12
+    // MHz
+    mmio_write32(XOSC_BASE + xosc_count, xosc_12MHz_wait_count);
+
+    mmio_set32(XOSC_BASE + xosc_control, xosc_enable_magic << 12);
+    while (!(mmio_read32(XOSC_BASE + xosc_status) & (1 << xosc_status_stable)))
         L4_yield();
 }
 
