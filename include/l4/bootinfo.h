@@ -67,9 +67,14 @@ struct L4_boot_info_record_exe
     unsigned cmdline_offset;
 };
 
+enum
+{
+    L4_BOOT_INFO_VARIABLE_NAME_LEN = 12,
+};
+
 struct L4_boot_info_variables_entry
 {
-    char name[12];
+    char name[L4_BOOT_INFO_VARIABLE_NAME_LEN];
     unsigned value;
 };
 
