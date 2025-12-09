@@ -3,6 +3,7 @@
 
 #include <l4/fpage.h>
 #include <l4/syscalls.h>
+#include <l4/thread.h>
 #include <l4/time.h>
 #include <l4/utcb.h>
 #include <stdbool.h>
