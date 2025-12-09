@@ -51,13 +51,9 @@ enum xosc_status_bits
 
 static void init_xosc()
 {
-    volatile unsigned *reg_xosc_control =
-        (volatile unsigned *)(XOSC_BASE + xosc_control);
-    *reg_xosc_control = xosc_freq_1_15MHZ | (xosc_enable_magic << 12);
-    volatile unsigned *reg_xosc_status =
-        (volatile unsigned *)(XOSC_BASE + xosc_status);
-    // Wait for XOSC to become stable
-    while ((*reg_xosc_status >> xosc_status_stable) != 1)
+    mmio_write32(XOSC_BASE + xosc_control,
+                 xosc_freq_1_15MHZ | (xosc_enable_magic << 12));
+    while ((mmio_read32(XOSC_BASE + xosc_status) >> xosc_status_stable) != 1)
         L4_yield();
 }
 
