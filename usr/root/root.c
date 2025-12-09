@@ -7,6 +7,7 @@
 #include <l4/schedule.h>
 #include <l4/space.h>
 #include <l4/thread.h>
+#include <l4/utcb.h>
 #include <root.h>
 #include <root/service.h>
 #include <service.h>
