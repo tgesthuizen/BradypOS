@@ -408,7 +408,8 @@ void debug_print_threads()
     for (unsigned i = 0; i < thread_count; ++i)
     {
         struct tcb_t *tcb = &tcb_store[thread_list[i]];
-        dbg_printf("%#08x %s\n", tcb->global_id, thread_state_names[tcb->state]);
+        dbg_printf("%#08x %s\n", tcb->global_id,
+                   thread_state_names[tcb->state]);
     }
 }
 
