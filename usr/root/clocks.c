@@ -5,36 +5,6 @@
 #include <l4/schedule.h>
 #include <stdint.h>
 
-static inline void mmio_write32(uintptr_t addr, uint32_t val)
-{
-    *(volatile uint32_t *)addr = val;
-}
-static inline void mmio_set32(uintptr_t addr, uint32_t val)
-{
-    *(volatile uint32_t *)(addr + REG_ALIAS_SET_OFFSET) = val;
-}
-static inline void mmio_clear32(uintptr_t addr, uint32_t val)
-{
-    *(volatile uint32_t *)(addr + REG_ALIAS_CLR_OFFSET) = val;
-}
-static inline void mmio_xor32(uintptr_t addr, uint32_t val)
-{
-    *(volatile uint32_t *)(addr + REG_ALIAS_XOR_OFFSET) = val;
-}
-static inline uint32_t mmio_read32(uintptr_t addr)
-{
-    return *(volatile uint32_t *)addr;
-}
-static inline void mmio_write_masked32(uintptr_t addr, uint32_t val,
-                                       uint32_t mask)
-{
-    mmio_xor32(addr, (mmio_read32(addr) ^ val) & mask);
-}
-static inline volatile uint32_t *mmio_addr32(uintptr_t addr)
-{
-    return (volatile uint32_t *)addr;
-}
-
 #define XOSC_BASE 0x40024000
 
 enum xosc_register_offsets
