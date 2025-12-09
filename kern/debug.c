@@ -1,5 +1,4 @@
 #include <kern/debug.h>
-#include <kern/interrupts.h>
 #include <semihosting.h>
 #include <stdarg.h>
 #include <tinyprintf.h>

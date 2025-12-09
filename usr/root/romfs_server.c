@@ -101,7 +101,7 @@ enum
     FILE_STATE_COUNT = 1 << FILE_STATE_LOG,
 };
 
-struct vfs_file_state file_states[FILE_STATE_COUNT];
+static struct vfs_file_state file_states[FILE_STATE_COUNT];
 
 static char filename_buf[VFS_PATH_MAX + 1];
 
