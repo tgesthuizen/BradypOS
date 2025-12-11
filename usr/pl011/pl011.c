@@ -77,7 +77,7 @@ static inline volatile uint32_t *uart_reg(unsigned off)
 
 /* Reference peripheral clock for UART (adjust if your clk_peri is different) */
 #ifndef UART_REF_CLK_HZ
-#define UART_REF_CLK_HZ (48000000u)
+#define UART_REF_CLK_HZ (12000000u)
 #endif
 
 #define RX_RING_CAP IPC_BUFFER_SIZE
