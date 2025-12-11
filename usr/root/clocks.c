@@ -260,8 +260,7 @@ void setup_clocks()
               PLL_USB_DEFAULT_POSTDIV2);
 
     // Switch clk_sys to PLL_SYS
-    configure_clock(clk_sys, CLOCK_SYS_SRC_CLK_SYS_AUX,
-                    CLOCK_SYS_AUXSRC_PLL_SYS, 125000000, 125000000);
-    configure_clock(clk_peri, 0, CLOCK_PERI_AUXSRC_PLL_SYS, 125000000,
-                    125000000);
+    configure_clock(clk_sys, CLOCK_SYS_SRC_CLK_SYS_AUX, CLOCK_SYS_AUXSRC_XOSC,
+                    12000000, 12000000);
+    configure_clock(clk_peri, 0, CLOCK_PERI_AUXSRC_XOSC, 12000000, 12000000);
 }
