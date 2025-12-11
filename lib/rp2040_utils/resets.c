@@ -1,4 +1,5 @@
-#include "resets.h"
+#include <rp2040/bus_fabric.h>
+#include <rp2040/resets.h>
 
 #define RESETS_BASE 0x4000c000
 
@@ -11,20 +12,12 @@ enum reset_registers
 
 void disable_component(enum reset_components component)
 {
-    volatile unsigned *reg_reset =
-        (volatile unsigned *)(RESETS_BASE + reset_reset);
-    unsigned mask = *reg_reset;
-    mask |= (unsigned)(1 << component);
-    *reg_reset = mask;
+    mmio_set32(RESETS_BASE + reset_reset, 1 << component);
 }
 
 void enable_component(enum reset_components component)
 {
-    volatile unsigned *reg_reset =
-        (volatile unsigned *)(RESETS_BASE + reset_reset);
-    unsigned mask = *reg_reset;
-    mask &= ~(unsigned)(1 << component);
-    *reg_reset = mask;
+    mmio_clear32(RESETS_BASE + reset_reset, 1 << component);
 }
 
 void reset_component(enum reset_components component)
@@ -35,6 +28,5 @@ void reset_component(enum reset_components component)
 
 bool component_ready(enum reset_components component)
 {
-    return ((*(volatile unsigned *)(RESETS_BASE + reset_done)) &
-            (unsigned)(1 << component)) != 0;
+    return (mmio_read32(RESETS_BASE + reset_done) & (1u << component)) != 0;
 }
