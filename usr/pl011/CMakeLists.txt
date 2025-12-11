@@ -17,6 +17,7 @@ target_link_libraries(
   PUBLIC
   l4
   libroot
+  librp2040_utils
   libstring
 )
 

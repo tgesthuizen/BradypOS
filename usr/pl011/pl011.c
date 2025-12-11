@@ -21,6 +21,7 @@
 #include <l4/ipc.h>
 #include <l4/schedule.h>
 #include <l4/utcb.h>
+#include <rp2040/resets.h>
 #include <service.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -268,23 +269,14 @@ static void uart_gpio_init(void)
 
 /* ----- Hardware Block Reset ----- */
 
-#define RESETS_BASE 0x4000C000
-#define RESETS_RESET (*(volatile uint32_t *)(RESETS_BASE + 0x00))
-#define RESETS_RESET_DONE (*(volatile uint32_t *)(RESETS_BASE + 0x08))
-
-#define UART0_RESET_BIT (1u << 12)
-
 static void uart0_hw_reset(void)
 {
-    // 1. Assert UART0 reset
-    RESETS_RESET |= UART0_RESET_BIT;
-    while ((RESETS_RESET_DONE & UART0_RESET_BIT) != 0)
+    disable_component(reset_component_uart0);
+    enable_component(reset_component_uart0);
+    while (!component_ready(reset_component_uart0))
+    {
         L4_yield();
-
-    // 2. De-assert UART0 reset
-    RESETS_RESET &= ~UART0_RESET_BIT;
-    while ((RESETS_RESET_DONE & UART0_RESET_BIT) == 0)
-        L4_yield();
+    }
 }
 
 /* ----- IPC-facing implementations (fill TODOs) ----- */
