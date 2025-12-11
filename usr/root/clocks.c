@@ -1,6 +1,6 @@
 #include "clocks.h"
-#include "bus_fabric.h"
-#include "resets.h"
+#include <rp2040/bus_fabric.h>
+#include <rp2040/resets.h>
 
 #include <l4/schedule.h>
 #include <stdint.h>

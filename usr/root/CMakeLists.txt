@@ -23,7 +23,6 @@ add_executable(
   data.s
   exec.c
   memory.c
-  resets.c
   romfs_server.c
   root.c
   service.c
@@ -41,6 +40,7 @@ target_link_libraries(
   libelf
   libromfs
   libroot
+  librp2040_utils
   libstring
   libvfs
 )
