@@ -9,6 +9,7 @@ project(
 add_library(
   librp2040_utils
   STATIC
+  gpio.c
   resets.c
 )
 target_include_directories(

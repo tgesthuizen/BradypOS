@@ -1,26 +1,8 @@
-/* adapted pl011-term driver
- *
- * - hardware control separated from L4 event loop
- * - non-blocking read/write semantics:
- *     * read_impl: copies up to 'len' bytes from internal RX ring buffer
- * (filled from HW)
- *     * write_impl: writes as many bytes as UART TX FIFO accepts immediately
- * and returns that count
- * - before each blocking IPC wait we drain HW RX FIFO into ring buffer so
- * incoming bytes are not lost
- *
- * Note: this code assumes UART0 base is at 0x40034000 (RP2040). Adjust
- * uart_base_addr if needed.
- *
- * Keep in mind: this driver does not configure GPIO pin muxing. Make sure pins
- * are set to UART function before calling uart_init() (or add IO_BANK/GPIO
- * writes to do that here).
- */
-
 #include <errno.h>
 #include <l4/ipc.h>
 #include <l4/schedule.h>
 #include <l4/utcb.h>
+#include <rp2040/gpio.h>
 #include <rp2040/resets.h>
 #include <service.h>
 #include <stddef.h>
@@ -66,15 +48,64 @@ static inline volatile uint32_t *uart_reg(unsigned off)
     return (volatile uint32_t *)(uart_start + off);
 }
 
-#define UART_FR_TXFF (1u << 5)
-#define UART_FR_RXFE (1u << 4)
+enum pl011_dr_bits
+{
+    PL011_DR_DATA_LOW = 0,
+    PL011_DR_DATA_HIGH = 7,
+    PL011_DR_FE,
+    PL011_DR_PE,
+    PL011_DR_BE,
+    PL011_DR_OE,
+};
 
-#define UART_CR_UARTEN (1u << 0)
-#define UART_CR_TXE (1u << 8)
-#define UART_CR_RXE (1u << 9)
+enum pl011_rsr_bits
+{
+    PL011_RSR_FE,
+    PL011_RSR_PE,
+    PL011_RSR_BE,
+    PL011_RSR_OE,
+};
 
-#define UART_LCRH_FEN (1u << 4)
-#define UART_LCRH_WLEN_8 (3u << 5)
+enum pl011_fr_bits
+{
+    PL011_FR_CTS,
+    PL011_FR_DSR,
+    PL011_FR_DCD,
+    PL011_FR_BUSY,
+    PL011_FR_RXFE,
+    PL011_FR_TXFF,
+    PL011_FR_RXFF,
+    PL011_FR_TXFE,
+    PL011_FR_RI,
+};
+
+enum pl011_lcrh_bits
+{
+    PL011_LCRH_BRK,
+    PL011_LCRH_PEN,
+    PL011_LCRH_EPS,
+    PL011_LCRH_STP2,
+    PL011_LCRH_FEN,
+    PL011_LCRH_WLEN_LOW,
+    PL011_LCRH_WLEN_HIGH,
+    PL011_LCRH_SPS,
+};
+
+enum pl011_cr_bits
+{
+    PL011_CR_EN,
+    PL011_CR_SIREN,
+    PL011_CR_SIRLP,
+    PL011_CR_LBE = 7,
+    PL011_CR_TXE,
+    PL011_CR_RXE,
+    PL011_CR_DTE,
+    PL011_CR_RTS,
+    PL011_CR_OUT1,
+    PL011_CR_OUT2,
+    PL011_CR_RTSEN,
+    PL011_CR_CTSEN,
+};
 
 /* Reference peripheral clock for UART (adjust if your clk_peri is different) */
 #ifndef UART_REF_CLK_HZ
@@ -143,7 +174,6 @@ static void uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
 {
     volatile uint32_t *ibrd = uart_reg(PL011_UARTIBRD);
     volatile uint32_t *fbrd = uart_reg(PL011_UARTFBRD);
-    volatile uint32_t *lcrh = uart_reg(PL011_UARTLCR_H);
 
     uint64_t scaled = (uint64_t)uart_clk_hz * 4u;
     uint32_t divider = (uint32_t)((scaled + baud / 2u) / baud);
@@ -153,8 +183,6 @@ static void uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
 
     *ibrd = int_part;
     *fbrd = frac_part;
-
-    *lcrh = (3u << 5) | (1u << 4);
 }
 
 /* Minimal uart init (disable -> set baud -> 8N1 FIFO -> enable).
@@ -168,10 +196,11 @@ static void uart_init(uint32_t baud)
     uart_set_baud(UART_REF_CLK_HZ, baud);
 
     /* 8 bits, no parity, 1 stop, enable FIFOs */
-    *uart_reg(PL011_UARTLCR_H) = (UART_LCRH_WLEN_8 | UART_LCRH_FEN);
+    *uart_reg(PL011_UARTLCR_H) = (0b11 << PL011_LCRH_WLEN_LOW) | PL011_LCRH_FEN;
 
     /* Enable TX and RX and the UART */
-    *uart_reg(PL011_UARTCR) = (UART_CR_UARTEN | UART_CR_TXE | UART_CR_RXE);
+    *uart_reg(PL011_UARTCR) =
+        (1 << PL011_CR_EN) | (1 << PL011_CR_TXE) | (1 << PL011_CR_RXE);
 }
 
 /* Drain HW RX FIFO into rx ring buffer. Call frequently to avoid losing bytes.
@@ -181,7 +210,7 @@ static void uart_drain_hw_rx_to_ring(void)
     volatile uint32_t *fr = uart_reg(PL011_UARTFR);
     volatile uint32_t *dr = uart_reg(PL011_UARTDR);
 
-    while (!(*fr & UART_FR_RXFE))
+    while (!(*fr & PL011_FR_RXFE))
     {
         unsigned char c = (unsigned)(*dr & 0xffu);
         if (rxrb_free(&rxrb) == 0)
@@ -205,7 +234,7 @@ static size_t uart_write_nonblocking(const void *buffer, size_t len)
 
     for (size_t i = 0; i < len; ++i)
     {
-        if (*fr & UART_FR_TXFF)
+        if (*fr & PL011_FR_TXFF)
             break; /* FIFO full - stop and return how many bytes we wrote */
         *dr = (uint32_t)p[i];
         ++written;
@@ -232,39 +261,10 @@ static size_t uart_read_from_ring(void *buffer, size_t len)
 
 /* ----- GPIO configuration ----- */
 
-#define IO_BANK0_BASE 0x40014000
-#define PADS_BANK0_BASE 0x4001C000
-
-#define GPIO_CTRL_OFFSET 0x04
-#define GPIO_PADS_OFFSET 0x04
-
-#define GPIO0_CTRL (IO_BANK0_BASE + 0 * 8 + GPIO_CTRL_OFFSET)
-#define GPIO1_CTRL (IO_BANK0_BASE + 1 * 8 + GPIO_CTRL_OFFSET)
-
-#define GPIO0_PADS (PADS_BANK0_BASE + 0 * 4 + GPIO_PADS_OFFSET)
-#define GPIO1_PADS (PADS_BANK0_BASE + 1 * 4 + GPIO_PADS_OFFSET)
-
-static inline void mmio_write(unsigned addr, unsigned val)
-{
-    *(volatile unsigned *)addr = val;
-}
-
 static void uart_gpio_init(void)
 {
-    /*
-     * Disable pulls, enable input, normal drive strength.
-     * This avoids fighting the USB-UART adapter.
-     */
-    mmio_write(GPIO0_PADS, 0); // TX
-    mmio_write(GPIO1_PADS, 0); // RX
-
-    /*
-     * Set function select = UART0 (func 2)
-     * CTRL register layout:
-     * bits [4:0] = FUNCSEL
-     */
-    mmio_write(GPIO0_CTRL, 2); // GPIO0 → UART0_TX
-    mmio_write(GPIO1_CTRL, 2); // GPIO1 → UART0_RX
+    gpio_set_function(0, GPIO_FN2);
+    gpio_set_function(1, GPIO_FN2);
 }
 
 /* ----- Hardware Block Reset ----- */
@@ -435,7 +435,7 @@ int main()
     uart_gpio_init();
     /* Initialize UART with a common baud (change if you configured clocks
      * differently) */
-    uart_init(115200);
+    uart_init(9600);
 
     register_service();
     const L4_acceptor_t acceptor = L4_string_items_acceptor;
