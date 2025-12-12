@@ -3,6 +3,7 @@
 
 enum gpio_function
 {
+    GPIO_FN0,
     GPIO_FN1,
     GPIO_FN2,
     GPIO_FN3,
