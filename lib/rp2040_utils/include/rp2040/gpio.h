@@ -15,6 +15,26 @@ enum gpio_function
     GPIO_FN9,
 };
 
-void gpio_set_function(unsigned gpio, enum gpio_function fn);
+enum pads_bank0_bits
+{
+    PADS_BANK0_SLEWFAST = 0,
+    PADS_BANK0_SCHMITT = 1,
+    PADS_BANK0_PDE = 2,
+    PADS_BANK0_PUE = 3,
+    PADS_BANK0_DRIVE_LOW = 4,
+    PADS_BANK0_DRIVE_HIGH = 5,
+    PADS_BANK0_IE = 6,
+    PADS_BANK0_OD = 7,
+};
+
+enum pad_drive_strength
+{
+    PAD_DRIVE_STRENGTH_2mA,
+    PAD_DRIVE_STRENGTH_4mA,
+    PAD_DRIVE_STRENGTH_8mA,
+    PAD_DRIVE_STRENGTH_12mA,
+};
+
+void gpio_set_function(unsigned gpio, enum gpio_function fn, unsigned pad_conf);
 
 #endif

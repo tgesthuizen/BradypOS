@@ -2,6 +2,7 @@
 #include <l4/ipc.h>
 #include <l4/schedule.h>
 #include <l4/utcb.h>
+#include <rp2040/bus_fabric.h>
 #include <rp2040/gpio.h>
 #include <rp2040/resets.h>
 #include <service.h>
@@ -170,25 +171,51 @@ static void make_ipc_error(int err_no)
 
 /* ----- UART hardware helpers ----- */
 
-static void uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
+static unsigned uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
 {
     volatile uint32_t *ibrd = uart_reg(PL011_UARTIBRD);
     volatile uint32_t *fbrd = uart_reg(PL011_UARTFBRD);
 
-    uint64_t scaled = (uint64_t)uart_clk_hz * 4u;
-    uint32_t divider = (uint32_t)((scaled + baud / 2u) / baud);
+    uint32_t baud_rate_div = (8 * uart_clk_hz / baud);
+    uint32_t baud_ibrd = baud_rate_div >> 7;
+    uint32_t baud_fbrd;
 
-    uint32_t int_part = divider >> 6;
-    uint32_t frac_part = divider & 0x3Fu;
+    if (baud_ibrd == 0)
+    {
+        baud_ibrd = 1;
+        baud_fbrd = 0;
+    }
+    else if (baud_ibrd >= 65535)
+    {
+        baud_ibrd = 65535;
+        baud_fbrd = 0;
+    }
+    else
+    {
+        baud_fbrd = ((baud_rate_div & 0x7f) + 1) / 2;
+    }
 
-    *ibrd = int_part;
-    *fbrd = frac_part;
+    *ibrd = baud_ibrd;
+    *fbrd = baud_fbrd;
+
+    // The manual says a dummy write is needed here in order for the divisors to
+    // take effect.
+    mmio_write_masked32((uintptr_t)uart_reg(PL011_UARTLCR_H), 0, 0);
+
+    return (4 * uart_clk_hz) / (64 * baud_ibrd + baud_fbrd);
 }
 
 /* Minimal uart init (disable -> set baud -> 8N1 FIFO -> enable).
    Non-invasive: does not touch GPIO muxing. */
 static void uart_init(uint32_t baud)
 {
+    disable_component(reset_component_uart0);
+    enable_component(reset_component_uart0);
+    while (!component_ready(reset_component_uart0))
+    {
+        L4_yield();
+    }
+
     /* Disable UART while configuring */
     *uart_reg(PL011_UARTCR) = 0;
 
@@ -263,20 +290,12 @@ static size_t uart_read_from_ring(void *buffer, size_t len)
 
 static void uart_gpio_init(void)
 {
-    gpio_set_function(0, GPIO_FN2);
-    gpio_set_function(1, GPIO_FN2);
-}
-
-/* ----- Hardware Block Reset ----- */
-
-static void uart0_hw_reset(void)
-{
-    disable_component(reset_component_uart0);
-    enable_component(reset_component_uart0);
-    while (!component_ready(reset_component_uart0))
-    {
-        L4_yield();
-    }
+    gpio_set_function(0, GPIO_FN2,
+                      (PAD_DRIVE_STRENGTH_4mA << PADS_BANK0_DRIVE_LOW) |
+                          (1 << PADS_BANK0_IE));
+    gpio_set_function(1, GPIO_FN2,
+                      (1 << PADS_BANK0_IE) | (1 << PADS_BANK0_PUE) |
+                          (1 << PADS_BANK0_SCHMITT));
 }
 
 /* ----- IPC-facing implementations (fill TODOs) ----- */
@@ -431,11 +450,10 @@ static void register_service()
 /* ----- main loop: process HW drain then IPC ----- */
 int main()
 {
-    uart0_hw_reset();
-    uart_gpio_init();
     /* Initialize UART with a common baud (change if you configured clocks
      * differently) */
-    uart_init(9600);
+    uart_init(115200);
+    uart_gpio_init();
 
     register_service();
     const L4_acceptor_t acceptor = L4_string_items_acceptor;
