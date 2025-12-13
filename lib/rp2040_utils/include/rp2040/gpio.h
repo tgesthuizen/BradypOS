@@ -35,6 +35,6 @@ enum pad_drive_strength
     PAD_DRIVE_STRENGTH_12mA,
 };
 
-void gpio_set_function(unsigned gpio, enum gpio_function fn, unsigned pad_conf);
+void gpio_set_function(unsigned gpio, enum gpio_function fn);
 
 #endif

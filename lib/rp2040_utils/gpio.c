@@ -30,8 +30,9 @@ enum gpio_ctrl_bits
     GPIO_CTRL_IRQOVER_HIGH = 29,
 };
 
-void gpio_set_function(unsigned gpio, enum gpio_function fn, unsigned pad_conf)
+void gpio_set_function(unsigned gpio, enum gpio_function fn)
 {
-    mmio_write32((uintptr_t)&PADS[gpio], pad_conf);
+    mmio_write_masked32((uintptr_t)&PADS[gpio], 1 << PADS_BANK0_IE,
+                        (1 << PADS_BANK0_IE) | (1 << PADS_BANK0_OD));
     mmio_write32((uintptr_t)&GPIO[gpio].ctrl, fn << GPIO_CTRL_FUNCSEL_LOW);
 }

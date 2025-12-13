@@ -108,6 +108,13 @@ enum pl011_cr_bits
     PL011_CR_CTSEN,
 };
 
+enum pl011_parity
+{
+    PL011_PARITY_NONE,
+    PL011_PARITY_EVEN,
+    PL011_PARITY_ODD
+};
+
 /* Reference peripheral clock for UART (adjust if your clk_peri is different) */
 #ifndef UART_REF_CLK_HZ
 #define UART_REF_CLK_HZ (12000000u)
@@ -171,6 +178,72 @@ static void make_ipc_error(int err_no)
 
 /* ----- UART hardware helpers ----- */
 
+static void busy_wait_us(unsigned time)
+{
+    // TODO: Implement properly
+    (void)time;
+    L4_yield();
+    L4_yield();
+}
+
+static uint32_t uart_disable_before_lcr_write()
+{
+    // Notes from PL011 reference manual:
+    //
+    // - Before writing the LCR, if the UART is enabled it needs to be
+    //   disabled and any current TX + RX activity has to be completed
+    //
+    // - There is a BUSY flag which waits for the current TX char, but this is
+    //   OR'd with TX FIFO !FULL, so not usable when FIFOs are enabled and
+    //   potentially nonempty
+    //
+    // - FIFOs can't be set to disabled whilst a character is in progress
+    //   (else "FIFO integrity is not guaranteed")
+    //
+    // Combination of these means there is no general way to halt and poll for
+    // end of TX character, if FIFOs may be enabled. Either way, there is no
+    // way to poll for end of RX character.
+    //
+    // So, insert a 15 Baud period delay before changing the settings.
+    // 15 Baud is comfortably higher than start + max data + parity + stop.
+    // Anything else would require API changes to permit a non-enabled UART
+    // state after init() where settings can be changed safely.
+    uint32_t cr_save = *uart_reg(PL011_UARTCR);
+
+    if (cr_save & (1 << PL011_CR_EN))
+    {
+        mmio_clear32((uintptr_t)uart_reg(PL011_UARTCR),
+                     (1 << PL011_CR_EN) | (1 << PL011_CR_TXE) |
+                         (1 << PL011_CR_RXE));
+
+        uint32_t current_ibrd = *uart_reg(PL011_UARTIBRD);
+        uint32_t current_fbrd = *uart_reg(PL011_UARTFBRD);
+
+        // Note: Maximise precision here. Show working, the compiler will mop
+        // this up. Create a 16.6 fixed-point fractional division ratio; then
+        // scale to 32-bits.
+        uint32_t brdiv_ratio = 64u * current_ibrd + current_fbrd;
+        brdiv_ratio <<= 10;
+        // 3662 is ~(15 * 244.14) where 244.14 is 16e6 / 2^16
+        uint32_t scaled_freq = UART_REF_CLK_HZ / 3662ul;
+        uint32_t wait_time_us = brdiv_ratio / scaled_freq;
+        busy_wait_us(wait_time_us);
+    }
+
+    return cr_save;
+}
+
+static void uart_write_lcr_bits_masked(uint32_t values, uint32_t write_mask)
+{
+    // (Potentially) Cleanly handle disabling the UART before touching LCR
+    uint32_t cr_save = uart_disable_before_lcr_write();
+
+    mmio_write_masked32((uintptr_t)uart_reg(PL011_UARTLCR_H), values,
+                        write_mask);
+
+    *uart_reg(PL011_UARTCR) = cr_save;
+}
+
 static unsigned uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
 {
     volatile uint32_t *ibrd = uart_reg(PL011_UARTIBRD);
@@ -205,6 +278,20 @@ static unsigned uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
     return (4 * uart_clk_hz) / (64 * baud_ibrd + baud_fbrd);
 }
 
+static int bool_to_bit(bool b) { return !!b; }
+
+void uart_set_format(unsigned data_bits, unsigned stop_bits,
+                     enum pl011_parity parity)
+{
+    uart_write_lcr_bits_masked(
+        ((data_bits - 5u) << PL011_LCRH_WLEN_LOW) |
+            ((stop_bits - 1u) << PL011_LCRH_STP2) |
+            (bool_to_bit(parity != PL011_PARITY_NONE) << PL011_LCRH_PEN) |
+            (bool_to_bit(parity == PL011_PARITY_EVEN) << PL011_LCRH_EPS),
+        (0b11 << PL011_LCRH_WLEN_LOW) | (1 << PL011_LCRH_STP2) |
+            (1 << PL011_LCRH_PEN) | (1 << PL011_LCRH_EPS));
+}
+
 /* Minimal uart init (disable -> set baud -> 8N1 FIFO -> enable).
    Non-invasive: does not touch GPIO muxing. */
 static void uart_init(uint32_t baud)
@@ -223,7 +310,7 @@ static void uart_init(uint32_t baud)
     uart_set_baud(UART_REF_CLK_HZ, baud);
 
     /* 8 bits, no parity, 1 stop, enable FIFOs */
-    *uart_reg(PL011_UARTLCR_H) = (0b11 << PL011_LCRH_WLEN_LOW) | PL011_LCRH_FEN;
+    uart_set_format(8, 1, PL011_PARITY_NONE);
 
     /* Enable TX and RX and the UART */
     *uart_reg(PL011_UARTCR) =
@@ -290,12 +377,8 @@ static size_t uart_read_from_ring(void *buffer, size_t len)
 
 static void uart_gpio_init(void)
 {
-    gpio_set_function(0, GPIO_FN2,
-                      (PAD_DRIVE_STRENGTH_4mA << PADS_BANK0_DRIVE_LOW) |
-                          (1 << PADS_BANK0_IE));
-    gpio_set_function(1, GPIO_FN2,
-                      (1 << PADS_BANK0_IE) | (1 << PADS_BANK0_PUE) |
-                          (1 << PADS_BANK0_SCHMITT));
+    gpio_set_function(0, GPIO_FN2);
+    gpio_set_function(1, GPIO_FN2);
 }
 
 /* ----- IPC-facing implementations (fill TODOs) ----- */
