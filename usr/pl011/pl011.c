@@ -380,6 +380,16 @@ static size_t uart_read_from_ring(void *buffer, size_t len)
     return copied;
 }
 
+static void uart_set_break(bool enabled)
+{
+    unsigned lcr_h_brk_bits = 0;
+    if (enabled)
+    {
+        lcr_h_brk_bits = 1 << PL011_LCRH_BRK;
+    }
+    uart_write_lcr_bits_masked(lcr_h_brk_bits, 1 << PL011_LCRH_BRK);
+}
+
 /* ----- GPIO configuration ----- */
 
 static void uart_gpio_init(void)
