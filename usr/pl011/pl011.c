@@ -116,9 +116,11 @@ enum pl011_parity
 };
 
 /* Reference peripheral clock for UART (adjust if your clk_peri is different) */
-#ifndef UART_REF_CLK_HZ
-#define UART_REF_CLK_HZ (12000000u)
-#endif
+enum
+{
+    UART_CLK_HZ = 125000000,
+    UART_BAUD = 125200,
+};
 
 #define RX_RING_CAP IPC_BUFFER_SIZE
 
@@ -225,7 +227,7 @@ static uint32_t uart_disable_before_lcr_write()
         uint32_t brdiv_ratio = 64u * current_ibrd + current_fbrd;
         brdiv_ratio <<= 10;
         // 3662 is ~(15 * 244.14) where 244.14 is 16e6 / 2^16
-        uint32_t scaled_freq = UART_REF_CLK_HZ / 3662ul;
+        uint32_t scaled_freq = UART_CLK_HZ / 3662ul;
         uint32_t wait_time_us = brdiv_ratio / scaled_freq;
         busy_wait_us(wait_time_us);
     }
@@ -307,7 +309,7 @@ static void uart_init(uint32_t baud)
     *uart_reg(PL011_UARTCR) = 0;
 
     /* Program baud */
-    uart_set_baud(UART_REF_CLK_HZ, baud);
+    uart_set_baud(UART_CLK_HZ, baud);
 
     /* 8 bits, no parity, 1 stop, enable FIFOs */
     uart_set_format(8, 1, PL011_PARITY_NONE);
@@ -317,16 +319,18 @@ static void uart_init(uint32_t baud)
         (1 << PL011_CR_EN) | (1 << PL011_CR_TXE) | (1 << PL011_CR_RXE);
 }
 
+static bool uart_is_readable()
+{
+    return (*uart_reg(PL011_UARTFR) & (1 << PL011_FR_RXFE)) == 0;
+}
+
 /* Drain HW RX FIFO into rx ring buffer. Call frequently to avoid losing bytes.
  */
 static void uart_drain_hw_rx_to_ring(void)
 {
-    volatile uint32_t *fr = uart_reg(PL011_UARTFR);
-    volatile uint32_t *dr = uart_reg(PL011_UARTDR);
-
-    while (!(*fr & PL011_FR_RXFE))
+    while (uart_is_readable())
     {
-        unsigned char c = (unsigned)(*dr & 0xffu);
+        unsigned char c = (unsigned)(*uart_reg(PL011_UARTDR) & 0xffu);
         if (rxrb_free(&rxrb) == 0)
         {
             /* ring full: drop the byte (or drop oldest by pushing) */
@@ -337,20 +341,23 @@ static void uart_drain_hw_rx_to_ring(void)
     }
 }
 
+static bool uart_is_writable()
+{
+    return (*uart_reg(PL011_UARTFR) & (1 << PL011_FR_TXFF)) == 0;
+}
+
 /* Non-blocking write: write up to len bytes into HW TX FIFO immediately.
    Return number actually written. */
 static size_t uart_write_nonblocking(const void *buffer, size_t len)
 {
     const unsigned char *p = (const unsigned char *)buffer;
-    volatile uint32_t *fr = uart_reg(PL011_UARTFR);
-    volatile uint32_t *dr = uart_reg(PL011_UARTDR);
     size_t written = 0;
 
     for (size_t i = 0; i < len; ++i)
     {
-        if (*fr & PL011_FR_TXFF)
-            break; /* FIFO full - stop and return how many bytes we wrote */
-        *dr = (uint32_t)p[i];
+        if (!uart_is_writable())
+            break;
+        *uart_reg(PL011_UARTDR) = (uint32_t)p[i];
         ++written;
     }
     return written;
@@ -535,7 +542,7 @@ int main()
 {
     /* Initialize UART with a common baud (change if you configured clocks
      * differently) */
-    uart_init(115200);
+    uart_init(UART_BAUD);
     uart_gpio_init();
 
     register_service();
