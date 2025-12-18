@@ -1,8 +1,14 @@
-add_compile_options(
+message(INFO " Compiling for cortex-m0plus")
+
+target_compile_options(
+  platform
+  INTERFACE
   -mcpu=cortex-m0plus
   -mthumb
 )
-add_link_options(
+target_link_options(
+  platform
+  INTERFACE
   -mcpu=cortex-m0plus
   -mthumb
 )

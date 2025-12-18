@@ -25,6 +25,11 @@ set(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/platform/${BRADYPOS_TARGET_PLATFORM}"
 )
 
+add_library(
+  platform
+  INTERFACE
+)
+link_libraries(platform)
 include(Init)
 
 add_subdirectory(boot)
