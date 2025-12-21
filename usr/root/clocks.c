@@ -199,6 +199,16 @@ enum clk_gpout0_div_bits
     clk_gpout0_div_int_high = 31,
 };
 
+static inline void busy_wait_at_least_cycles(uint32_t minimum_cycles)
+{
+    asm volatile(".syntax unified\n"
+                 "1: subs %0, #3\n"
+                 "bcs 1b\n"
+                 : "+l"(minimum_cycles)
+                 :
+                 : "cc", "memory");
+}
+
 static bool configure_clock(enum clock_index idx, uint32_t src, uint32_t auxsrc,
                             uint32_t src_freq, uint32_t freq)
 {
@@ -223,9 +233,9 @@ static bool configure_clock(enum clock_index idx, uint32_t src, uint32_t auxsrc,
     else
     {
         mmio_clear32((uintptr_t)&clock->ctrl, (1 << clk_gpout0_ctrl_enable));
-        // TODO: Proper busy wait.
-        L4_yield();
-        L4_yield();
+        unsigned delay_cyc =
+            (configured_freq[clk_sys] / configured_freq[idx]) + 1;
+        busy_wait_at_least_cycles(delay_cyc);
     }
     mmio_write_masked32((uintptr_t)&clock->ctrl,
                         auxsrc << clk_sys_ctrl_auxsrc_low,
