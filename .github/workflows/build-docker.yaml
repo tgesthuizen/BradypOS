@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/build-docker.yaml
       - .github/docker/*
+  workflow_dispatch:
 
 jobs:
   builder-arm-none-eabi:

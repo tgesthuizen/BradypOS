@@ -147,6 +147,10 @@ static void thread_list_insert(unsigned tcb_idx, L4_thread_id global_id)
 static void thread_list_delete(L4_thread_id global_id)
 {
     unsigned idx = thread_list_find(global_id);
+    if (thread_count <= 0)
+    {
+        panic("Illegal value for thread count in %s", __FUNCTION__);
+    }
     --thread_count;
     for (unsigned i = idx; i < thread_count; ++i)
         thread_list[i] = thread_list[i] + 1;
@@ -201,7 +205,7 @@ static unsigned find_thread_idx_to_schedule_from_target()
             thread_schedule_delete(idx);
             if (schedule_target->state != TS_RUNNABLE)
             {
-                panic("Thread %u is not active, but shall be scheduled",
+                panic("Thread %u is not active, but shall be scheduled\n",
                       schedule_target->global_id);
             }
             return target_thread_map_idx;
@@ -216,12 +220,14 @@ void schedule_next_thread()
         tcb_store[current_thread_idx].state == TS_RUNNABLE)
         thread_schedule_insert(current_thread_idx);
 
+    // Disable interrupts so that systick cannot read the kalarm heap with a
+    // race condition. Also make sure that schedule_target is not changed under
+    // our feet.
+    disable_interrupts();
     const unsigned idx = schedule_target != NULL
                              ? find_thread_idx_to_schedule_from_target()
                              : find_thread_idx_to_schedule();
-    // Disable interrupts so that systick cannot read the kalarm heap with a
-    // race condition.
-    disable_interrupts();
+
     // TODO: Actual quota management
     update_kalarm_event(&reschedule_event, get_current_time() + 10);
     enable_interrupts();
@@ -404,7 +410,8 @@ void debug_print_threads()
     for (unsigned i = 0; i < thread_count; ++i)
     {
         struct tcb_t *tcb = &tcb_store[thread_list[i]];
-        dbg_printf("%#08x %s\n", tcb->global_id, thread_state_names[tcb->state]);
+        dbg_printf("%#08x %s\n", tcb->global_id,
+                   thread_state_names[tcb->state]);
     }
 }
 

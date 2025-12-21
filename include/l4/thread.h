@@ -14,9 +14,12 @@ enum L4_thread_number_bounds
 
 typedef unsigned L4_thread_id;
 
-#define L4_NILTHREAD (0)
-#define L4_ANYTHREAD (0xFFFFFFFF)
-#define L4_ANYLOCALTHREAD (0xFFFFFFB0)
+enum
+{
+    L4_NILTHREAD = 0,
+    L4_ANYTHREAD = 0xFFFFFFFF,
+    L4_ANYLOCALTHREAD = 0xFFFFFFB0,
+};
 
 inline L4_thread_id L4_global_id(unsigned number, unsigned version)
 {

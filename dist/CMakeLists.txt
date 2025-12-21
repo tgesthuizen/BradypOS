@@ -1,5 +1,5 @@
 set(BRADYPOS_SBIN_COMPONENTS kern root)
-set(BRADYPOS_BIN_COMPONENTS shterm bsh)
+set(BRADYPOS_BIN_COMPONENTS shterm bsh pl011)
 
 find_program(GENROMFS_EXECUTABLE genromfs REQUIRED)
 

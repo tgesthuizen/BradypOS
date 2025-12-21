@@ -1,0 +1,655 @@
+#include <errno.h>
+#include <l4/ipc.h>
+#include <l4/schedule.h>
+#include <l4/utcb.h>
+#include <rp2040/bus_fabric.h>
+#include <rp2040/gpio.h>
+#include <rp2040/resets.h>
+#include <service.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+#include <term.h>
+
+enum
+{
+    IPC_BUFFER_SIZE = 128,
+};
+
+enum pl011_offsets
+{
+    PL011_UARTDR = 0x000,
+    PL011_UARTRSR = 0x004,
+    PL011_UARTFR = 0x018,
+    PL011_UARTILPR = 0x020,
+    PL011_UARTIBRD = 0x024,
+    PL011_UARTFBRD = 0x028,
+    PL011_UARTLCR_H = 0x02C,
+    PL011_UARTCR = 0x030,
+    PL011_UARTIFLS = 0x034,
+    PL011_UARTIMSC = 0x038,
+    PL011_UARTRIS = 0x03C,
+    PL011_UARTMIS = 0x040,
+    PL011_UARTICR = 0x044,
+    PL011_UARTDMACR = 0x048,
+    PL011_UARTPeriphID0 = 0xFE0,
+    PL011_UARTPeriphID1 = 0xFE4,
+    PL011_UARTPeriphID2 = 0xFE8,
+    PL011_UARTPeriphID3 = 0xFEC,
+    PL011_UARTPCellID0 = 0xFF0,
+    PL011_UARTPCellID1 = 0xFF4,
+    PL011_UARTPCellID2 = 0xFF8,
+    PL011_UARTPCellID3 = 0xFFC,
+};
+
+static unsigned char *const uart_start = (unsigned char *)0x40034000;
+
+static inline volatile uint32_t *uart_reg(unsigned off)
+{
+    return (volatile uint32_t *)(uart_start + off);
+}
+
+enum pl011_dr_bits
+{
+    PL011_DR_DATA_LOW = 0,
+    PL011_DR_DATA_HIGH = 7,
+    PL011_DR_FE,
+    PL011_DR_PE,
+    PL011_DR_BE,
+    PL011_DR_OE,
+};
+
+enum pl011_rsr_bits
+{
+    PL011_RSR_FE,
+    PL011_RSR_PE,
+    PL011_RSR_BE,
+    PL011_RSR_OE,
+};
+
+enum pl011_fr_bits
+{
+    PL011_FR_CTS,
+    PL011_FR_DSR,
+    PL011_FR_DCD,
+    PL011_FR_BUSY,
+    PL011_FR_RXFE,
+    PL011_FR_TXFF,
+    PL011_FR_RXFF,
+    PL011_FR_TXFE,
+    PL011_FR_RI,
+};
+
+enum pl011_lcrh_bits
+{
+    PL011_LCRH_BRK,
+    PL011_LCRH_PEN,
+    PL011_LCRH_EPS,
+    PL011_LCRH_STP2,
+    PL011_LCRH_FEN,
+    PL011_LCRH_WLEN_LOW,
+    PL011_LCRH_WLEN_HIGH,
+    PL011_LCRH_SPS,
+};
+
+enum pl011_cr_bits
+{
+    PL011_CR_EN,
+    PL011_CR_SIREN,
+    PL011_CR_SIRLP,
+    PL011_CR_LBE = 7,
+    PL011_CR_TXE,
+    PL011_CR_RXE,
+    PL011_CR_DTE,
+    PL011_CR_RTS,
+    PL011_CR_OUT1,
+    PL011_CR_OUT2,
+    PL011_CR_RTSEN,
+    PL011_CR_CTSEN,
+};
+
+enum pl011_parity
+{
+    PL011_PARITY_NONE,
+    PL011_PARITY_EVEN,
+    PL011_PARITY_ODD
+};
+
+/* Reference peripheral clock for UART (adjust if your clk_peri is different) */
+enum
+{
+    UART_CLK_HZ = 125000000,
+    UART_BAUD = 115200,
+};
+
+#define RX_RING_CAP IPC_BUFFER_SIZE
+
+struct rx_ring
+{
+    unsigned char buf[RX_RING_CAP];
+    unsigned head;
+    unsigned tail;
+};
+
+static struct rx_ring rxrb = {.head = 0, .tail = 0};
+
+static inline unsigned rxrb_len(const struct rx_ring *r)
+{
+    if (r->head >= r->tail)
+        return r->head - r->tail;
+    return RX_RING_CAP - (r->tail - r->head);
+}
+
+static inline unsigned rxrb_free(const struct rx_ring *r)
+{
+    return RX_RING_CAP - rxrb_len(r) -
+           1; /* keep one slot empty to disambiguate full/empty */
+}
+
+static inline void rxrb_push(struct rx_ring *r, unsigned char c)
+{
+    unsigned next = (r->head + 1) % RX_RING_CAP;
+    if (next == r->tail)
+    {
+        /* buffer full: drop oldest to make space */
+        r->tail = (r->tail + 1) % RX_RING_CAP;
+    }
+    r->buf[r->head] = c;
+    r->head = next;
+}
+
+static inline int rxrb_pop(struct rx_ring *r)
+{
+    if (r->tail == r->head)
+        return -1;
+    unsigned char c = r->buf[r->tail];
+    r->tail = (r->tail + 1) % RX_RING_CAP;
+    return c;
+}
+
+/* ----- IPC helper buffer & utcb ----- */
+extern L4_utcb_t __utcb;
+static unsigned char ipc_buffer[IPC_BUFFER_SIZE];
+
+static void make_ipc_error(int err_no)
+{
+    L4_load_mr(
+        0, (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = TERM_ERROR}.raw);
+    L4_load_mr(1, err_no);
+}
+
+/* ----- UART hardware helpers ----- */
+
+static void busy_wait_us(unsigned time)
+{
+    // TODO: Implement properly
+    (void)time;
+    L4_yield();
+    L4_yield();
+}
+
+static uint32_t uart_disable_before_lcr_write()
+{
+    // Notes from PL011 reference manual:
+    //
+    // - Before writing the LCR, if the UART is enabled it needs to be
+    //   disabled and any current TX + RX activity has to be completed
+    //
+    // - There is a BUSY flag which waits for the current TX char, but this is
+    //   OR'd with TX FIFO !FULL, so not usable when FIFOs are enabled and
+    //   potentially nonempty
+    //
+    // - FIFOs can't be set to disabled whilst a character is in progress
+    //   (else "FIFO integrity is not guaranteed")
+    //
+    // Combination of these means there is no general way to halt and poll for
+    // end of TX character, if FIFOs may be enabled. Either way, there is no
+    // way to poll for end of RX character.
+    //
+    // So, insert a 15 Baud period delay before changing the settings.
+    // 15 Baud is comfortably higher than start + max data + parity + stop.
+    // Anything else would require API changes to permit a non-enabled UART
+    // state after init() where settings can be changed safely.
+    uint32_t cr_save = *uart_reg(PL011_UARTCR);
+
+    if (cr_save & (1 << PL011_CR_EN))
+    {
+        mmio_clear32((uintptr_t)uart_reg(PL011_UARTCR),
+                     (1 << PL011_CR_EN) | (1 << PL011_CR_TXE) |
+                         (1 << PL011_CR_RXE));
+
+        uint32_t current_ibrd = *uart_reg(PL011_UARTIBRD);
+        uint32_t current_fbrd = *uart_reg(PL011_UARTFBRD);
+
+        // Note: Maximise precision here. Show working, the compiler will mop
+        // this up. Create a 16.6 fixed-point fractional division ratio; then
+        // scale to 32-bits.
+        uint32_t brdiv_ratio = 64u * current_ibrd + current_fbrd;
+        brdiv_ratio <<= 10;
+        // 3662 is ~(15 * 244.14) where 244.14 is 16e6 / 2^16
+        uint32_t scaled_freq = UART_CLK_HZ / 3662ul;
+        uint32_t wait_time_us = brdiv_ratio / scaled_freq;
+        busy_wait_us(wait_time_us);
+    }
+
+    return cr_save;
+}
+
+static void uart_write_lcr_bits_masked(uint32_t values, uint32_t write_mask)
+{
+    // (Potentially) Cleanly handle disabling the UART before touching LCR
+    uint32_t cr_save = uart_disable_before_lcr_write();
+
+    mmio_write_masked32((uintptr_t)uart_reg(PL011_UARTLCR_H), values,
+                        write_mask);
+
+    *uart_reg(PL011_UARTCR) = cr_save;
+}
+
+static unsigned uart_set_baud(uint32_t uart_clk_hz, uint32_t baud)
+{
+    volatile uint32_t *ibrd = uart_reg(PL011_UARTIBRD);
+    volatile uint32_t *fbrd = uart_reg(PL011_UARTFBRD);
+
+    uint32_t baud_rate_div = (8 * uart_clk_hz / baud);
+    uint32_t baud_ibrd = baud_rate_div >> 7;
+    uint32_t baud_fbrd;
+
+    if (baud_ibrd == 0)
+    {
+        baud_ibrd = 1;
+        baud_fbrd = 0;
+    }
+    else if (baud_ibrd >= 65535)
+    {
+        baud_ibrd = 65535;
+        baud_fbrd = 0;
+    }
+    else
+    {
+        baud_fbrd = ((baud_rate_div & 0x7f) + 1) / 2;
+    }
+
+    *ibrd = baud_ibrd;
+    *fbrd = baud_fbrd;
+
+    // The manual says a dummy write is needed here in order for the divisors to
+    // take effect.
+    mmio_write_masked32((uintptr_t)uart_reg(PL011_UARTLCR_H), 0, 0);
+
+    return (4 * uart_clk_hz) / (64 * baud_ibrd + baud_fbrd);
+}
+
+static int bool_to_bit(bool b) { return !!b; }
+
+void uart_set_format(unsigned data_bits, unsigned stop_bits,
+                     enum pl011_parity parity)
+{
+    uart_write_lcr_bits_masked(
+        ((data_bits - 5u) << PL011_LCRH_WLEN_LOW) |
+            ((stop_bits - 1u) << PL011_LCRH_STP2) |
+            (bool_to_bit(parity != PL011_PARITY_NONE) << PL011_LCRH_PEN) |
+            (bool_to_bit(parity == PL011_PARITY_EVEN) << PL011_LCRH_EPS),
+        (0b11 << PL011_LCRH_WLEN_LOW) | (1 << PL011_LCRH_STP2) |
+            (1 << PL011_LCRH_PEN) | (1 << PL011_LCRH_EPS));
+}
+
+/* Minimal uart init (disable -> set baud -> 8N1 FIFO -> enable).
+   Non-invasive: does not touch GPIO muxing. */
+static void uart_init(uint32_t baud)
+{
+    disable_component(reset_component_uart0);
+    enable_component(reset_component_uart0);
+    while (!component_ready(reset_component_uart0))
+    {
+        L4_yield();
+    }
+
+    /* Disable UART while configuring */
+    *uart_reg(PL011_UARTCR) = 0;
+    *uart_reg(PL011_UARTLCR_H) = 1 << PL011_LCRH_FEN;
+
+    /* Program baud */
+    uart_set_baud(UART_CLK_HZ, baud);
+
+    /* 8 bits, no parity, 1 stop, enable FIFOs */
+    uart_set_format(8, 1, PL011_PARITY_NONE);
+
+    /* Enable TX and RX and the UART */
+    *uart_reg(PL011_UARTCR) =
+        (1 << PL011_CR_EN) | (1 << PL011_CR_TXE) | (1 << PL011_CR_RXE);
+}
+
+static bool uart_is_readable()
+{
+    return (*uart_reg(PL011_UARTFR) & (1 << PL011_FR_RXFE)) == 0;
+}
+
+/* Drain HW RX FIFO into rx ring buffer. Call frequently to avoid losing bytes.
+ */
+static void uart_drain_hw_rx_to_ring(void)
+{
+    while (uart_is_readable())
+    {
+        unsigned current_char = *uart_reg(PL011_UARTDR);
+        if (rxrb_free(&rxrb) == 0)
+        {
+            /* ring full: drop the byte (or drop oldest by pushing) */
+            /* We choose to push which will overwrite oldest via rxrb_push logic
+             */
+        }
+        unsigned error_mask = (current_char >> 8) & 0xf;
+        if (error_mask)
+        {
+            // An error has occured receiving the character
+            // Reset it and ignore the character
+            *uart_reg(PL011_UARTRSR) = error_mask;
+            continue;
+        }
+        rxrb_push(&rxrb, current_char & 0xff);
+    }
+}
+
+static bool uart_is_writable()
+{
+    return (*uart_reg(PL011_UARTFR) & (1 << PL011_FR_TXFF)) == 0;
+}
+
+static bool pending_nl = false;
+
+/* Non-blocking write: write up to len bytes into HW TX FIFO immediately.
+   Return number actually written. */
+static size_t uart_write_nonblocking(const void *buffer, size_t len)
+{
+    const unsigned char *p = (const unsigned char *)buffer;
+    size_t written = 0;
+
+    if (pending_nl)
+    {
+        if (!uart_is_writable())
+            return 0;
+        *uart_reg(PL011_UARTDR) = '\n';
+        pending_nl = false;
+    }
+
+    for (size_t i = 0; i < len; ++i)
+    {
+        if (!uart_is_writable())
+            break;
+
+        ++written;
+        if (p[i] == '\n')
+        {
+            *uart_reg(PL011_UARTDR) = '\r';
+            // There's the slight bug that '\r' might be sent multiple times for
+            // one '\n'. This does not show visually though so it is ignored for
+            // now.
+            if (!uart_is_writable())
+            {
+                pending_nl = true;
+                break;
+            }
+        }
+
+        *uart_reg(PL011_UARTDR) = (uint32_t)p[i];
+    }
+    return written;
+}
+
+/* Non-blocking read: copy up to len bytes from rx ring into 'buffer'.
+   Returns number of bytes copied.
+   If ring empty, returns 0. */
+static size_t uart_read_from_ring(void *buffer, size_t len)
+{
+    unsigned char *out = (unsigned char *)buffer;
+    size_t copied = 0;
+    while (copied < len)
+    {
+        int c = rxrb_pop(&rxrb);
+        if (c < 0)
+            break;
+        out[copied++] = (unsigned char)c;
+    }
+    return copied;
+}
+
+static void uart_set_break(bool enabled)
+{
+    unsigned lcr_h_brk_bits = 0;
+    if (enabled)
+    {
+        lcr_h_brk_bits = 1 << PL011_LCRH_BRK;
+    }
+    uart_write_lcr_bits_masked(lcr_h_brk_bits, 1 << PL011_LCRH_BRK);
+}
+
+/* ----- GPIO configuration ----- */
+
+static void uart_gpio_init(void)
+{
+    reset_component(reset_component_io_bank_0);
+    reset_component(reset_component_pads_bank0);
+    while (!component_ready(reset_component_io_bank_0) &&
+           !component_ready(reset_component_pads_bank0))
+        L4_yield();
+    gpio_set_function(0, GPIO_FN2);
+    gpio_set_function(1, GPIO_FN2);
+}
+
+/* ----- IPC-facing implementations (fill TODOs) ----- */
+
+/* Return value semantics for pl011_handle_read_impl:
+ *   returns number of bytes *not* copied (so caller computes ret_len = len -
+ * ret) (Kept same as your original code where pl011_handle_read_impl returned
+ * 'ret' and then ret_len = len - ret; but we will return number of bytes NOT
+ * copied? To be consistent with your earlier logic: original had const unsigned
+ * ret = pl011_handle_read_impl(&ipc_buffer, len); const unsigned ret_len = len
+ * - ret; So original expected pl011_handle_read_impl to return bytes NOT
+ * copied? That was ambiguous. To make it logical: we'll make
+ * pl011_handle_read_impl return the number of bytes copied. Then in
+ * pl011_handle_read() we'll compute ret_len = ret and adjust how MR's are set.
+ *
+ * To avoid changing calling convention too much, we'll adapt the call-site
+ * below to expect 'copied'.
+ */
+
+/* We'll implement pl011_handle_read_impl to:
+   1) drain HW FIFO to ring
+   2) copy up to len bytes from ring into buffer
+   3) return number of bytes copied
+*/
+static unsigned pl011_handle_read_impl(void *buffer, size_t len)
+{
+    if (len == 0)
+        return 0;
+
+    /* First, pull bytes from HW FIFO into ring */
+    uart_drain_hw_rx_to_ring();
+
+    /* Now copy from ring to user buffer */
+    size_t copied = uart_read_from_ring(buffer, len);
+    return (unsigned)copied;
+}
+
+/* Write implementation: attempt to write as many bytes as possible into HW
+   FIFO, returning number written. This is non-blocking: it never spins waiting
+   for FIFO space. */
+static unsigned pl011_handle_write_impl(void *buffer, size_t len)
+{
+    if (len == 0)
+        return 0;
+    size_t written = uart_write_nonblocking(buffer, len);
+    return (unsigned)written;
+}
+
+/* ----- high-level IPC handlers (adjusted to use the above semantics) ----- */
+
+static void pl011_handle_read(L4_msg_tag_t tag, L4_thread_id from)
+{
+    (void)from;
+    if (tag.u != 2 || tag.t != 0)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    unsigned req_len;
+    L4_store_mr(TERM_READ_SIZE, &req_len);
+    if (req_len == 0)
+    {
+        /* nothing requested */
+        const struct L4_simple_string_item empty_item = {
+            .c = 0,
+            .type = L4_data_type_string_item,
+            .compound = 0,
+            .length = 0,
+            .ptr = (unsigned)&ipc_buffer};
+        L4_load_mr(
+            TERM_READ_RET_OP,
+            (L4_msg_tag_t){.u = 0, .t = 2, .flags = 0, .label = TERM_READ_RET}
+                .raw);
+        L4_load_mrs(TERM_READ_RET_STR, 2, (unsigned *)&empty_item);
+        return;
+    }
+
+    /* Perform the non-blocking read (copies into ipc_buffer) */
+    const unsigned copied = pl011_handle_read_impl(&ipc_buffer, req_len);
+
+    const struct L4_simple_string_item item = {.c = 0,
+                                               .type = L4_data_type_string_item,
+                                               .compound = 0,
+                                               .length = copied,
+                                               .ptr = (unsigned)&ipc_buffer};
+    L4_load_mr(
+        TERM_READ_RET_OP,
+        (L4_msg_tag_t){.u = 0, .t = 2, .flags = 0, .label = TERM_READ_RET}.raw);
+    L4_load_mrs(TERM_READ_RET_STR, 2, (unsigned *)&item);
+}
+
+/* Write handler: client sent a string_item describing buffer+len. We copy from
+   client buffer into HW FIFO (as much as will fit now) and return write count.
+ */
+static void pl011_handle_write(L4_msg_tag_t tag, L4_thread_id from)
+{
+    (void)from;
+    if (tag.u != 1 || tag.t != 2)
+    {
+        make_ipc_error(EINVAL);
+        return;
+    }
+    struct L4_simple_string_item string_item;
+    L4_store_mrs(TERM_WRITE_BUF, 2, (unsigned *)&string_item);
+
+    /* Safety: clamp length to IPC_BUFFER_SIZE to avoid copying huge memory */
+    size_t to_write = string_item.length;
+    if (to_write > IPC_BUFFER_SIZE)
+        to_write = IPC_BUFFER_SIZE;
+
+    /* If the client's data pointer is actually accessible directly, we can pass
+       it to uart_write_nonblocking. Otherwise a secure driver would copy to a
+       local buffer first. Here we assume the pointer is in client's space but
+       L4_store_mrs gave us a copy of the descriptor only; we will copy into
+       ipc_buffer first. */
+    memcpy(ipc_buffer, (const void *)string_item.ptr, to_write);
+
+    const unsigned wrote =
+        pl011_handle_write_impl((void *)ipc_buffer, to_write);
+
+    L4_load_mr(
+        TERM_WRITE_RET_OP,
+        (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = TERM_WRITE_RET}
+            .raw);
+    L4_load_mr(TERM_WRITE_RET_SIZE, wrote);
+}
+
+/* ----- service registration (unchanged) ----- */
+static void register_service()
+{
+    while (1)
+    {
+        L4_load_mr(
+            SERV_REGISTER_OP,
+            (L4_msg_tag_t){.u = 1, .t = 0, .flags = 0, .label = SERV_REGISTER}
+                .raw);
+        unsigned serv_name;
+        L4_thread_id from;
+        memcpy(&serv_name, "term", sizeof(unsigned));
+        L4_load_mr(SERV_REGISTER_NAME, serv_name);
+        const L4_thread_id root_id = L4_global_id(L4_USER_THREAD_START, 1);
+        L4_msg_tag_t tag =
+            L4_ipc(root_id, root_id, L4_timeouts(L4_never, L4_never), &from);
+        if (!L4_ipc_failed(tag) && tag.u == 0 && tag.t == 0 &&
+            tag.label == SERV_REGISTER_RET)
+        {
+            break;
+        }
+    }
+}
+
+/* ----- main loop: process HW drain then IPC ----- */
+int main()
+{
+    /* Initialize UART with a common baud (change if you configured clocks
+     * differently) */
+    uart_init(UART_BAUD);
+    uart_gpio_init();
+
+    register_service();
+    const L4_acceptor_t acceptor = L4_string_items_acceptor;
+    const struct L4_simple_string_item string_acceptor = {
+        .c = 0,
+        .type = L4_data_type_string_item,
+        .compound = 0,
+        .length = IPC_BUFFER_SIZE,
+        .ptr = (unsigned)&ipc_buffer};
+
+    while (1)
+    {
+        /* Before blocking for IPC, drain any bytes from HW FIFO into rx ring
+         * buffer */
+        uart_drain_hw_rx_to_ring();
+
+        /* Prepare to accept string items from clients */
+        L4_load_br(0, acceptor.raw);
+        L4_load_brs(1, 2, (unsigned *)&string_acceptor);
+
+        /* Block waiting for a message from any thread */
+        L4_thread_id from;
+        L4_msg_tag_t tag = L4_ipc(L4_NILTHREAD, L4_ANYTHREAD,
+                                  L4_timeouts(L4_never, L4_never), &from);
+        if (L4_ipc_failed(tag))
+        {
+            continue;
+        }
+
+        switch (tag.label)
+        {
+        case TERM_READ:
+            pl011_handle_read(tag, from);
+            break;
+        case TERM_WRITE:
+            pl011_handle_write(tag, from);
+            break;
+        default:
+            make_ipc_error(EINVAL);
+            break;
+        }
+
+        /* Send reply to the client (previously prepared by handlers) */
+        tag =
+            L4_ipc(from, L4_NILTHREAD, L4_timeouts(L4_never, L4_never), &from);
+        if (L4_ipc_failed(tag))
+        {
+            continue;
+        }
+    }
+}
+
+/* minimal _start wrapper to call main like in your original code */
+__attribute__((naked)) void _start()
+{
+    asm("pop {r0, r1}\n\t"
+        "movs r9, r1\n\t"
+        "movs r2, #0\n\t"
+        "movs lr, r2\n\t"
+        "bl %c[main]\n\t" ::[main] ""(main));
+}

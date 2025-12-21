@@ -8,6 +8,7 @@
 #include <l4/space.h>
 #include <linked_list_alloc.h>
 #include <root.h>
+#include <stddef.h>
 
 // The RAM segment of the executable ends after BSS
 extern unsigned char __bss_end;

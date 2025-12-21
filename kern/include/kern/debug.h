@@ -42,7 +42,7 @@ extern char debug_should_log[];
 #define kassert(cond) ((void)0)
 #endif
 
-__attribute__((noreturn, cold, format(printf, 1, 2))) void
-panic(const char *fmt, ...);
+__attribute__((noreturn, cold,
+               format(printf, 1, 2))) void panic(const char *fmt, ...);
 __attribute__((noreturn)) void reset_processor();
 #endif

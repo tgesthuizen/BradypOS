@@ -1,8 +1,8 @@
 FROM debian:stable
-RUN apt-get update
-RUN apt-get -y upgrade
-RUN apt-get -y install gcc-arm-none-eabi binutils-arm-none-eabi cmake ninja-build genromfs
-RUN apt-get -y clean
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && apt-get install -y --no-install-recommends gcc-arm-none-eabi binutils-arm-none-eabi cmake ninja-build genromfs \
+    && apt-get clean
 RUN useradd -ms /bin/bash agent
 USER agent
 WORKDIR /home/agent

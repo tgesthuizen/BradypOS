@@ -33,7 +33,7 @@ void systick_init()
     const unsigned control_flags =
         SYSTICK_CSR_TICKINT | SYSTICK_CSR_CLKSRC | SYSTICK_CSR_COUNTFLAG;
     SYSTICK->csr = control_flags;
-    // Fire every 100ms
+    // Fire every 10ms
     const unsigned tick_rate = SYSTICK->calib & (SYSTICK_CALIB_TENMS_MASK);
     SYSTICK->rvr = tick_rate;
     SYSTICK->cvr = tick_rate;

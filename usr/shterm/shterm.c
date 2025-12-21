@@ -2,6 +2,7 @@
 #include <l4/ipc.h>
 #include <l4/schedule.h>
 #include <l4/thread.h>
+#include <l4/time.h>
 #include <l4/utcb.h>
 #include <semihosting.h>
 #include <service.h>

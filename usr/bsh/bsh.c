@@ -72,23 +72,35 @@ enum
 bool term_write(L4_thread_id term_service, const unsigned char *buf,
                 size_t size)
 {
-    L4_load_mr(
-        TERM_WRITE_OP,
-        (L4_msg_tag_t){.u = 1, .t = 2, .flags = 0, .label = TERM_WRITE}.raw);
-    L4_load_mr(TERM_WRITE_FLAGS, 0);
-    struct L4_simple_string_item item = {.c = 0,
-                                         .type = L4_data_type_string_item,
-                                         .compound = 0,
-                                         .length = size,
-                                         .ptr = (unsigned)buf};
-    L4_load_mrs(TERM_WRITE_BUF, 2, (unsigned *)&item);
-    L4_thread_id from;
-    L4_msg_tag_t answer_tag = L4_ipc(term_service, term_service,
-                                     L4_timeouts(L4_never, L4_never), &from);
-    return !L4_ipc_failed(answer_tag) && answer_tag.label == TERM_WRITE_RET;
+    while (size)
+    {
+        L4_load_mr(
+            TERM_WRITE_OP,
+            (L4_msg_tag_t){.u = 1, .t = 2, .flags = 0, .label = TERM_WRITE}
+                .raw);
+        L4_load_mr(TERM_WRITE_FLAGS, 0);
+        struct L4_simple_string_item item = {.c = 0,
+                                             .type = L4_data_type_string_item,
+                                             .compound = 0,
+                                             .length = size,
+                                             .ptr = (unsigned)buf};
+        L4_load_mrs(TERM_WRITE_BUF, 2, (unsigned *)&item);
+        L4_thread_id from;
+        L4_msg_tag_t answer_tag = L4_ipc(
+            term_service, term_service, L4_timeouts(L4_never, L4_never), &from);
+        if (L4_ipc_failed(answer_tag) && answer_tag.label != TERM_WRITE_RET)
+        {
+            return false;
+        }
+        unsigned written;
+        L4_store_mr(TERM_WRITE_RET_SIZE, &written);
+        buf += written;
+        size -= written;
+    }
+    return true;
 }
 
-static void write_buffer(unsigned char *buf, size_t size)
+static void write_buffer(const unsigned char *buf, size_t size)
 {
     // Chop the file up into 64 byte chunks
     unsigned offset = 0;
@@ -104,6 +116,8 @@ static void write_buffer(unsigned char *buf, size_t size)
 
 static void startup()
 {
+    static const unsigned char init_space_out[] = "\n";
+    write_buffer(init_space_out, sizeof(init_space_out));
     static const char etc_path[] = "etc";
     if (!open_at(romfs_service, ROOT_FD, ETC_FD, etc_path,
                  sizeof(etc_path) - 1))
@@ -156,45 +170,71 @@ static void startup()
     close(romfs_service, ETC_FD);
 }
 
-size_t ipc_buffer_size;
-size_t ipc_buffer_pos;
+static unsigned char line_buffer[MAX_COMMAND_LINE_LEN + 1];
+static size_t line_pos = 0;
+static size_t line_len = 0;
 
-static int read_next_chars()
+static bool readline(L4_thread_id term_service)
 {
-    L4_load_br(0, L4_string_items_acceptor.raw);
     struct L4_simple_string_item item = {.c = 0,
                                          .type = L4_data_type_string_item,
                                          .compound = 0,
                                          .length = IPC_BUFFER_SIZE,
                                          .ptr = (unsigned)&ipc_buffer};
+
+    L4_load_br(0, L4_string_items_acceptor.raw);
     L4_load_brs(1, 2, (unsigned *)&item);
     L4_load_mr(
         TERM_READ_OP,
         (L4_msg_tag_t){.u = 2, .t = 0, .flags = 0, .label = TERM_READ}.raw);
     L4_load_mr(TERM_READ_FLAGS, 0);
     L4_load_mr(TERM_READ_SIZE, IPC_BUFFER_SIZE);
+
     L4_thread_id from;
     L4_msg_tag_t answer_tag = L4_ipc(term_service, term_service,
                                      L4_timeouts(L4_never, L4_never), &from);
-    const bool ipc_succeeded =
-        !L4_ipc_failed(answer_tag) && answer_tag.label == TERM_READ_RET;
-    if (!ipc_succeeded)
-        return -1;
-    L4_store_mrs(TERM_READ_RET_STR, 2, (unsigned int *)&item);
-    ipc_buffer_size = item.length;
-    ipc_buffer_pos = 0;
-    return 0;
+    if (L4_ipc_failed(answer_tag) || answer_tag.label != TERM_READ_RET)
+        return false;
+
+    L4_store_mrs(TERM_READ_RET_STR, 2, (unsigned *)&item);
+
+    unsigned char *buf = (unsigned char *)item.ptr;
+    for (size_t i = 0; i < item.length; i++)
+    {
+        unsigned char c = buf[i];
+
+        if (c == '\r' || c == '\n')
+        {
+            if (line_pos < MAX_COMMAND_LINE_LEN - 2)
+            {
+                line_buffer[line_pos++] = '\n';
+                line_buffer[line_pos] = '\0';
+                line_len = line_pos;
+                line_pos = 0;
+                return true;
+            }
+        }
+        else if (c == 0x7f || c == '\b')
+        {
+            if (line_pos > 0)
+                line_pos--;
+        }
+        else if (line_pos < MAX_COMMAND_LINE_LEN - 3)
+        {
+            line_buffer[line_pos++] = c;
+        }
+    }
+
+    return false;
 }
 
 int getch()
 {
-    if (ipc_buffer_pos == ipc_buffer_size)
+    if (line_pos >= line_len)
     {
-        const int ret = read_next_chars();
-        if (ret != 0)
-            return EOF;
+        return EOF;
     }
-    return ipc_buffer[ipc_buffer_pos++];
+    return line_buffer[line_pos++];
 }
 
 void ungetch(int ch)
@@ -202,7 +242,7 @@ void ungetch(int ch)
     // We accept @p c for compatibility with the standard C library. With our
     // implementation, we do not rely on its value.
     (void)ch;
-    --ipc_buffer_pos;
+    --line_pos;
 }
 
 void exec_command(char **args)
@@ -233,6 +273,13 @@ int main()
     while (1)
     {
         term_write(term_service, (const unsigned char *)"> ", 2);
+
+        line_pos = 0;
+        while (!readline(term_service))
+        {
+            L4_yield();
+        }
+
         parse();
     }
 

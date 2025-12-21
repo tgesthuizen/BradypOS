@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(
   root
   LANGUAGES C
-  VERSION 0.1.0
+  VERSION 0.1.1
 )
 
 add_library(
@@ -18,6 +18,7 @@ target_include_directories(
 
 add_executable(
   root
+  clocks.c
   config.c
   data.s
   exec.c
@@ -39,6 +40,7 @@ target_link_libraries(
   libelf
   libromfs
   libroot
+  librp2040_utils
   libstring
   libvfs
 )

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(BradypOS
   LANGUAGES C ASM
-  VERSION 0.1.0
+  VERSION 0.1.1
 )
 
 add_compile_options(
@@ -25,6 +25,11 @@ set(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/platform/${BRADYPOS_TARGET_PLATFORM}"
 )
 
+add_library(
+  platform
+  INTERFACE
+)
+link_libraries(platform)
 include(Init)
 
 add_subdirectory(boot)

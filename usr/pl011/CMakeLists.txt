@@ -1,28 +1,28 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(
-  bsh
+project(pl011
   LANGUAGES C ASM
   VERSION 0.1.1
 )
 
 add_executable(
-  bsh
+  pl011
 
-  bsh.c
-  builtins.c
   data.s
-  parser.c
+  pl011.c
 )
+
 target_link_libraries(
-  bsh
+  pl011
   PUBLIC
   l4
+  libroot
+  librp2040_utils
   libstring
-  libvfs
 )
+
 target_link_options(
-  bsh
+  pl011
   PUBLIC
   -Wl,-E,-z,text,-z,common-page-size=512,-z,max-page-size=512
   -T ${BRADYPOS_USER_LINKER_SCRIPT}
@@ -30,9 +30,9 @@ target_link_options(
   -pie
 )
 set_target_properties(
-  bsh
+  pl011
   PROPERTIES
-  OUTPUT_NAME bsh
+  OUTPUT_NAME pl011
   LINK_DEPENDS "${BRADYPOS_USER_LINKER_SCRIPT};${BRADYPOS_USER_VERSION_SCRIPT}"
   INIT_TASK spawn
 )
