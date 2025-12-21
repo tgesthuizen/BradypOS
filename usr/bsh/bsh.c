@@ -84,7 +84,7 @@ static bool term_write(L4_thread_id term_service, const unsigned char *buf,
     return !L4_ipc_failed(answer_tag) && answer_tag.label == TERM_WRITE_RET;
 }
 
-static void write_buffer(unsigned char *buf, size_t size)
+static void write_buffer(const unsigned char *buf, size_t size)
 {
     // Chop the file up into 64 byte chunks
     unsigned offset = 0;
@@ -100,7 +100,8 @@ static void write_buffer(unsigned char *buf, size_t size)
 
 static void startup()
 {
-
+    static const unsigned char init_space_out[] = "\n";
+    write_buffer(init_space_out, sizeof(init_space_out));
     static const char etc_path[] = "etc";
     if (!open_at(romfs_service, ROOT_FD, ETC_FD, etc_path,
                  sizeof(etc_path) - 1))
