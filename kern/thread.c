@@ -205,7 +205,7 @@ static unsigned find_thread_idx_to_schedule_from_target()
             thread_schedule_delete(idx);
             if (schedule_target->state != TS_RUNNABLE)
             {
-                panic("Thread %u is not active, but shall be scheduled",
+                panic("Thread %u is not active, but shall be scheduled\n",
                       schedule_target->global_id);
             }
             return target_thread_map_idx;
