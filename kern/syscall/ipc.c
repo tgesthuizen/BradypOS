@@ -45,40 +45,39 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
             // TOOD: Implement
             break;
         case L4_data_type_string_item:
+        {
+            struct L4_simple_string_item *item =
+                (struct L4_simple_string_item *)&from->utcb->mr[from_mr_offset];
+            if (to_acceptor.s == 0)
             {
-                struct L4_simple_string_item *item =
-                    (struct L4_simple_string_item *)&from->utcb
-                        ->mr[from_mr_offset];
-                if (to_acceptor.s == 0)
-                {
-                    return L4_ipc_error_message_overflow;
-                }
-                if (item->compound != 0)
-                {
-                    // TODO: Implement
-                    panic("Compound strings are not yet implemented\n");
-                }
-                struct L4_simple_string_item *to_item =
-                    (struct L4_simple_string_item *)&to->utcb->br[to_br_offset];
-                if (to_item->compound != 0)
-                {
-                    // TODO: Implement
-                    panic("Compound strings are not yet implemented\n");
-                }
-                if (to_item->length < item->length)
-                {
-                    return L4_ipc_error_message_overflow;
-                }
-                memcpy((void *)to_item->ptr, (void *)item->ptr, item->length);
-                struct L4_simple_string_item *res_item =
-                    (struct L4_simple_string_item *)&to->utcb->mr[to_mr_offset];
-                *res_item = *item;
-                res_item->ptr = to_item->ptr;
-                from_mr_offset += 2;
-                to_br_offset += 2;
-                to_mr_offset += 2;
+                return L4_ipc_error_message_overflow;
             }
-            break;
+            if (item->compound != 0)
+            {
+                // TODO: Implement
+                panic("Compound strings are not yet implemented\n");
+            }
+            struct L4_simple_string_item *to_item =
+                (struct L4_simple_string_item *)&to->utcb->br[to_br_offset];
+            if (to_item->compound != 0)
+            {
+                // TODO: Implement
+                panic("Compound strings are not yet implemented\n");
+            }
+            if (to_item->length < item->length)
+            {
+                return L4_ipc_error_message_overflow;
+            }
+            memcpy((void *)to_item->ptr, (void *)item->ptr, item->length);
+            struct L4_simple_string_item *res_item =
+                (struct L4_simple_string_item *)&to->utcb->mr[to_mr_offset];
+            *res_item = *item;
+            res_item->ptr = to_item->ptr;
+            from_mr_offset += 2;
+            to_br_offset += 2;
+            to_mr_offset += 2;
+        }
+        break;
         case L4_data_type_ctrl_xfer_item:
             // TODO: Implement
             break;

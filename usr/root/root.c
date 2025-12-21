@@ -1,3 +1,4 @@
+#include "clocks.h"
 #include "config.h"
 #include "memory.h"
 #include "variables.h"
@@ -76,6 +77,8 @@ int main()
     {
         kill_root_thread();
     }
+
+    setup_clocks();
 
     romfs_thread_id = L4_global_id(L4_USER_THREAD_START + 1, 1);
     romfs_server_utcb =

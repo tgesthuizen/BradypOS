@@ -18,7 +18,7 @@ static __attribute__((naked)) void unhandled_irq()
     __asm__ volatile("mrs r0, ipsr\n\t"
                      "sub r0, #16\n\t"
                      ".global unhandled_user_irq_num_in_r0\n"
-		     ".hidden unhandled_user_irq_num_in_r0\n"
+                     ".hidden unhandled_user_irq_num_in_r0\n"
                      "unhandled_user_irq_num_in_r0:\n\t"
                      "bkpt #0\n\t"
                      "b .\n\t"

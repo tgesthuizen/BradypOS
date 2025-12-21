@@ -18,6 +18,7 @@ target_include_directories(
 
 add_executable(
   root
+  clocks.c
   config.c
   data.s
   exec.c
@@ -39,6 +40,7 @@ target_link_libraries(
   libelf
   libromfs
   libroot
+  librp2040_utils
   libstring
   libvfs
 )
