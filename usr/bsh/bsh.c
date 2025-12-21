@@ -207,10 +207,8 @@ static bool readline(L4_thread_id term_service)
         {
             if (line_pos < SHELL_LINE_MAX - 2)
             {
-                line_buffer[line_pos++] = c;
                 line_buffer[line_pos++] = '\n';
                 line_buffer[line_pos] = '\0';
-                line_pos = 0;
                 return true; // full line ready
             }
         }
@@ -246,6 +244,7 @@ int main()
     {
         term_write(term_service, (const unsigned char *)"> ", 2);
 
+        line_pos = 0;
         while (!readline(term_service))
         {
             L4_yield();
