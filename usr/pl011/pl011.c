@@ -355,6 +355,8 @@ static bool uart_is_writable()
     return (*uart_reg(PL011_UARTFR) & (1 << PL011_FR_TXFF)) == 0;
 }
 
+static bool pending_nl = false;
+
 /* Non-blocking write: write up to len bytes into HW TX FIFO immediately.
    Return number actually written. */
 static size_t uart_write_nonblocking(const void *buffer, size_t len)
@@ -362,12 +364,34 @@ static size_t uart_write_nonblocking(const void *buffer, size_t len)
     const unsigned char *p = (const unsigned char *)buffer;
     size_t written = 0;
 
+    if (pending_nl)
+    {
+        if (!uart_is_writable())
+            return 0;
+        *uart_reg(PL011_UARTDR) = '\n';
+        pending_nl = false;
+    }
+
     for (size_t i = 0; i < len; ++i)
     {
         if (!uart_is_writable())
             break;
-        *uart_reg(PL011_UARTDR) = (uint32_t)p[i];
+
         ++written;
+        if (p[i] == '\n')
+        {
+            *uart_reg(PL011_UARTDR) = '\r';
+            // There's the slight bug that '\r' might be sent multiple times for
+            // one '\n'. This does not show visually though so it is ignored for
+            // now.
+            if (!uart_is_writable())
+            {
+                pending_nl = true;
+                break;
+            }
+        }
+
+        *uart_reg(PL011_UARTDR) = (uint32_t)p[i];
     }
     return written;
 }
