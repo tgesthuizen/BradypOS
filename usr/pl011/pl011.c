@@ -394,6 +394,11 @@ static void uart_set_break(bool enabled)
 
 static void uart_gpio_init(void)
 {
+    reset_component(reset_component_io_bank_0);
+    reset_component(reset_component_pads_bank0);
+    while (!component_ready(reset_component_io_bank_0) &&
+           !component_ready(reset_component_pads_bank0))
+        L4_yield();
     gpio_set_function(0, GPIO_FN2);
     gpio_set_function(1, GPIO_FN2);
 }
