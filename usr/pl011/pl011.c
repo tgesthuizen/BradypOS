@@ -307,6 +307,7 @@ static void uart_init(uint32_t baud)
 
     /* Disable UART while configuring */
     *uart_reg(PL011_UARTCR) = 0;
+    *uart_reg(PL011_UARTLCR_H) = 1 << PL011_LCRH_FEN;
 
     /* Program baud */
     uart_set_baud(UART_CLK_HZ, baud);
