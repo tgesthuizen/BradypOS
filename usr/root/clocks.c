@@ -258,6 +258,14 @@ static bool configure_clock(enum clock_index idx, uint32_t src, uint32_t auxsrc,
 
 void setup_clocks()
 {
+    if (CLOCKS[clk_sys].selected & (1 << CLOCK_SYS_SRC_CLK_SYS_AUX))
+    {
+        // It seems like clocks are already setup - skip initialization
+        // TODO: Properly investigate why the code below fails when clocks are
+        // already active. It's probably easily mitigated.
+        return;
+    }
+
     init_xosc();
     // Switch clk_ref to xosc
     CLOCKS[clk_ref].ctrl = 2;
