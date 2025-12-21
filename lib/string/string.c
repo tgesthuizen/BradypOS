@@ -17,6 +17,8 @@ int strcmp(const char *lhs, const char *rhs)
         const int diff = *lhs - *rhs;
         if (diff)
             return diff;
+        ++lhs;
+        ++rhs;
     }
     return (lhs ? *lhs : 0) - (rhs ? *rhs : 0);
 }
