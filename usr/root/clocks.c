@@ -136,6 +136,7 @@ struct rp2040_clock_t
 };
 
 #define CLOCKS ((volatile struct rp2040_clock_t *)CLOCKS_BASE)
+static uint32_t configured_freq[CLK_COUNT];
 
 enum clock_sys_auxsrc
 {
@@ -251,8 +252,7 @@ static bool configure_clock(enum clock_index idx, uint32_t src, uint32_t auxsrc,
 
     mmio_set32((uintptr_t)&clock->ctrl, (1 << clk_gpout0_ctrl_enable));
     clock->div = div;
-    // configured_freq[clk_index] = (uint32_t)(((uint64_t) src_freq << 8) /
-    // div);
+    configured_freq[idx] = (uint32_t)(((uint64_t)src_freq << 8) / div);
     return true;
 }
 
