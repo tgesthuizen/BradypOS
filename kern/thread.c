@@ -220,12 +220,14 @@ void schedule_next_thread()
         tcb_store[current_thread_idx].state == TS_RUNNABLE)
         thread_schedule_insert(current_thread_idx);
 
+    // Disable interrupts so that systick cannot read the kalarm heap with a
+    // race condition. Also make sure that schedule_target is not changed under
+    // our feet.
+    disable_interrupts();
     const unsigned idx = schedule_target != NULL
                              ? find_thread_idx_to_schedule_from_target()
                              : find_thread_idx_to_schedule();
-    // Disable interrupts so that systick cannot read the kalarm heap with a
-    // race condition.
-    disable_interrupts();
+
     // TODO: Actual quota management
     update_kalarm_event(&reschedule_event, get_current_time() + 10);
     enable_interrupts();
