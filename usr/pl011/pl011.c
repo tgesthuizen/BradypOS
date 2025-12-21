@@ -119,7 +119,7 @@ enum pl011_parity
 enum
 {
     UART_CLK_HZ = 125000000,
-    UART_BAUD = 125200,
+    UART_BAUD = 115200,
 };
 
 #define RX_RING_CAP IPC_BUFFER_SIZE
