@@ -330,14 +330,22 @@ static void uart_drain_hw_rx_to_ring(void)
 {
     while (uart_is_readable())
     {
-        unsigned char c = (unsigned)(*uart_reg(PL011_UARTDR) & 0xffu);
+        unsigned current_char = *uart_reg(PL011_UARTDR);
         if (rxrb_free(&rxrb) == 0)
         {
             /* ring full: drop the byte (or drop oldest by pushing) */
             /* We choose to push which will overwrite oldest via rxrb_push logic
              */
         }
-        rxrb_push(&rxrb, c);
+        unsigned error_mask = (current_char >> 8) & 0xf;
+        if (error_mask)
+        {
+            // An error has occured receiving the character
+            // Reset it and ignore the character
+            *uart_reg(PL011_UARTRSR) = error_mask;
+            continue;
+        }
+        rxrb_push(&rxrb, current_char & 0xff);
     }
 }
 
