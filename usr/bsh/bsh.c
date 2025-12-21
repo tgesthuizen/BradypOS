@@ -68,20 +68,32 @@ enum
 static bool term_write(L4_thread_id term_service, const unsigned char *buf,
                        size_t size)
 {
-    L4_load_mr(
-        TERM_WRITE_OP,
-        (L4_msg_tag_t){.u = 1, .t = 2, .flags = 0, .label = TERM_WRITE}.raw);
-    L4_load_mr(TERM_WRITE_FLAGS, 0);
-    struct L4_simple_string_item item = {.c = 0,
-                                         .type = L4_data_type_string_item,
-                                         .compound = 0,
-                                         .length = size,
-                                         .ptr = (unsigned)buf};
-    L4_load_mrs(TERM_WRITE_BUF, 2, (unsigned *)&item);
-    L4_thread_id from;
-    L4_msg_tag_t answer_tag = L4_ipc(term_service, term_service,
-                                     L4_timeouts(L4_never, L4_never), &from);
-    return !L4_ipc_failed(answer_tag) && answer_tag.label == TERM_WRITE_RET;
+    while (size)
+    {
+        L4_load_mr(
+            TERM_WRITE_OP,
+            (L4_msg_tag_t){.u = 1, .t = 2, .flags = 0, .label = TERM_WRITE}
+                .raw);
+        L4_load_mr(TERM_WRITE_FLAGS, 0);
+        struct L4_simple_string_item item = {.c = 0,
+                                             .type = L4_data_type_string_item,
+                                             .compound = 0,
+                                             .length = size,
+                                             .ptr = (unsigned)buf};
+        L4_load_mrs(TERM_WRITE_BUF, 2, (unsigned *)&item);
+        L4_thread_id from;
+        L4_msg_tag_t answer_tag = L4_ipc(
+            term_service, term_service, L4_timeouts(L4_never, L4_never), &from);
+        if (L4_ipc_failed(answer_tag) && answer_tag.label != TERM_WRITE_RET)
+        {
+            return false;
+        }
+        unsigned written;
+        L4_store_mr(TERM_WRITE_RET_SIZE, &written);
+        buf += written;
+        size -= written;
+    }
+    return true;
 }
 
 static void write_buffer(const unsigned char *buf, size_t size)
