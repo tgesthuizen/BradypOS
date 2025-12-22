@@ -75,7 +75,7 @@ For the next release the following features should be implemented:
 ## User space
 
 - [ ] Add basic commands to shell
-- [ ] Implement a driver for the serial port
+- [x] Implement a driver for the serial port
 - [ ] Port newlib to support standard, hosted C programs
 
 # Acknowledgments
