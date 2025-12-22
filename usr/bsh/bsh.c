@@ -255,7 +255,7 @@ void exec_command(char **args)
             return;
         }
     }
-    static const unsigned char invalid_msg[] = "Invalid command";
+    static const unsigned char invalid_msg[] = "Invalid command\n";
     term_write(term_service, invalid_msg, sizeof invalid_msg);
 }
 
