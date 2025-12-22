@@ -44,13 +44,19 @@ static void handle_cd_builtin(char **cmd)
     const char *const dir = *cmd++;
     if (*cmd)
     {
+        static const unsigned char usage[] = "Usage: cd <dir>\n";
+        term_write(term_service, usage, sizeof usage);
         // TODO: Print error about usage
+        last_exit_code = -1;
         return;
     }
     int ret = (*dir == '/') ? open_recursive(ROOT_FD, dir + 1)
                             : open_recursive(WD_FD, dir);
     if (ret == -1)
     {
+        static const unsigned char err_msg[] =
+            "Could not open target directory\n";
+        term_write(term_service, err_msg, sizeof err_msg);
         last_exit_code = -1;
         return;
     }
@@ -65,7 +71,8 @@ static void handle_pwd_builtin(char **cmd)
 {
     if (cmd[1] != NULL)
     {
-        // TODO: Print usage.
+        static const unsigned char usage[] = "Usage: pwd\n";
+        term_write(term_service, usage, sizeof usage);
         last_exit_code = -1;
         return;
     }
@@ -74,6 +81,9 @@ static void handle_pwd_builtin(char **cmd)
         stat(romfs_service, WD_FD, (char *)ipc_buffer);
     if (!stat_res.success)
     {
+        static const unsigned char err_msg[] =
+            "Internal error: Could not stat current directory\n";
+        term_write(term_service, err_msg, sizeof err_msg);
         last_exit_code = -2;
         return;
     }
@@ -91,12 +101,18 @@ static void handle_ls_builtin(char **cmd)
         stat(romfs_service, WD_FD, (char *)ipc_buffer);
     if (!stat_res.success)
     {
+        static const unsigned char err_msg[] =
+            "Internal error: Could not stat current directory\n";
+        term_write(term_service, err_msg, sizeof err_msg);
         last_exit_code = -1;
         return;
     }
     // Consistency check: PWD is a directory
     if (stat_res.type != VFS_FT_DIRECTORY)
     {
+        static const unsigned char err_msg[] =
+            "Internal error: Current directory is not a directory\n";
+        term_write(term_service, err_msg, sizeof err_msg);
         last_exit_code = -1;
         return;
     }
