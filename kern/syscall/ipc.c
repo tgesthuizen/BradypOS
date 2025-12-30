@@ -38,8 +38,6 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
             // TODO: Validate mapping and add to address space
             memcpy(&to->utcb->mr[to_mr_offset], &from->utcb->mr[from_mr_offset],
                    sizeof(unsigned) * 2);
-            from_mr_offset += 2;
-            to_mr_offset += 2;
             break;
         case L4_data_type_grant_item:
             // TOOD: Implement
@@ -73,16 +71,18 @@ static enum L4_ipc_error_code copy_payload(struct tcb_t *from, struct tcb_t *to)
                 (struct L4_simple_string_item *)&to->utcb->mr[to_mr_offset];
             *res_item = *item;
             res_item->ptr = to_item->ptr;
-            from_mr_offset += 2;
             to_br_offset += 2;
-            to_mr_offset += 2;
         }
         break;
         case L4_data_type_ctrl_xfer_item:
             // TODO: Implement
             break;
         }
+
+        from_mr_offset += 2;
+        to_mr_offset += 2;
     }
+
     to->utcb->sender = from->global_id;
     to->utcb->mr[0] = (L4_msg_tag_t){.u = msg_tag.u,
                                      .t = to_mr_offset - (msg_tag.u + 1),

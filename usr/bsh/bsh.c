@@ -161,6 +161,13 @@ static void startup()
     }
 
     close(romfs_service, ETC_FD);
+
+    static const char cur_dir_path[] = ".";
+    if (!open_at(romfs_service, ROOT_FD, WD_FD, cur_dir_path,
+                 sizeof(cur_dir_path) - 1))
+    {
+        return;
+    }
 }
 
 static unsigned char line_buffer[MAX_COMMAND_LINE_LEN + 1];
