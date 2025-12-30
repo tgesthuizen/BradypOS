@@ -1,4 +1,5 @@
 #include "builtins.h"
+#include "fileio.h"
 #include "parser.h"
 #include <l4/ipc.h>
 #include <l4/schedule.h>
@@ -60,14 +61,6 @@ static L4_thread_id wait_for_service(const char *svc)
     }
     return tid;
 }
-
-enum
-{
-    ROOT_FD = 3,
-    ETC_FD = 4,
-    MOTD_FD = 5,
-    VERSION_FD = 6,
-};
 
 bool term_write(L4_thread_id term_service, const unsigned char *buf,
                 size_t size)
