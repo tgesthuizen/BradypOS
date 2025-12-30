@@ -1,5 +1,6 @@
 #include "parser.h"
 #include <stdbool.h>
+#include <stddef.h>
 
 static char cmd_buffer[MAX_COMMAND_LINE_LEN + 1];
 static char *cmd_arg[MAX_COMMAND_ARGS + 1];
@@ -189,6 +190,7 @@ bool parse()
             return false;
         }
     }
+    *cmd_arg_pos = NULL;
 
     exec_command(cmd_arg);
 
