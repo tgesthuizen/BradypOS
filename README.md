@@ -9,8 +9,7 @@ Not to be confused:
 <tr> <td> Bradypus </td> <td> BradypOS </td> <tr>
 <tr> <td>
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Bradypus.jpg/800px-Bradypus.jpg" width="30%">
-
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Bicho-pregui%C3%A7a_3.jpg/960px-Bicho-pregui%C3%A7a_3.jpg" width="50%">
 </td>
 <td>
 
